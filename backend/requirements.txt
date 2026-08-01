@@ -1,0 +1,13 @@
+Django==5.0.2
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.3.1
+PyMySQL==1.1.0
+cryptography==42.0.2
+celery==5.3.6
+redis==5.0.1
+requests==2.31.0
+langchain==0.1.12
+langchain-community==0.0.28
+langgraph==0.0.27
+ollama==0.1.7
