@@ -43,7 +43,7 @@ export default function Dashboard() {
   const handleAnalyze = async (e) => {
     e.preventDefault();
     if (!target) return;
-    
+
     setLoading(true);
     setResults(null);
     try {
@@ -67,9 +67,9 @@ export default function Dashboard() {
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1>CyberGuardian AI <span style={{fontSize: '0.8rem', color: 'var(--accent-color)'}}>Dashboard</span></h1>
+        <h1>CyberGuardian AI <span style={{ fontSize: '0.8rem', color: 'var(--accent-color)' }}>Dashboard</span></h1>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <span>Agent Status: <strong style={{color: 'var(--success-color)'}}>Autonomous Mode Active</strong></span>
+          <span>Agent Status: <strong style={{ color: 'var(--success-color)' }}>Autonomous Mode Active</strong></span>
           {user && <span style={{ color: 'var(--text-muted)' }}>Welcome, <strong>{user.username}</strong></span>}
           <button onClick={logoutUser} className="glass-panel" style={{ padding: '0.5rem 1rem', color: 'var(--text-main)', cursor: 'pointer', background: 'transparent', border: '1px solid var(--border-color)' }}>Logout</button>
         </div>
@@ -77,8 +77,8 @@ export default function Dashboard() {
 
       {/* Navigation Tabs */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-        <button 
-          onClick={() => setActiveTab('scanner')} 
+        <button
+          onClick={() => setActiveTab('scanner')}
           className="glass-panel"
           style={{
             padding: '0.75rem 1.5rem',
@@ -92,8 +92,8 @@ export default function Dashboard() {
         >
           Domain Threat Scanner
         </button>
-        <button 
-          onClick={() => setActiveTab('logs')} 
+        <button
+          onClick={() => setActiveTab('logs')}
           className="glass-panel"
           style={{
             padding: '0.75rem 1.5rem',
@@ -112,8 +112,8 @@ export default function Dashboard() {
       {activeTab === 'scanner' ? (
         <>
           <form onSubmit={handleAnalyze} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={target}
               onChange={(e) => setTarget(e.target.value)}
               placeholder="Enter a URL, IP address, or Domain to analyze..."

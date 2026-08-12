@@ -2,8 +2,16 @@
 Django settings for cyberguardian project.
 """
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load .env file if present (checks backend/ first, then project root)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env') or load_dotenv(BASE_DIR.parent / '.env')
+except ImportError:
+    pass  # python-dotenv not installed; use system environment variables
 
 SECRET_KEY = 'django-insecure-dummy-key-for-cyberguardian'
 DEBUG = True
@@ -24,6 +32,7 @@ INSTALLED_APPS = [
     # Local apps
     'users',
     'core_engine',
+    'scanner',
 ]
 
 MIDDLEWARE = [
@@ -57,12 +66,30 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'cyberguardian.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.mysql')
+
+if DB_ENGINE == 'django.db.backends.sqlite3' or os.environ.get('USE_SQLITE', 'False') == 'True':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.environ.get('DB_NAME', 'CyberDB'),
+            'USER': os.environ.get('DB_USER', 'root'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
+            'PORT': os.environ.get('DB_PORT', '3306'),
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'charset': 'utf8mb4',
+            },
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
@@ -83,14 +110,7 @@ AUTH_USER_MODEL = 'users.User'
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-import os
 
-# Load .env file if present (checks backend/ first, then project root)
-try:
-    from dotenv import load_dotenv
-    load_dotenv(BASE_DIR / '.env') or load_dotenv(BASE_DIR.parent / '.env')
-except ImportError:
-    pass  # python-dotenv not installed; use system environment variables
 
 # SMTP Configuration
 # Falls back to console backend if credentials are not configured,
@@ -115,3 +135,23 @@ else:
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
 TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
+
+# Django REST Framework — JWT auth as default
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+# SimpleJWT token configuration
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
