@@ -40,6 +40,26 @@ export default function Navbar() {
             fontSize: '0.875rem'
           }}>Dashboard</Link>
           
+          <Link to="/threat-intel" style={{
+            padding: '0.5rem 0.9rem',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            color: isActive('/threat-intel') ? '#fff' : 'var(--text-muted)',
+            background: isActive('/threat-intel') ? 'var(--accent-color)' : 'transparent',
+            fontWeight: '600',
+            fontSize: '0.875rem'
+          }}>Threat Intel</Link>
+
+          <Link to="/file-analyzer" style={{
+            padding: '0.5rem 0.9rem',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            color: isActive('/file-analyzer') ? '#fff' : 'var(--text-muted)',
+            background: isActive('/file-analyzer') ? 'var(--accent-color)' : 'transparent',
+            fontWeight: '600',
+            fontSize: '0.875rem'
+          }}>File Analyzer</Link>
+
           <Link to="/scan" style={{
             padding: '0.5rem 0.9rem',
             borderRadius: '6px',
@@ -160,6 +180,7 @@ export default function Navbar() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {[
               ['/dashboard', '📊 Dashboard'],
+              ['/threat-intel', '🛡️ Threat Intel'],
               ['/scan', '🔍 Quick Scan'],
               ['/history', '📜 My History'],
               ['/reports', '📑 Reports'],

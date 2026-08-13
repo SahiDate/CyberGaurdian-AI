@@ -5,8 +5,12 @@ from django.contrib.auth.hashers import make_password
 def get_existing_columns(table_name):
     """Return set of column names that already exist in the table."""
     with connection.cursor() as cursor:
-        cursor.execute(f"SHOW COLUMNS FROM `{table_name}`")
-        return {row[0] for row in cursor.fetchall()}
+        if connection.vendor == 'sqlite':
+            cursor.execute(f"PRAGMA table_info(`{table_name}`)")
+            return {row[1] for row in cursor.fetchall()}
+        else:
+            cursor.execute(f"SHOW COLUMNS FROM `{table_name}`")
+            return {row[0] for row in cursor.fetchall()}
 
 
 def add_rbac_columns(apps, schema_editor):
@@ -15,6 +19,9 @@ def add_rbac_columns(apps, schema_editor):
     existing = get_existing_columns(table)
 
     with connection.cursor() as cursor:
+        dt_type = "DATETIME" if connection.vendor == 'sqlite' else "DATETIME(6)"
+        dt_default = "'2026-01-01 00:00:00'" if connection.vendor == 'sqlite' else "NOW()"
+
         if 'role' not in existing:
             cursor.execute(
                 "ALTER TABLE `users_user` ADD COLUMN `role` VARCHAR(20) NOT NULL DEFAULT 'USER'"
@@ -27,12 +34,12 @@ def add_rbac_columns(apps, schema_editor):
 
         if 'created_at' not in existing:
             cursor.execute(
-                "ALTER TABLE `users_user` ADD COLUMN `created_at` DATETIME(6) NOT NULL DEFAULT NOW()"
+                f"ALTER TABLE `users_user` ADD COLUMN `created_at` {dt_type} NOT NULL DEFAULT {dt_default}"
             )
 
         if 'updated_at' not in existing:
             cursor.execute(
-                "ALTER TABLE `users_user` ADD COLUMN `updated_at` DATETIME(6) NOT NULL DEFAULT NOW()"
+                f"ALTER TABLE `users_user` ADD COLUMN `updated_at` {dt_type} NOT NULL DEFAULT {dt_default}"
             )
 
 
@@ -51,17 +58,17 @@ def seed_admin_user(apps, schema_editor):
     """Seed initial admin account if not already present."""
     User = apps.get_model('users', 'User')
     if not User.objects.filter(username='admin').exists():
-        User.objects.create(
+        u = User.objects.create(
             username='admin',
             email='admin@cyberguardian.io',
             password=make_password('AdminPassword123!'),
-            role='ADMIN',
-            status='ACTIVE',
             is_active=True,
             is_email_verified=True,
             is_staff=True,
             is_superuser=True
         )
+        with connection.cursor() as cursor:
+            cursor.execute(f"UPDATE `users_user` SET `role`='ADMIN', `status`='ACTIVE' WHERE `id`={u.id}")
 
 
 class Migration(migrations.Migration):

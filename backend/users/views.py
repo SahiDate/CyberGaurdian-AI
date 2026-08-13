@@ -27,9 +27,12 @@ from django.conf import settings
 from scanner.models import ScanResult, Report, ThreatIntelResult, FileAnalysis, Incident, AIActivity
 from scanner.serializers import (
     ScanResultSerializer, ScanResultListSerializer,
-    ReportSerializer, ThreatIntelResultSerializer, FileAnalysisSerializer,
-    IncidentSerializer, AIActivitySerializer
+    ReportSerializer, ThreatIntelResultSerializer, ThreatIntelScanRequestSerializer,
+    FileAnalysisSerializer, FileUploadSerializer, IncidentSerializer, AIActivitySerializer
 )
+from scanner.services.threat_intel.service import ThreatIntelligenceService
+from scanner.services.file_analyzer.service import FileAnalyzerService
+from scanner.validators import ValidationError as TargetValidationError
 
 
 def log_admin_action(admin, action, target_user=None, target_record="", result="SUCCESS", request=None):
@@ -1285,3 +1288,360 @@ class AdminAnalyticsView(APIView):
             'module_usage': module_usage,
             'incident_status': list(incident_status),
         }, status=status.HTTP_200_OK)
+
+
+# ==========================================
+# PHASE 3 — THREAT INTELLIGENCE API VIEWS
+# ==========================================
+
+class ThreatIntelScanView(APIView):
+    """
+    User Portal Threat Intelligence Scan Endpoint.
+    POST /api/threat-intelligence/scan/
+    Strictly binds request.user to record ownership.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ThreatIntelScanRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        target = serializer.validated_data.get('target')
+        target_type = serializer.validated_data.get('target_type')
+
+        try:
+            service = ThreatIntelligenceService()
+            result_record = service.execute_scan(target=target, target_type=target_type, user=request.user)
+            out_serializer = ThreatIntelResultSerializer(result_record)
+            return Response(out_serializer.data, status=status.HTTP_200_OK)
+        except TargetValidationError as ve:
+            return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Threat scan execution failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ThreatIntelUserHistoryView(APIView):
+    """
+    User Portal Threat Intelligence History Endpoint.
+    GET /api/threat-intelligence/history/
+    Strictly user-isolated (ThreatIntelResult.objects.filter(user=request.user)).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        queryset = ThreatIntelResult.objects.filter(user=request.user)
+
+        target_type = request.query_params.get('target_type')
+        severity = request.query_params.get('severity')
+        search = request.query_params.get('search')
+
+        if target_type and target_type != 'ALL':
+            queryset = queryset.filter(target_type__iexact=target_type)
+        if severity and severity != 'ALL':
+            queryset = queryset.filter(severity__iexact=severity)
+        if search:
+            queryset = queryset.filter(Q(target__icontains=search) | Q(provider__icontains=search))
+
+        queryset = queryset.order_by('-detected_at')
+        serializer = ThreatIntelResultSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ThreatIntelUserDetailView(APIView):
+    """
+    User Portal Threat Intelligence Detail Endpoint.
+    GET /api/threat-intelligence/<int:pk>/
+    Strictly user-isolated. User A cannot view User B's result.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        result = ThreatIntelResult.objects.filter(user=request.user, pk=pk).first()
+        if not result:
+            return Response({"error": "Threat intelligence record not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = ThreatIntelResultSerializer(result)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ThreatIntelAdminListView(APIView):
+    """
+    SOC Admin Portal Platform-Wide Threat Intelligence Monitoring Endpoint.
+    GET /api/admin/threat-intelligence/
+    Requires Admin/SOC_Analyst role.
+    Supports filtering by user_id, target_type, severity, provider, status, date_from, date_to, search.
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        queryset = ThreatIntelResult.objects.all().select_related('user')
+
+        user_id = request.query_params.get('user_id')
+        target_type = request.query_params.get('target_type')
+        severity = request.query_params.get('severity')
+        provider = request.query_params.get('provider')
+        status_filter = request.query_params.get('status')
+        search = request.query_params.get('search')
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        if target_type and target_type != 'ALL':
+            queryset = queryset.filter(target_type__iexact=target_type)
+        if severity and severity != 'ALL':
+            queryset = queryset.filter(severity__iexact=severity)
+        if provider and provider != 'ALL':
+            queryset = queryset.filter(provider__icontains=provider)
+        if status_filter and status_filter != 'ALL':
+            queryset = queryset.filter(status__iexact=status_filter)
+        if search:
+            queryset = queryset.filter(
+                Q(target__icontains=search) | Q(user__username__icontains=search) | Q(provider__icontains=search)
+            )
+        if date_from:
+            queryset = queryset.filter(detected_at__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(detected_at__lte=date_to)
+
+        queryset = queryset.order_by('-detected_at')
+        serializer = ThreatIntelResultSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ThreatIntelAdminDetailView(APIView):
+    """
+    SOC Admin Portal Threat Intelligence Detail Endpoint.
+    GET /api/admin/threat-intelligence/<int:pk>/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, pk):
+        result = ThreatIntelResult.objects.filter(pk=pk).first()
+        if not result:
+            return Response({"error": "Threat record not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        log_admin_action(request.user, "VIEW_THREAT_INTEL_RECORD", target_record=f"ThreatIntel #{pk}: {result.target}", request=request)
+        serializer = ThreatIntelResultSerializer(result)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ThreatIntelAdminAnalyticsView(APIView):
+    """
+    SOC Admin Portal Threat Intelligence Analytics Endpoint.
+    GET /api/admin/threat-intelligence/analytics/
+    Calculates real database aggregations for threat monitoring dashboards.
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        today = timezone.now().date()
+
+        total_checks = ThreatIntelResult.objects.count()
+        scans_today = ThreatIntelResult.objects.filter(detected_at__date=today).count()
+
+        critical_count = ThreatIntelResult.objects.filter(severity__iexact='CRITICAL').count()
+        high_count = ThreatIntelResult.objects.filter(severity__iexact='HIGH').count()
+        medium_count = ThreatIntelResult.objects.filter(severity__iexact='MEDIUM').count()
+        low_count = ThreatIntelResult.objects.filter(severity__iexact='LOW').count()
+
+        failures_count = ThreatIntelResult.objects.filter(status__in=['ERROR', 'TIMEOUT', 'UNAUTHORIZED', 'RATE_LIMITED']).count()
+
+        by_target_type = ThreatIntelResult.objects.values('target_type').annotate(count=Count('id')).order_by('-count')
+
+        return Response({
+            "total_checks": total_checks,
+            "scans_today": scans_today,
+            "threats_detected": critical_count + high_count + medium_count,
+            "severity_breakdown": {
+                "critical": critical_count,
+                "high": high_count,
+                "medium": medium_count,
+                "low": low_count
+            },
+            "failures_count": failures_count,
+            "by_target_type": list(by_target_type)
+        }, status=status.HTTP_200_OK)
+
+
+# ─── PHASE 4: FILE ANALYZER MODULE VIEWS ────────────────────────────────────
+
+class FileAnalysisUploadView(APIView):
+    """
+    User Portal File Upload & Static Security Analysis.
+    POST /api/file-analysis/analyze/
+    Binds strictly to request.user (ignores user_id).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if 'file' not in request.FILES:
+            return Response({"error": "No file uploaded. 'file' parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        file_obj = request.FILES['file']
+        
+        try:
+            service = FileAnalyzerService()
+            record = service.analyze_uploaded_file(file_obj, request.user)
+            serializer = FileAnalysisSerializer(record)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ValueError as ve:
+            return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({"error": f"File analysis failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class FileAnalysisUserHistoryView(APIView):
+    """
+    User Portal File Analysis History.
+    GET /api/file-analysis/history/
+    Strictly isolated: returns FileAnalysis.objects.filter(user=request.user)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        queryset = FileAnalysis.objects.filter(user=request.user)
+
+        detected_type = request.query_params.get('detected_type')
+        if detected_type and detected_type != 'ALL':
+            queryset = queryset.filter(detected_type__iexact=detected_type)
+
+        severity = request.query_params.get('severity')
+        if severity and severity != 'ALL':
+            queryset = queryset.filter(severity__iexact=severity)
+
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(original_filename__icontains=search) |
+                Q(sha256__icontains=search) |
+                Q(detected_type__icontains=search)
+            )
+
+        serializer = FileAnalysisSerializer(queryset[:100], many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class FileAnalysisUserDetailView(APIView):
+    """
+    User Portal File Analysis Detail.
+    GET /api/file-analysis/<int:pk>/
+    Strictly isolated to user ownership.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            record = FileAnalysis.objects.get(pk=pk, user=request.user)
+            serializer = FileAnalysisSerializer(record)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except FileAnalysis.DoesNotExist:
+            return Response({"error": "File analysis record not found or access denied."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class FileAnalysisAdminListView(APIView):
+    """
+    SOC Admin Portal File Analysis Platform-Wide Monitoring View.
+    GET /api/admin/file-analysis/
+    Protected by IsAdminRole.
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        queryset = FileAnalysis.objects.all()
+
+        user_id = request.query_params.get('user_id')
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+
+        detected_type = request.query_params.get('detected_type')
+        if detected_type and detected_type != 'ALL':
+            queryset = queryset.filter(detected_type__iexact=detected_type)
+
+        severity = request.query_params.get('severity')
+        if severity and severity != 'ALL':
+            queryset = queryset.filter(severity__iexact=severity)
+
+        analysis_status = request.query_params.get('analysis_status')
+        if analysis_status and analysis_status != 'ALL':
+            queryset = queryset.filter(analysis_status__iexact=analysis_status)
+
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(original_filename__icontains=search) |
+                Q(sha256__icontains=search) |
+                Q(user__username__icontains=search) |
+                Q(detected_type__icontains=search)
+            )
+
+        serializer = FileAnalysisSerializer(queryset[:200], many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class FileAnalysisAdminDetailView(APIView):
+    """
+    SOC Admin Portal File Analysis Detail.
+    GET /api/admin/file-analysis/<int:pk>/
+    Protected by IsAdminRole.
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, pk):
+        try:
+            record = FileAnalysis.objects.get(pk=pk)
+            serializer = FileAnalysisSerializer(record)
+
+            AdminAuditLog.objects.create(
+                admin=request.user,
+                action='ADMIN_VIEW_FILE_ANALYSIS',
+                target_user=record.user,
+                target_record=f"FileAnalysis #{record.id} ({record.original_filename})"
+            )
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except FileAnalysis.DoesNotExist:
+            return Response({"error": "File analysis record not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class FileAnalysisAdminAnalyticsView(APIView):
+    """
+    SOC Admin Portal File Analysis Real DB Aggregations Endpoint.
+    GET /api/admin/file-analysis/analytics/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        today = timezone.now().date()
+
+        total_analyzed = FileAnalysis.objects.count()
+        analyzed_today = FileAnalysis.objects.filter(created_at__date=today).count()
+
+        critical_count = FileAnalysis.objects.filter(severity__iexact='CRITICAL').count()
+        high_count = FileAnalysis.objects.filter(severity__iexact='HIGH').count()
+        medium_count = FileAnalysis.objects.filter(severity__iexact='MEDIUM').count()
+        low_count = FileAnalysis.objects.filter(severity__iexact='LOW').count()
+
+        yara_matches_count = FileAnalysis.objects.filter(yara_status='MATCH').count()
+        vt_flagged_count = FileAnalysis.objects.filter(virustotal_status='SUCCESS').exclude(virustotal_detections__malicious=0).count()
+
+        by_detected_type = FileAnalysis.objects.values('detected_type').annotate(count=Count('id')).order_by('-count')
+
+        return Response({
+            "total_analyzed": total_analyzed,
+            "analyzed_today": analyzed_today,
+            "threats_detected": critical_count + high_count + medium_count,
+            "severity_breakdown": {
+                "critical": critical_count,
+                "high": high_count,
+                "medium": medium_count,
+                "low": low_count
+            },
+            "yara_matches_count": yara_matches_count,
+            "vt_flagged_count": vt_flagged_count,
+            "by_detected_type": list(by_detected_type)
+        }, status=status.HTTP_200_OK)
+
+

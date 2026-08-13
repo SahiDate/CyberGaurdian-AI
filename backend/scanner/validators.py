@@ -85,11 +85,109 @@ def _is_valid_domain(hostname: str) -> bool:
 
 
 def _is_valid_ip(hostname: str) -> bool:
-    """Return True if hostname is a valid IPv4 address."""
-    parts = hostname.split('.')
-    if len(parts) != 4:
-        return False
+    """Return True if hostname is a valid IPv4 or IPv6 address."""
+    import ipaddress
     try:
-        return all(0 <= int(p) <= 255 for p in parts)
+        ipaddress.ip_address(hostname)
+        return True
     except ValueError:
         return False
+
+
+def _is_valid_hash(raw_hash: str) -> bool:
+    """Return True if raw_hash is a valid SHA-256, SHA-1, or MD5 hex digest."""
+    clean = raw_hash.strip()
+    return bool(re.match(r'^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$', clean))
+
+
+def detect_target_type(target: str) -> str:
+    """
+    Auto-detect the target type from the raw input string.
+    Returns: 'URL', 'IP', 'FILE_HASH', or 'DOMAIN'
+    """
+    if not target or not target.strip():
+        raise ValidationError("Target input cannot be empty.")
+
+    clean = target.strip()
+
+    # 1. URL check
+    if clean.startswith(('http://', 'https://')):
+        return 'URL'
+
+    # 2. IP check (IPv4 / IPv6)
+    if _is_valid_ip(clean):
+        return 'IP'
+
+    # 3. File Hash check (32, 40, 64 hex chars)
+    if _is_valid_hash(clean):
+        return 'FILE_HASH'
+
+    # 4. Domain check
+    if _is_valid_domain(clean):
+        return 'DOMAIN'
+
+    # Fallback heuristic: if it looks like a URL without scheme e.g. domain/path
+    if '/' in clean:
+        return 'URL'
+
+    # Default to DOMAIN if it passes basic domain format
+    return 'DOMAIN'
+
+
+def validate_target_format(target: str, target_type: str = None) -> dict:
+    """
+    Validate target string against target_type (or auto-detect if target_type is None/empty).
+    
+    Returns dict:
+        {
+            "target": <normalized_target_string>,
+            "target_type": "DOMAIN" | "URL" | "IP" | "FILE_HASH",
+        }
+        
+    Raises ValidationError if invalid.
+    """
+    if not target or not target.strip():
+        raise ValidationError("Target input cannot be empty.")
+
+    clean_target = target.strip()
+    detected_type = detect_target_type(clean_target)
+
+    if not target_type or target_type.upper() not in ('DOMAIN', 'URL', 'IP', 'FILE_HASH'):
+        final_type = detected_type
+    else:
+        final_type = target_type.upper()
+
+    # Detailed validation based on final_type
+    if final_type == 'IP':
+        if not _is_valid_ip(clean_target):
+            raise ValidationError(f"'{clean_target}' is not a valid IPv4 or IPv6 address.")
+    elif final_type == 'FILE_HASH':
+        if not _is_valid_hash(clean_target):
+            raise ValidationError(
+                f"'{clean_target}' is not a valid hex file hash. "
+                "Expected SHA-256 (64 hex characters), SHA-1 (40 hex), or MD5 (32 hex)."
+            )
+        clean_target = clean_target.lower()
+    elif final_type == 'URL':
+        if '://' not in clean_target:
+            clean_target = 'https://' + clean_target
+        parsed = urlparse(clean_target)
+        if parsed.scheme.lower() not in SUPPORTED_SCHEMES:
+            raise ValidationError(f"Unsupported URL scheme '{parsed.scheme}'. Only HTTP and HTTPS are supported.")
+        if not parsed.hostname:
+            raise ValidationError("Invalid URL: missing hostname.")
+    elif final_type == 'DOMAIN':
+        # If user passed a full URL, strip scheme and path for domain type
+        if '://' in clean_target:
+            parsed = urlparse(clean_target)
+            clean_target = parsed.hostname or clean_target
+        # Strip path or port if present
+        clean_target = clean_target.split('/')[0].split(':')[0]
+        if not _is_valid_domain(clean_target) and not _is_valid_ip(clean_target):
+            raise ValidationError(f"'{clean_target}' is not a valid domain name.")
+
+    return {
+        "target": clean_target,
+        "target_type": final_type,
+    }
+

@@ -110,6 +110,12 @@ AUTH_USER_MODEL = 'users.User'
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+# Phase 4 — Secure File Analysis Configuration
+MAX_FILE_ANALYSIS_SIZE = int(os.environ.get('MAX_FILE_ANALYSIS_SIZE', 25 * 1024 * 1024))  # Default: 25 MB
+SECURE_UPLOADS_DIR = BASE_DIR / 'media' / 'secure_uploads'
+os.makedirs(SECURE_UPLOADS_DIR, exist_ok=True)
+
+
 
 
 # SMTP Configuration

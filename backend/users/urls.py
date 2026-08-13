@@ -13,7 +13,11 @@ from .views import (
     AdminThreatAnalyticsView, AdminAuditLogsView, AdminSettingsView, AdminAllScansListView,
     AdminAllReportsListView, AdminAllThreatsListView, AdminAllIncidentsListView,
     AdminAllFileAnalysesListView, AdminAllAIActivitiesListView,
-    AdminDashboardView, AdminIncidentUpdateView, AdminAnalyticsView
+    AdminDashboardView, AdminIncidentUpdateView, AdminAnalyticsView,
+    ThreatIntelScanView, ThreatIntelUserHistoryView, ThreatIntelUserDetailView,
+    ThreatIntelAdminListView, ThreatIntelAdminDetailView, ThreatIntelAdminAnalyticsView,
+    FileAnalysisUploadView, FileAnalysisUserHistoryView, FileAnalysisUserDetailView,
+    FileAnalysisAdminListView, FileAnalysisAdminDetailView, FileAnalysisAdminAnalyticsView
 )
 
 urlpatterns = [
@@ -49,6 +53,16 @@ urlpatterns = [
     path('api/ai-activity/', UserAIActivityListView.as_view(), name='user_ai_activity'),
     path('api/notifications/', UserNotificationsListView.as_view(), name='user_notifications'),
     path('api/notifications/<int:pk>/', UserNotificationsListView.as_view(), name='user_notification_detail'),
+
+    # Phase 3 User Threat Intelligence Endpoints
+    path('api/threat-intelligence/scan/', ThreatIntelScanView.as_view(), name='threat_intel_scan'),
+    path('api/threat-intelligence/history/', ThreatIntelUserHistoryView.as_view(), name='threat_intel_history'),
+    path('api/threat-intelligence/<int:pk>/', ThreatIntelUserDetailView.as_view(), name='threat_intel_detail'),
+
+    # Phase 4 User File Analysis Endpoints
+    path('api/file-analysis/analyze/', FileAnalysisUploadView.as_view(), name='file_analysis_upload'),
+    path('api/file-analysis/history/', FileAnalysisUserHistoryView.as_view(), name='file_analysis_history'),
+    path('api/file-analysis/<int:pk>/', FileAnalysisUserDetailView.as_view(), name='file_analysis_detail_explicit'),
     
     # Admin Platform-Wide Endpoints
     path('api/admin/users/', AdminUserListView.as_view(), name='admin_user_list'),
@@ -62,11 +76,19 @@ urlpatterns = [
     path('api/admin/reports/', AdminAllReportsListView.as_view(), name='admin_all_reports'),
     path('api/admin/threats-list/', AdminAllThreatsListView.as_view(), name='admin_all_threats'),
     path('api/admin/incidents/', AdminAllIncidentsListView.as_view(), name='admin_all_incidents'),
-    path('api/admin/file-analysis/', AdminAllFileAnalysesListView.as_view(), name='admin_all_file_analyses'),
+    path('api/admin/file-analysis/', FileAnalysisAdminListView.as_view(), name='admin_file_analysis_list'),
+    path('api/admin/file-analysis/analytics/', FileAnalysisAdminAnalyticsView.as_view(), name='admin_file_analysis_analytics'),
+    path('api/admin/file-analysis/<int:pk>/', FileAnalysisAdminDetailView.as_view(), name='admin_file_analysis_detail'),
     path('api/admin/ai-activity/', AdminAllAIActivitiesListView.as_view(), name='admin_all_ai_activities'),
 
-    # New Admin Aggregated Endpoints
+    # Admin Aggregated & Analytics Endpoints
     path('api/admin/dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
     path('api/admin/incidents/<int:pk>/', AdminIncidentUpdateView.as_view(), name='admin_incident_detail'),
     path('api/admin/analytics/', AdminAnalyticsView.as_view(), name='admin_analytics'),
+
+    # Phase 3 Admin Threat Intelligence Endpoints
+    path('api/admin/threat-intelligence/', ThreatIntelAdminListView.as_view(), name='admin_threat_intel_list'),
+    path('api/admin/threat-intelligence/analytics/', ThreatIntelAdminAnalyticsView.as_view(), name='admin_threat_intel_analytics'),
+    path('api/admin/threat-intelligence/<int:pk>/', ThreatIntelAdminDetailView.as_view(), name='admin_threat_intel_detail'),
 ]
+

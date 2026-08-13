@@ -33,17 +33,17 @@ def promote_sahilraj_and_remove_admin(apps, schema_editor):
     else:
         # If Sahilraj07 doesn't exist yet, create the user as SUPER_ADMIN
         from django.contrib.auth.hashers import make_password
-        User.objects.create(
+        u = User.objects.create(
             username='Sahilraj07',
             email='sahilraj07@cyberguardian.io',
             password=make_password('AdminPassword123!'),
-            role='SUPER_ADMIN',
-            status='ACTIVE',
             is_active=True,
             is_email_verified=True,
             is_staff=True,
             is_superuser=True
         )
+        with connection.cursor() as cursor:
+            cursor.execute(f"UPDATE `users_user` SET `role`='SUPER_ADMIN', `status`='ACTIVE' WHERE `id`={u.id}")
 
 
 class Migration(migrations.Migration):

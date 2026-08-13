@@ -206,14 +206,24 @@ export default function UserDashboard() {
         <div style={{ marginTop: '3rem' }}>
           <h2 style={{ fontSize: '1.3rem', marginBottom: '1rem', color: 'var(--text-muted)' }}>🔮 Upcoming Enterprise AI Modules</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-            <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '12px', opacity: 0.6, borderStyle: 'dashed' }}>
-              <h4 style={{ margin: '0 0 0.5rem 0' }}>🌐 Threat Intelligence</h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Integrated VirusTotal & IP Reputation feeds (Placeholder)</p>
-            </div>
-            <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '12px', opacity: 0.6, borderStyle: 'dashed' }}>
-              <h4 style={{ margin: '0 0 0.5rem 0' }}>📁 File Analysis</h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Static & dynamic malware file analyzer (Placeholder)</p>
-            </div>
+            <Link to="/threat-intel" style={{ textDecoration: 'none', color: '#fff' }}>
+              <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--accent-color)', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h4 style={{ margin: 0 }}>🛡️ Threat Intelligence</h4>
+                  <span style={{ background: 'rgba(57,211,83,0.15)', color: '#39d353', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>ACTIVE</span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>VirusTotal, AbuseIPDB & urlscan.io multi-provider lookups →</p>
+              </div>
+            </Link>
+            <Link to="/file-analyzer" style={{ textDecoration: 'none', color: '#fff' }}>
+              <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--accent-color)', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h4 style={{ margin: 0 }}>📁 File Analyzer</h4>
+                  <span style={{ background: 'rgba(57,211,83,0.15)', color: '#39d353', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>ACTIVE</span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Static YARA, Entropy, PE & Document Inspection →</p>
+              </div>
+            </Link>
             <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '12px', opacity: 0.6, borderStyle: 'dashed' }}>
               <h4 style={{ margin: '0 0 0.5rem 0' }}>🤖 AI Assistant</h4>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Interactive LLM cybersecurity copilot (Placeholder)</p>

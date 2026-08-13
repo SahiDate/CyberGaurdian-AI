@@ -101,13 +101,45 @@ class ThreatIntelResultSerializer(serializers.ModelSerializer):
             'username',
             'scan',
             'target',
-            'threat_type',
+            'target_type',
+            'provider',
+            'query_type',
+            'threat_score',
             'severity',
+            'confidence',
+            'malicious_count',
+            'suspicious_count',
+            'harmless_count',
+            'undetected_count',
+            'detection_summary',
+            'normalized_result',
+            'status',
+            'error_message',
+            'threat_type',
             'indicator_count',
             'raw_data',
             'detected_at',
+            'updated_at',
         ]
-        read_only_fields = ['id', 'user_id', 'username', 'detected_at']
+        read_only_fields = ['id', 'user_id', 'username', 'detected_at', 'updated_at']
+
+
+class ThreatIntelScanRequestSerializer(serializers.Serializer):
+    target = serializers.CharField(
+        max_length=512,
+        required=True,
+        error_messages={
+            'required': 'Target is required (URL, Domain, IP, or File Hash).',
+            'blank': 'Target cannot be blank.',
+        }
+    )
+    target_type = serializers.CharField(
+        max_length=50,
+        required=False,
+        allow_blank=True,
+        allow_null=True
+    )
+
 
 
 class FileAnalysisSerializer(serializers.ModelSerializer):
@@ -120,15 +152,49 @@ class FileAnalysisSerializer(serializers.ModelSerializer):
             'id',
             'user_id',
             'username',
+            'original_filename',
+            'stored_filename',
+            'file_size',
+            'detected_type',
+            'mime_type',
+            'extension',
+            'sha256',
+            'sha1',
+            'md5',
+            'entropy',
+            'entropy_category',
+            'signature_status',
+            'yara_status',
+            'yara_matches',
+            'virustotal_status',
+            'virustotal_detections',
+            'threat_score',
+            'severity',
+            'confidence',
+            'analysis_status',
+            'error_message',
+            'metadata',
+            'normalized_evidence',
+            # Legacy compatibility fields
             'filename',
             'file_hash',
-            'file_size',
             'file_type',
             'analysis_result',
             'risk_level',
             'created_at',
+            'updated_at',
         ]
-        read_only_fields = ['id', 'user_id', 'username', 'created_at']
+        read_only_fields = ['id', 'user_id', 'username', 'created_at', 'updated_at']
+
+
+class FileUploadSerializer(serializers.Serializer):
+    file = serializers.FileField(
+        required=True,
+        error_messages={
+            'required': 'A file is required for analysis.',
+            'empty': 'Uploaded file is empty.'
+        }
+    )
 
 
 class IncidentSerializer(serializers.ModelSerializer):
