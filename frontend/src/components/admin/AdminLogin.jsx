@@ -42,14 +42,15 @@ export default function AdminLogin() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0, background: '#070a0e', zIndex: 999, overflowY: 'auto' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0, background: '#070a0e', zIndex: 999, overflowY: 'auto', padding: '1rem', boxSizing: 'border-box' }}>
       <div className="glass-panel" style={{
-        padding: '3rem',
-        width: '440px',
+        padding: 'clamp(1.5rem, 5vw, 3rem)',
+        width: 'min(100%, 440px)',
         textAlign: 'center',
         borderRadius: '12px',
         border: '1px solid rgba(248, 81, 73, 0.3)',
-        boxShadow: '0 0 30px rgba(248, 81, 73, 0.08)'
+        boxShadow: '0 0 30px rgba(248, 81, 73, 0.08)',
+        boxSizing: 'border-box'
       }}>
         <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🚨</div>
         <h2 style={{ marginBottom: '0.25rem', color: '#f85149', letterSpacing: '0.5px' }}>

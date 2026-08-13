@@ -21,7 +21,7 @@ export default function AdminSettings() {
     <AdminSidebar>
       <div style={{ maxWidth: '900px', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800 }}>⚙️ Platform & Security Settings</h1>
+          <h1 style={{ margin: 0, fontSize: 'clamp(1.3rem, 4vw, 1.65rem)', fontWeight: 800 }}>⚙️ Platform & Security Settings</h1>
           <p style={{ color: 'rgba(255,255,255,0.45)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
             Enterprise authentication, session policy, AI automation rules, and log retention enforcement.
           </p>
@@ -38,7 +38,7 @@ export default function AdminSettings() {
           <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 700, color: '#388bfd' }}>🔒 Authentication & Access Policies</h3>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Enforce 2FA / OTP Verification</div>
                 <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Require email OTP verification for high-privilege logins and registrations.</div>
@@ -51,7 +51,7 @@ export default function AdminSettings() {
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>JWT Access Token Lifetime (Minutes)</label>
                 <input
@@ -77,7 +77,7 @@ export default function AdminSettings() {
           <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 700, color: '#a371f7' }}>🤖 AI Engine Controls</h3>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Auto-run AI Risk Assessment on Scans</div>
                 <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Automatically trigger Gemini AI analysis for scans with security score below 70.</div>
@@ -112,7 +112,7 @@ export default function AdminSettings() {
           <button
             type="submit"
             style={{
-              padding: '0.85rem 1.5rem', background: '#388bfd', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem', alignSelf: 'flex-start'
+              padding: '0.85rem 1.5rem', background: '#388bfd', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem', alignSelf: 'flex-start', width: 'min(100%, 320px)'
             }}
           >
             💾 Save Platform Configuration

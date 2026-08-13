@@ -146,97 +146,99 @@ export default function AdminUsers() {
           {loading ? (
             <p style={{ color: 'var(--text-muted)' }}>Loading users list...</p>
           ) : filteredUsers.length > 0 ? (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                  <th style={{ padding: '0.75rem' }}>ID</th>
-                  <th style={{ padding: '0.75rem' }}>Username</th>
-                  <th style={{ padding: '0.75rem' }}>Email</th>
-                  <th style={{ padding: '0.75rem' }}>Role</th>
-                  <th style={{ padding: '0.75rem' }}>Status</th>
-                  <th style={{ padding: '0.75rem' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((u) => (
-                  <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '0.75rem' }}>#{u.id}</td>
-                    <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{u.username}</td>
-                    <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>{u.email}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <select
-                        value={u.role}
-                        onChange={(e) => handleUpdateRole(u.id, e.target.value)}
-                        style={{
-                          background: u.role === 'ADMIN' ? 'rgba(248,81,73,0.2)' : 'rgba(56,139,253,0.2)',
-                          color: u.role === 'ADMIN' ? '#f85149' : '#388bfd',
-                          border: '1px solid var(--border-color)',
-                          padding: '0.3rem 0.5rem',
-                          borderRadius: '4px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="USER" style={{ background: '#121721', color: '#fff' }}>USER</option>
-                        <option value="ADMIN" style={{ background: '#121721', color: '#fff' }}>ADMIN</option>
-                        <option value="SOC_ANALYST" style={{ background: '#121721', color: '#fff' }}>SOC_ANALYST</option>
-                      </select>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <select
-                        value={u.status}
-                        onChange={(e) => handleUpdateStatus(u.id, e.target.value)}
-                        style={{
-                          background: u.status === 'ACTIVE' ? 'rgba(57,211,83,0.2)' : 'rgba(248,81,73,0.2)',
-                          color: u.status === 'ACTIVE' ? '#39d353' : '#f85149',
-                          border: '1px solid var(--border-color)',
-                          padding: '0.3rem 0.5rem',
-                          borderRadius: '4px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="ACTIVE" style={{ background: '#121721', color: '#fff' }}>ACTIVE</option>
-                        <option value="INACTIVE" style={{ background: '#121721', color: '#fff' }}>INACTIVE</option>
-                        <option value="SUSPENDED" style={{ background: '#121721', color: '#fff' }}>SUSPENDED</option>
-                      </select>
-                    </td>
-                    <td style={{ padding: '0.75rem', display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        onClick={() => handleInspectUser(u.id)}
-                        style={{
-                          background: 'rgba(56,139,253,0.15)',
-                          border: '1px solid #388bfd',
-                          color: '#388bfd',
-                          padding: '0.3rem 0.6rem',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontWeight: 'bold',
-                          fontSize: '0.75rem'
-                        }}
-                      >
-                        Inspect
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(u.id)}
-                        style={{
-                          background: 'rgba(248,81,73,0.15)',
-                          border: '1px solid var(--danger-color)',
-                          color: 'var(--danger-color)',
-                          padding: '0.3rem 0.6rem',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontWeight: 'bold',
-                          fontSize: '0.75rem'
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </td>
+            <div className="table-responsive-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem', minWidth: '650px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '0.75rem' }}>ID</th>
+                    <th style={{ padding: '0.75rem' }}>Username</th>
+                    <th style={{ padding: '0.75rem' }}>Email</th>
+                    <th style={{ padding: '0.75rem' }}>Role</th>
+                    <th style={{ padding: '0.75rem' }}>Status</th>
+                    <th style={{ padding: '0.75rem' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((u) => (
+                    <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '0.75rem' }}>#{u.id}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{u.username}</td>
+                      <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>{u.email}</td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <select
+                          value={u.role}
+                          onChange={(e) => handleUpdateRole(u.id, e.target.value)}
+                          style={{
+                            background: u.role === 'ADMIN' ? 'rgba(248,81,73,0.2)' : 'rgba(56,139,253,0.2)',
+                            color: u.role === 'ADMIN' ? '#f85149' : '#388bfd',
+                            border: '1px solid var(--border-color)',
+                            padding: '0.3rem 0.5rem',
+                            borderRadius: '4px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="USER" style={{ background: '#121721', color: '#fff' }}>USER</option>
+                          <option value="ADMIN" style={{ background: '#121721', color: '#fff' }}>ADMIN</option>
+                          <option value="SOC_ANALYST" style={{ background: '#121721', color: '#fff' }}>SOC_ANALYST</option>
+                        </select>
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <select
+                          value={u.status}
+                          onChange={(e) => handleUpdateStatus(u.id, e.target.value)}
+                          style={{
+                            background: u.status === 'ACTIVE' ? 'rgba(57,211,83,0.2)' : 'rgba(248,81,73,0.2)',
+                            color: u.status === 'ACTIVE' ? '#39d353' : '#f85149',
+                            border: '1px solid var(--border-color)',
+                            padding: '0.3rem 0.5rem',
+                            borderRadius: '4px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="ACTIVE" style={{ background: '#121721', color: '#fff' }}>ACTIVE</option>
+                          <option value="INACTIVE" style={{ background: '#121721', color: '#fff' }}>INACTIVE</option>
+                          <option value="SUSPENDED" style={{ background: '#121721', color: '#fff' }}>SUSPENDED</option>
+                        </select>
+                      </td>
+                      <td style={{ padding: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => handleInspectUser(u.id)}
+                          style={{
+                            background: 'rgba(56,139,253,0.15)',
+                            border: '1px solid #388bfd',
+                            color: '#388bfd',
+                            padding: '0.3rem 0.6rem',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            fontSize: '0.75rem'
+                          }}
+                        >
+                          Inspect
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u.id)}
+                          style={{
+                            background: 'rgba(248,81,73,0.15)',
+                            border: '1px solid var(--danger-color)',
+                            color: 'var(--danger-color)',
+                            padding: '0.3rem 0.6rem',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            fontSize: '0.75rem'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <p style={{ color: 'var(--text-muted)', margin: 0 }}>No users found matching query.</p>
           )}

@@ -47,7 +47,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const chartOptions = (title) => ({
+const chartOptions = () => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -144,14 +144,14 @@ export default function AdminDashboard() {
 
   return (
     <AdminSidebar>
-      <div style={{ maxWidth: '1400px', fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', fontFamily: "system-ui, -apple-system, sans-serif" }}>
 
         {/* ── Header ───────────────────────────────────────── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800, color: '#fff' }}>
-              SOC Command Center
-              <span style={{ fontSize: '0.7rem', background: '#f85149', color: '#fff', padding: '0.2rem 0.55rem', borderRadius: '4px', marginLeft: '0.65rem', fontWeight: 700, verticalAlign: 'middle' }}>
+            <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span>SOC Command Center</span>
+              <span style={{ fontSize: '0.7rem', background: '#f85149', color: '#fff', padding: '0.2rem 0.55rem', borderRadius: '4px', fontWeight: 700 }}>
                 {user?.role || 'ADMIN'}
               </span>
             </h1>
@@ -159,10 +159,11 @@ export default function AdminDashboard() {
               {greeting}, {user?.username}. Real-time security intelligence & platform control.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <StatusBadge status={services.ollama_ai || 'UNKNOWN'} />
             <button
               onClick={fetchData}
+              className="btn-fluid"
               style={{ padding: '0.5rem 1rem', background: 'rgba(56,139,253,0.1)', border: '1px solid rgba(56,139,253,0.3)', color: '#388bfd', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
             >
               ↺ Refresh
@@ -178,7 +179,7 @@ export default function AdminDashboard() {
         ) : (
           <>
             {/* ── KPI Cards ─────────────────────────────────── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
               <StatCard label="Total Users"    value={dash?.users?.total}       icon="👥" color="#388bfd" sub="Registered accounts" />
               <StatCard label="Active Users"   value={dash?.users?.active}      icon="✅" color="#39d353" sub="USER role, ACTIVE" />
               <StatCard label="Suspended"      value={dash?.users?.suspended}   icon="🔒" color="#e3b341" sub="Suspended accounts" />
@@ -194,42 +195,42 @@ export default function AdminDashboard() {
             </div>
 
             {/* ── Charts Row 1 ──────────────────────────────── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.25rem' }}>
                 <h3 style={{ margin: '0 0 1.25rem', fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>📈 Scan Activity (Last 30 Days)</h3>
-                <div style={{ height: '200px' }}>
+                <div style={{ height: '220px', minHeight: '180px' }}>
                   <Line options={chartOptions()} data={buildScanChart()} />
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.25rem' }}>
                 <h3 style={{ margin: '0 0 1.25rem', fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>🛡️ Threat Distribution</h3>
-                <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ height: '220px', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Doughnut data={buildDoughnutData()} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: 'rgba(255,255,255,0.6)', font: { size: 10 } } } } }} />
                 </div>
               </div>
             </div>
 
             {/* ── Charts Row 2 ──────────────────────────────── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.75rem' }}>
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.25rem' }}>
                 <h3 style={{ margin: '0 0 1.25rem', fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>🚨 Threat Trends (Last 30 Days)</h3>
-                <div style={{ height: '180px' }}>
+                <div style={{ height: '200px', minHeight: '180px' }}>
                   <Line options={chartOptions()} data={buildThreatChart()} />
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.25rem' }}>
                 <h3 style={{ margin: '0 0 1.25rem', fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>📊 User Growth (12 Weeks)</h3>
-                <div style={{ height: '180px' }}>
+                <div style={{ height: '200px', minHeight: '180px' }}>
                   <Bar options={chartOptions()} data={buildUserGrowthChart()} />
                 </div>
               </div>
             </div>
 
             {/* ── Service Status ────────────────────────────── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.75rem' }}>
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.25rem' }}>
                 <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 700 }}>💻 Service Status</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                   {Object.entries(services).map(([svc, st]) => (
@@ -244,14 +245,14 @@ export default function AdminDashboard() {
               </div>
 
               {/* ── Recent Incidents ────────────────────────── */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.25rem' }}>
                 <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 700 }}>🔥 Open Incidents</h3>
                 {dash?.recent_incidents?.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {dash.recent_incidents.map((inc) => (
                       <div key={inc.id} style={{ padding: '0.65rem 0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', borderLeft: `3px solid ${SEVERITY_COLORS[inc.severity?.toLowerCase()] || '#8b949e'}` }}>
                         <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff', marginBottom: '0.2rem' }}>{inc.title}</div>
-                        <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
+                        <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', flexWrap: 'wrap' }}>
                           <span>#{inc.id}</span>
                           <span style={{ color: SEVERITY_COLORS[inc.severity?.toLowerCase()] || '#8b949e', fontWeight: 600 }}>{inc.severity}</span>
                           <span>{inc.status}</span>
@@ -266,33 +267,35 @@ export default function AdminDashboard() {
             </div>
 
             {/* ── Recent Scans Table ────────────────────────── */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.25rem' }}>
               <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 700 }}>🔍 Recent Scans</h3>
               {dash?.recent_scans?.length > 0 ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
-                  <thead>
-                    <tr style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                      {['Domain', 'HTTPS', 'Score', 'Risk', 'Timestamp'].map(h => (
-                        <th key={h} style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dash.recent_scans.map(scan => (
-                      <tr key={scan.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                        <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600 }}>{scan.domain}</td>
-                        <td style={{ padding: '0.65rem 0.75rem' }}>{scan.is_https ? '✅' : '❌'}</td>
-                        <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700, color: scan.security_score >= 70 ? '#39d353' : scan.security_score >= 40 ? '#e3b341' : '#f85149' }}>{scan.security_score}/100</td>
-                        <td style={{ padding: '0.65rem 0.75rem' }}>
-                          <span style={{ padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: SEVERITY_COLORS[scan.risk_level] ? `${SEVERITY_COLORS[scan.risk_level]}22` : 'rgba(255,255,255,0.05)', color: SEVERITY_COLORS[scan.risk_level] || '#8b949e' }}>
-                            {scan.risk_level_display || scan.risk_level}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.65rem 0.75rem', color: 'rgba(255,255,255,0.35)' }}>{new Date(scan.scanned_at).toLocaleString()}</td>
+                <div className="table-responsive-container">
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: '550px' }}>
+                    <thead>
+                      <tr style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                        {['Domain', 'HTTPS', 'Score', 'Risk', 'Timestamp'].map(h => (
+                          <th key={h} style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {dash.recent_scans.map(scan => (
+                        <tr key={scan.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600 }}>{scan.domain}</td>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>{scan.is_https ? '✅' : '❌'}</td>
+                          <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700, color: scan.security_score >= 70 ? '#39d353' : scan.security_score >= 40 ? '#e3b341' : '#f85149' }}>{scan.security_score}/100</td>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>
+                            <span style={{ padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: SEVERITY_COLORS[scan.risk_level] ? `${SEVERITY_COLORS[scan.risk_level]}22` : 'rgba(255,255,255,0.05)', color: SEVERITY_COLORS[scan.risk_level] || '#8b949e' }}>
+                              {scan.risk_level_display || scan.risk_level}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', color: 'rgba(255,255,255,0.35)' }}>{new Date(scan.scanned_at).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <p style={{ color: 'rgba(255,255,255,0.3)', margin: 0 }}>No scans recorded yet.</p>
               )}

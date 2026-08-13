@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -36,41 +36,120 @@ export default function AdminSidebar({ children }) {
   const { user, logoutUser } = useContext(AuthContext);
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   const rc = roleColors[user?.role] || roleColors['ADMIN'];
 
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#080b10', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-      {/* ── Sidebar ────────────────────────────────────────── */}
+  // Close mobile drawer on route change
+  useEffect(() => {
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+  }, [location.pathname, isMobile]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: '100vh', background: '#080b10', color: '#fff', fontFamily: "system-ui, -apple-system, sans-serif" }}>
+
+      {/* ── Mobile Top Header ─────────────────────────────── */}
+      {isMobile && (
+        <header style={{
+          display: 'flex',
+          justify: 'space-between',
+          alignItems: 'center',
+          padding: '0.85rem 1rem',
+          background: '#0d1117',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 105,
+          width: '100%'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.2rem' }}>🛡️</span>
+            <span style={{ fontWeight: 800, fontSize: '1rem', color: '#fff' }}>CyberGuardian SOC</span>
+          </div>
+
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: '#fff',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              lineHeight: 1
+            }}
+            aria-label="Toggle navigation menu"
+          >
+            {mobileOpen ? '✕' : '☰'}
+          </button>
+        </header>
+      )}
+
+      {/* ── Mobile Backdrop Overlay ───────────────────────── */}
+      {isMobile && mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 100
+          }}
+        />
+      )}
+
+      {/* ── Sidebar (Desktop Sticky / Mobile Floating Drawer) ─ */}
       <aside style={{
-        width: collapsed ? '64px' : '240px',
-        minWidth: collapsed ? '64px' : '240px',
+        width: isMobile ? '280px' : (collapsed ? '64px' : '240px'),
+        minWidth: isMobile ? '280px' : (collapsed ? '64px' : '240px'),
         background: 'linear-gradient(180deg, #0d1117 0%, #0a0f1a 100%)',
         borderRight: '1px solid rgba(255,255,255,0.06)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: collapsed ? '1rem 0.5rem' : '1.25rem 0.75rem',
-        position: 'sticky',
+        padding: (collapsed && !isMobile) ? '1rem 0.5rem' : '1.25rem 0.75rem',
+        position: isMobile ? 'fixed' : 'sticky',
         top: 0,
+        bottom: isMobile ? 0 : 'auto',
+        left: isMobile ? (mobileOpen ? 0 : '-300px') : 0,
         height: '100vh',
         overflowY: 'auto',
         overflowX: 'hidden',
-        transition: 'all 0.25s ease',
-        zIndex: 100,
+        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        zIndex: 101,
+        boxShadow: (isMobile && mobileOpen) ? '4px 0 24px rgba(0,0,0,0.5)' : 'none'
       }}>
         <div>
           {/* Logo */}
           <div style={{
-            padding: collapsed ? '0 0.25rem 1.25rem' : '0 0.5rem 1.25rem',
+            padding: (collapsed && !isMobile) ? '0 0.25rem 1.25rem' : '0 0.5rem 1.25rem',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
             marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'space-between',
+            justify: (collapsed && !isMobile) ? 'center' : 'space-between',
           }}>
-            {!collapsed && (
+            {(!collapsed || isMobile) && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                   <span style={{ fontSize: '1.3rem' }}>🛡️</span>
@@ -83,21 +162,24 @@ export default function AdminSidebar({ children }) {
                 </span>
               </div>
             )}
-            {collapsed && <span style={{ fontSize: '1.4rem' }}>🛡️</span>}
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '1rem', padding: 0, lineHeight: 1 }}
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {collapsed ? '›' : '‹'}
-            </button>
+            {(collapsed && !isMobile) && <span style={{ fontSize: '1.4rem' }}>🛡️</span>}
+            
+            {!isMobile && (
+              <button
+                onClick={() => setCollapsed(!collapsed)}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '1.2rem', padding: 0, lineHeight: 1 }}
+                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {collapsed ? '›' : '‹'}
+              </button>
+            )}
           </div>
 
           {/* Nav */}
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
             {navItems.map((item, idx) => {
               if (item.section) {
-                if (collapsed) return null;
+                if (collapsed && !isMobile) return null;
                 return (
                   <div key={idx} style={{
                     fontSize: '0.62rem', fontWeight: 700, letterSpacing: '1.5px',
@@ -114,13 +196,14 @@ export default function AdminSidebar({ children }) {
                 <Link
                   key={item.path}
                   to={item.path}
-                  title={collapsed ? item.label : ''}
+                  title={(collapsed && !isMobile) ? item.label : ''}
+                  onClick={() => { if (isMobile) setMobileOpen(false); }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: collapsed ? 0 : '0.65rem',
-                    justifyContent: collapsed ? 'center' : 'flex-start',
-                    padding: collapsed ? '0.7rem' : '0.65rem 0.85rem',
+                    gap: (collapsed && !isMobile) ? 0 : '0.65rem',
+                    justifyContent: (collapsed && !isMobile) ? 'center' : 'flex-start',
+                    padding: (collapsed && !isMobile) ? '0.7rem' : '0.65rem 0.85rem',
                     borderRadius: '8px',
                     textDecoration: 'none',
                     color: active ? '#fff' : 'rgba(255,255,255,0.5)',
@@ -137,7 +220,7 @@ export default function AdminSidebar({ children }) {
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
                 >
                   <span style={{ fontSize: '1rem', minWidth: '1.1rem', textAlign: 'center' }}>{item.icon}</span>
-                  {!collapsed && <span>{item.label}</span>}
+                  {(!collapsed || isMobile) && <span>{item.label}</span>}
                 </Link>
               );
             })}
@@ -145,8 +228,8 @@ export default function AdminSidebar({ children }) {
         </div>
 
         {/* ── User Footer ──────────────────────────────── */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1rem' }}>
-          {!collapsed && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1rem', marginTop: '1rem' }}>
+          {(!collapsed || isMobile) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0 0.5rem', marginBottom: '0.75rem' }}>
               <div style={{
                 width: '34px', height: '34px', borderRadius: '50%',
@@ -173,9 +256,10 @@ export default function AdminSidebar({ children }) {
 
           <button
             onClick={logoutUser}
+            className="btn-fluid"
             style={{
               width: '100%',
-              padding: collapsed ? '0.6rem' : '0.55rem 0.75rem',
+              padding: (collapsed && !isMobile) ? '0.6rem' : '0.55rem 0.75rem',
               background: 'rgba(248,81,73,0.08)',
               border: '1px solid rgba(248,81,73,0.3)',
               color: '#f85149',
@@ -186,20 +270,27 @@ export default function AdminSidebar({ children }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: collapsed ? 0 : '0.5rem',
+              gap: (collapsed && !isMobile) ? 0 : '0.5rem',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,81,73,0.18)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,81,73,0.08)'; }}
           >
             <span>⏻</span>
-            {!collapsed && <span>Sign Out</span>}
+            {(!collapsed || isMobile) && <span>Sign Out</span>}
           </button>
         </div>
       </aside>
 
-      {/* ── Main Content ──────────────────────────────────── */}
-      <main style={{ flex: 1, padding: '2rem', overflowY: 'auto', maxHeight: '100vh', minWidth: 0 }}>
+      {/* ── Main Content Container ─────────────────────────── */}
+      <main style={{
+        flex: 1,
+        padding: isMobile ? '1rem 0.75rem' : '2rem',
+        overflowY: 'auto',
+        maxHeight: isMobile ? 'calc(100vh - 54px)' : '100vh',
+        minWidth: 0,
+        width: '100%'
+      }}>
         {children}
       </main>
     </div>

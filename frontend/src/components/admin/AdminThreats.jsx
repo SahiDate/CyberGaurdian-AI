@@ -103,42 +103,41 @@ export default function AdminThreats() {
           ) : filtered.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No threats found.</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
-              <thead>
-                <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
-                  {['ID', 'Target', 'Threat Type', 'Severity', 'Indicators', 'Detected At', ''].map(h => (
-                    <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(t => (
-                  <React.Fragment key={t.id}>
-                    <tr style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }} onClick={() => setExpanded(expanded === t.id ? null : t.id)}>
-                      <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>#{t.id}</td>
-                      <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#fff' }}>{t.target || '—'}</td>
-                      <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)' }}>{t.threat_type || '—'}</td>
-                      <td style={{ padding: '0.75rem 1rem' }}><SevBadge severity={t.severity} /></td>
-                      <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)' }}>{t.indicator_count ?? 0}</td>
-                      <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{new Date(t.detected_at).toLocaleString()}</td>
-                      <td style={{ padding: '0.75rem 1rem', color: '#388bfd', fontSize: '1rem' }}>{expanded === t.id ? '▲' : '▼'}</td>
-                    </tr>
-                    {expanded === t.id && (
-                      <tr>
-                        <td colSpan={7} style={{ padding: '1rem 1.5rem', background: 'rgba(0,0,0,0.3)' }}>
-                          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.7 }}>
-                            <strong style={{ color: '#fff' }}>Raw Evidence:</strong>
-                            <pre style={{ marginTop: '0.5rem', background: 'rgba(0,0,0,0.4)', padding: '0.75rem', borderRadius: '6px', overflowX: 'auto', color: '#39d353', fontSize: '0.75rem' }}>
-                              {JSON.stringify(t.raw_data, null, 2)}
-                            </pre>
-                          </div>
-                        </td>
+            <div className="table-responsive-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: '650px' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
+                    {['ID', 'Target', 'Threat Type', 'Severity', 'Indicators', 'Detected At', ''].map(h => (
+                      <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(t => (
+                    <React.Fragment key={t.id}>
+                      <tr style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }} onClick={() => setExpanded(expanded === t.id ? null : t.id)}>
+                        <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>#{t.id}</td>
+                        <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#fff' }}>{t.target || '—'}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)' }}>{t.threat_type || '—'}</td>
+                        <td style={{ padding: '0.75rem 1rem' }}><SevBadge severity={t.severity} /></td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)' }}>{t.indicator_count ?? 0}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{new Date(t.detected_at).toLocaleString()}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: '#388bfd', fontSize: '1rem' }}>{expanded === t.id ? '▲' : '▼'}</td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+                      {expanded === t.id && (
+                        <tr>
+                          <td colSpan={7} style={{ padding: '1rem 1.5rem', background: 'rgba(0,0,0,0.3)' }}>
+                            <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
+                              <strong style={{ color: '#58a6ff' }}>Threat Details:</strong> {t.description || t.details || 'No detailed indicator logs recorded for this threat event.'}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
         <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>

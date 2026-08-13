@@ -76,42 +76,38 @@ export default function AdminAuditLogs() {
               {search ? 'No logs matching your search.' : 'No audit log entries yet.'}
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
-                  {['Timestamp', 'Admin', 'Action', 'Target User', 'Target Record', 'IP', 'Result'].map(h => (
-                    <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paginated.map((log, i) => (
-                  <tr key={log.id || i} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
-                      {new Date(log.timestamp).toLocaleString()}
-                    </td>
-                    <td style={{ padding: '0.65rem 1rem', fontWeight: 600, color: '#388bfd', whiteSpace: 'nowrap' }}>
-                      {log.admin_username || log.admin || '—'}
-                    </td>
-                    <td style={{ padding: '0.65rem 1rem', color: '#fff', fontFamily: 'monospace', fontSize: '0.78rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.action}>
-                      {log.action}
-                    </td>
-                    <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}>
-                      {log.target_user_username || log.target_user || '—'}
-                    </td>
-                    <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.4)', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem' }} title={log.target_record}>
-                      {log.target_record || '—'}
-                    </td>
-                    <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                      {log.ip_address || '—'}
-                    </td>
-                    <td style={{ padding: '0.65rem 1rem' }}>
-                      <span style={{ color: resultColor(log.result), fontWeight: 700, fontSize: '0.72rem' }}>{log.result || 'SUCCESS'}</span>
-                    </td>
+            <div className="table-responsive-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: '650px' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
+                    {['Timestamp', 'Admin', 'Action', 'Target User', 'Target Record', 'IP', 'Result'].map(h => (
+                      <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {paginated.map((log, i) => (
+                    <tr key={log.id || i} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                        {new Date(log.timestamp).toLocaleString()}
+                      </td>
+                      <td style={{ padding: '0.65rem 1rem', fontWeight: 600, color: '#388bfd', whiteSpace: 'nowrap' }}>
+                        {log.admin_username || log.admin || '—'}
+                      </td>
+                      <td style={{ padding: '0.65rem 1rem', color: '#fff', fontWeight: 600 }}>{log.action}</td>
+                      <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.6)' }}>{log.target_user || '—'}</td>
+                      <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', fontSize: '0.75rem' }}>{log.target_record || '—'}</td>
+                      <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', fontSize: '0.75rem' }}>{log.ip_address || '—'}</td>
+                      <td style={{ padding: '0.65rem 1rem' }}>
+                        <span style={{ padding: '0.1rem 0.4rem', borderRadius: '3px', fontSize: '0.68rem', fontWeight: 700, background: log.result === 'SUCCESS' ? 'rgba(57,211,83,0.12)' : 'rgba(248,81,73,0.12)', color: log.result === 'SUCCESS' ? '#39d353' : '#f85149' }}>
+                          {log.result || 'SUCCESS'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 

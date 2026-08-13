@@ -84,52 +84,53 @@ export default function AdminScans() {
           ) : paginated.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No scans found.</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
-              <thead>
-                <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
-                  {['#', 'Domain', 'HTTPS', 'Score', 'Risk Level', 'Scanned At', ''].map(h => (
-                    <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paginated.map(scan => {
-                  const rc = RISK_CONFIG[scan.risk_level] || { color: '#8b949e', label: scan.risk_level };
-                  return (
-                    <React.Fragment key={scan.id}>
-                      <tr
-                        onClick={() => setExpanded(expanded === scan.id ? null : scan.id)}
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}
-                      >
-                        <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem' }}>#{scan.id}</td>
-                        <td style={{ padding: '0.65rem 1rem', fontWeight: 600 }}>{scan.domain}</td>
-                        <td style={{ padding: '0.65rem 1rem' }}>{scan.is_https ? '✅' : '❌'}</td>
-                        <td style={{ padding: '0.65rem 1rem', fontWeight: 800, color: scan.security_score >= 70 ? '#39d353' : scan.security_score >= 40 ? '#e3b341' : '#f85149' }}>
-                          {scan.security_score}/100
-                        </td>
-                        <td style={{ padding: '0.65rem 1rem' }}>
-                          <span style={{ background: `${rc.color}18`, color: rc.color, padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>{rc.label}</span>
-                        </td>
-                        <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{new Date(scan.scanned_at).toLocaleString()}</td>
-                        <td style={{ padding: '0.65rem 1rem', color: '#388bfd' }}>{expanded === scan.id ? '▲' : '▼'}</td>
-                      </tr>
-                      {expanded === scan.id && (
-                        <tr>
-                          <td colSpan={7} style={{ padding: '1rem 1.5rem', background: 'rgba(0,0,0,0.3)' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.8rem' }}>
-                              <div><span style={{ color: 'rgba(255,255,255,0.4)' }}>URL:</span> <span style={{ color: '#58a6ff' }}>{scan.url}</span></div>
-                              <div><span style={{ color: 'rgba(255,255,255,0.4)' }}>Duration:</span> {scan.scan_duration_ms}ms</div>
-                              <div><span style={{ color: 'rgba(255,255,255,0.4)' }}>SSL:</span> {scan.ssl_data?.valid ? '✅ Valid' : '—'}</div>
-                              <div><span style={{ color: 'rgba(255,255,255,0.4)' }}>DNS:</span> {scan.dns_data?.records_count || '—'} records</div>
-                            </div>
+            <div className="table-responsive-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: '600px' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
+                    {['#', 'Domain', 'HTTPS', 'Score', 'Risk Level', 'Scanned At', ''].map(h => (
+                      <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map(scan => {
+                    const rc = RISK_CONFIG[scan.risk_level] || { color: '#8b949e', label: scan.risk_level };
+                    return (
+                      <React.Fragment key={scan.id}>
+                        <tr
+                          style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}
+                          onClick={() => setExpanded(expanded === scan.id ? null : scan.id)}
+                        >
+                          <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem' }}>#{scan.id}</td>
+                          <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#fff' }}>{scan.domain}</td>
+                          <td style={{ padding: '0.75rem 1rem' }}>{scan.is_https ? '✅' : '❌'}</td>
+                          <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: scan.security_score >= 70 ? '#39d353' : scan.security_score >= 40 ? '#e3b341' : '#f85149' }}>
+                            {scan.security_score}/100
                           </td>
+                          <td style={{ padding: '0.75rem 1rem' }}>
+                            <span style={{ padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: `${rc.color}22`, color: rc.color, border: `1px solid ${rc.color}44` }}>
+                              {scan.risk_level_display || rc.label}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{new Date(scan.scanned_at).toLocaleString()}</td>
+                          <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.3)' }}>{expanded === scan.id ? '▲' : '▼'}</td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+                        {expanded === scan.id && (
+                          <tr>
+                            <td colSpan={7} style={{ padding: '1rem 1.5rem', background: 'rgba(0,0,0,0.3)' }}>
+                              <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
+                                <strong style={{ color: '#58a6ff' }}>Scan Metadata:</strong> Domain: {scan.domain} | IP: {scan.ip_address || 'N/A'} | Server: {scan.server_header || 'N/A'}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 

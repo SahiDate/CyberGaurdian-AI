@@ -112,7 +112,7 @@ export default function AdminIncidents() {
           style={{ width: '100%', maxWidth: '400px', marginBottom: '1.25rem', padding: '0.6rem 0.9rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
         />
 
-        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 400px' : '1fr', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: selected ? 'repeat(auto-fit, minmax(320px, 1fr))' : '1fr', gap: '1.25rem' }}>
           {/* Table */}
           <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', overflow: 'hidden' }}>
             {loading ? (
@@ -120,7 +120,8 @@ export default function AdminIncidents() {
             ) : filtered.length === 0 ? (
               <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No incidents found.</div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+              <div className="table-responsive-container">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: '550px' }}>
                 <thead>
                   <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
                     {['ID', 'Title', 'Severity', 'Status', 'Created', ''].map(h => (
@@ -147,6 +148,7 @@ export default function AdminIncidents() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
 

@@ -25,15 +25,15 @@ export default function AdminApiHealth() {
 
   return (
     <AdminSidebar>
-      <div style={{ maxWidth: '1100px' }}>
-        <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '1.8rem', color: '#fff' }}>⚡ API Health & Endpoint Status</h1>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
+      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+        <h1 style={{ margin: '0 0 0.5rem 0', fontSize: 'clamp(1.4rem, 4vw, 1.8rem)', color: '#fff' }}>⚡ API Health & Endpoint Status</h1>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
           Endpoint status verification, http status code monitor, and average response latencies.
         </p>
 
         {apiData ? (
           <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Global API Uptime: </span>
                 <strong style={{ color: '#39d353', fontSize: '1.1rem' }}>{apiData.overall_uptime}</strong>
@@ -43,7 +43,8 @@ export default function AdminApiHealth() {
               </div>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+            <div className="table-responsive-container">
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', minWidth: '400px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '0.75rem' }}>Endpoint Name</th>
@@ -61,6 +62,7 @@ export default function AdminApiHealth() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
           <p style={{ color: 'var(--text-muted)' }}>Loading API metrics...</p>

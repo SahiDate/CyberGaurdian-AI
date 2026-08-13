@@ -47,14 +47,14 @@ export default function AdminAIAgent() {
     <AdminSidebar>
       <div style={{ maxWidth: '1300px', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800 }}>🧠 AI Agent Monitor</h1>
+          <h1 style={{ margin: 0, fontSize: 'clamp(1.3rem, 4vw, 1.65rem)', fontWeight: 800 }}>🧠 AI Agent Monitor</h1>
           <p style={{ color: 'rgba(255,255,255,0.45)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
             Observability of AI agent decisions, tool selections, and execution results.
           </p>
         </div>
 
         {/* Summary */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
           {[
             ['Total Requests', activities.length, '#388bfd'],
             ['Completed', totalCompleted, '#39d353'],
@@ -80,7 +80,8 @@ export default function AdminAIAgent() {
           ) : paginated.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No AI activity records found.</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+            <div className="table-responsive-container">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: '700px' }}>
               <thead>
                 <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
                   {['#', 'Target', 'User Request', 'Tools Selected', 'Status', 'Risk', 'Time', ''].map(h => (
@@ -111,7 +112,7 @@ export default function AdminAIAgent() {
                     {expanded === act.id && (
                       <tr>
                         <td colSpan={8} style={{ padding: '1rem 1.5rem', background: 'rgba(0,0,0,0.3)' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', fontSize: '0.82rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', fontSize: '0.82rem' }}>
                             <div>
                               <div style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.8px' }}>User Request</div>
                               <div style={{ background: 'rgba(0,0,0,0.4)', padding: '0.75rem', borderRadius: '6px', color: '#fff', lineHeight: 1.6 }}>{act.request_text}</div>
@@ -139,6 +140,7 @@ export default function AdminAIAgent() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 

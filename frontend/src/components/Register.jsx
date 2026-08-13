@@ -42,8 +42,8 @@ export default function Register() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0, background: '#0a0d12', zIndex: 999, overflowY: 'auto' }}>
-      <div className="glass-panel" style={{ padding: '3rem', width: '400px', textAlign: 'center' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0, background: '#0a0d12', zIndex: 999, overflowY: 'auto', padding: '1rem', boxSizing: 'border-box' }}>
+      <div className="glass-panel" style={{ padding: 'clamp(1.5rem, 5vw, 3rem)', width: 'min(100%, 420px)', textAlign: 'center', boxSizing: 'border-box' }}>
         <h2 style={{ marginBottom: '0.5rem', color: 'var(--accent-color)' }}>CyberGuardian AI</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Register for Autonomous Protection.</p>
         

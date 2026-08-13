@@ -134,7 +134,8 @@ export default function AdminReports() {
             filteredScans.length === 0 ? (
               <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No scan records matching your filter.</div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+              <div className="table-responsive-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: '600px' }}>
                 <thead>
                   <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
                     {['ID', 'User Email', 'Domain', 'HTTPS', 'Security Score', 'Risk Level', 'Scanned At'].map(h => (
@@ -168,12 +169,14 @@ export default function AdminReports() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )
           ) : (
             reports.length === 0 ? (
               <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No user reports created yet.</div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+              <div className="table-responsive-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: '500px' }}>
                 <thead>
                   <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
                     {['ID', 'Report Title', 'Format', 'Created At', 'File Size'].map(h => (
@@ -193,6 +196,7 @@ export default function AdminReports() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )
           )}
         </div>

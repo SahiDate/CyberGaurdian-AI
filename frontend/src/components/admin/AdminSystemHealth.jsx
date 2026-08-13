@@ -52,7 +52,8 @@ export default function AdminSystemHealth() {
 
             <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '12px' }}>
               <h3 style={{ margin: '0 0 1rem 0' }}>🔌 Service Status Matrix</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <div className="table-responsive-container">
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', minWidth: '450px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '0.75rem' }}>Service Component</th>
@@ -68,6 +69,7 @@ export default function AdminSystemHealth() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </>
         ) : (

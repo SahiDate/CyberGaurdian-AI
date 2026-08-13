@@ -79,7 +79,7 @@ export default function AdminAnalytics() {
     <AdminSidebar>
       <div style={{ maxWidth: '1400px', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800 }}>📊 Analytics</h1>
+          <h1 style={{ margin: 0, fontSize: 'clamp(1.3rem, 4vw, 1.65rem)', fontWeight: 800 }}>📊 Analytics</h1>
           <p style={{ color: 'rgba(255,255,255,0.45)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
             Platform-wide statistics from real database queries. No fake data.
           </p>
@@ -108,7 +108,7 @@ export default function AdminAnalytics() {
             </div>
 
             {/* Charts Row 1 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
                 <h3 style={{ margin: '0 0 1rem', fontSize: '0.92rem', fontWeight: 700 }}>📈 Daily Scan Activity (30d)</h3>
                 <div style={{ height: '200px' }}><Line options={chartOpts} data={scanChartData} /></div>
@@ -120,7 +120,7 @@ export default function AdminAnalytics() {
             </div>
 
             {/* Charts Row 2 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
                 <h3 style={{ margin: '0 0 1rem', fontSize: '0.92rem', fontWeight: 700 }}>🛡️ Threat Severity</h3>
                 <div style={{ height: '200px' }}><Doughnut options={doughnutOpts} data={sevData} /></div>

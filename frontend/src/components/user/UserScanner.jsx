@@ -45,7 +45,7 @@ export default function UserScanner() {
             Enter a domain, IP address, or URL to analyze HTTP security headers, SSL certificate integrity, and port status.
           </p>
 
-          <form onSubmit={handleScan} style={{ display: 'flex', gap: '1rem' }}>
+          <form onSubmit={handleScan} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <input
               type="text"
               value={target}

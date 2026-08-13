@@ -43,7 +43,8 @@ export default function UserHistory() {
           {loading ? (
             <p style={{ color: 'var(--text-muted)' }}>Loading scan history...</p>
           ) : scans.length > 0 ? (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+            <div className="table-responsive-container">
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', minWidth: '600px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '0.75rem' }}>Domain</th>
@@ -78,6 +79,7 @@ export default function UserHistory() {
                 ))}
               </tbody>
             </table>
+            </div>
           ) : (
             <p style={{ color: 'var(--text-muted)', margin: 0 }}>No scan history recorded.</p>
           )}

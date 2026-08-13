@@ -77,7 +77,7 @@ export default function UserDashboard() {
           <h2 style={{ fontSize: '1.3rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             🔍 Quick Website Security Scan
           </h2>
-          <form onSubmit={handleQuickScan} style={{ display: 'flex', gap: '1rem' }}>
+          <form onSubmit={handleQuickScan} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <input
               type="text"
               value={target}
@@ -164,7 +164,8 @@ export default function UserDashboard() {
           </div>
 
           {recentScans.length > 0 ? (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+            <div className="table-responsive-container">
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', minWidth: '550px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '0.75rem' }}>Domain</th>
@@ -195,6 +196,7 @@ export default function UserDashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
           ) : (
             <p style={{ color: 'var(--text-muted)', margin: 0 }}>No scan history recorded yet. Use Quick Scan above to get started.</p>
           )}

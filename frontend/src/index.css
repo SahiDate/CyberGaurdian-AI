@@ -1,27 +1,55 @@
 :root {
   --bg-color: #0d1117;
-  --panel-bg: #161b22;
-  --text-main: #c9d1d9;
+  --panel-bg: rgba(255, 255, 255, 0.04);
+  --panel-solid-bg: #161b22;
+  --text-main: #f0f6fc;
   --text-muted: #8b949e;
   --accent-color: #58a6ff;
   --danger-color: #f85149;
-  --success-color: #2ea043;
-  --border-color: #30363d;
+  --success-color: #3fb950;
+  --warning-color: #d29922;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+
+  /* Radius Scale */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* Spacing Grid (8px) */
+  --space-8: 8px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-main);
+  line-height: 1.5;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
   box-sizing: border-box;
 }
 
-h1, h2, h3, h4, h5, h6 {
+/* Typography Hierarchy */
+h1, .h1-fluid {
   margin-top: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-weight: 700;
+}
+
+h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 a {
@@ -29,11 +57,229 @@ a {
   text-decoration: none;
 }
 
-/* Base styles for premium feel */
+/* Apple Material & Depth: Frosted Glass */
 .glass-panel {
   background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
 }
+
+/* Fluid Button Press Feedback */
+.btn-fluid, button {
+  font-family: inherit;
+  transition: transform 100ms ease-out, background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+  user-select: none;
+}
+
+.btn-fluid:active, button:active:not(:disabled) {
+  transform: scale(0.97) !important;
+}
+
+/* Accessible Status Chips & Badges (Icon + Text) */
+.chip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.chip-danger {
+  background: rgba(248, 81, 73, 0.15);
+  color: #ff7b72;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+.chip-success {
+  background: rgba(63, 185, 80, 0.15);
+  color: #56d364;
+  border: 1px solid rgba(63, 185, 80, 0.3);
+}
+
+.chip-accent {
+  background: rgba(88, 166, 255, 0.15);
+  color: #79c0ff;
+  border: 1px solid rgba(88, 166, 255, 0.3);
+}
+
+.chip-warning {
+  background: rgba(210, 153, 34, 0.15);
+  color: #e3b341;
+  border: 1px solid rgba(210, 153, 34, 0.3);
+}
+
+/* Responsive Layout Utilities & Table Containers */
+.table-responsive-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+}
+
+.table-responsive-container table {
+  width: 100%;
+  min-width: 600px;
+}
+
+.grid-responsive-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-16);
+}
+
+/* Mobile & Tablet Breakpoint Overrides */
+@media (max-width: 768px) {
+  :root {
+    --space-8: 6px;
+    --space-16: 12px;
+    --space-24: 16px;
+    --space-32: 20px;
+  }
+
+  body {
+    font-size: 0.95rem;
+  }
+
+  .h1-fluid, h1 {
+    font-size: 1.65rem !important;
+  }
+
+  h2 {
+    font-size: 1.3rem !important;
+  }
+
+  .glass-panel {
+    padding: 16px !important;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Responsive Forms & Buttons */
+  .form-row-responsive {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .btn-full-mobile {
+    width: 100% !important;
+  }
+
+  /* Accessible Touch Target Heights */
+  button, input, select, textarea {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chip-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+
+  .table-responsive-container table {
+    min-width: 500px;
+  }
+}
+
+/* Accessibility: Prefers Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .fluid-tab-indicator {
+    transition: opacity 0.15s ease !important;
+  }
+}
+
+/* Accessibility: Prefers High Contrast */
+@media (prefers-contrast: more) {
+  :root {
+    --panel-bg: var(--panel-solid-bg);
+    --border-color: #444c56;
+    --border-subtle: #444c56;
+    --text-muted: #adbac7;
+  }
+
+  .glass-panel {
+    background: #161b22 !important;
+    border: 1px solid #444c56 !important;
+    box-shadow: none !important;
+  }
+}
+/* ─── Responsive Table Container ─── */
+.table-responsive-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Subtle scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.table-responsive-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.table-responsive-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-responsive-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+/* ─── Mobile-First Responsive Overrides ─── */
+@media (max-width: 768px) {
+  /* Hide desktop navbar elements and show mobile hamburger */
+  .desktop-only-nav {
+    display: none !important;
+  }
+
+  .mobile-hamburger-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Admin sidebar content area padding */
+  .admin-content-area {
+    padding: 1rem !important;
+  }
+
+  /* Tighten stat card numbers on mobile */
+  .stat-card-value {
+    font-size: 1.6rem !important;
+  }
+
+  /* Make chart panels not clip on small viewports */
+  canvas {
+    max-width: 100%;
+  }
+
+  /* Full-width select / inputs inside filter bars */
+  select, input[type="text"], input[type="search"], input[type="number"] {
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Even tighter spacing on very small screens */
+  .glass-panel {
+    padding: 1rem !important;
+    border-radius: 10px !important;
+  }
+}
+

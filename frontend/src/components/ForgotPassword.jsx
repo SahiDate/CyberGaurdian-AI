@@ -145,7 +145,7 @@ export default function ForgotPassword() {
           WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid #30363d',
           borderRadius: '16px',
-          padding: '2rem 1.8rem',
+          padding: 'clamp(1.2rem, 4vw, 2rem)',
           boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 139, 253, 0.1)',
         }}
       >
