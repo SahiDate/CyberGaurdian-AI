@@ -2,6 +2,13 @@ import os
 import re
 from typing import Dict, Any, List
 
+try:
+    import yara  # type: ignore
+    HAS_YARA = True
+except ImportError:
+    yara = None
+    HAS_YARA = False
+
 
 class LocalYaraEngine:
     """
@@ -46,28 +53,31 @@ class LocalYaraEngine:
         matches = []
 
         # If yara library is available, use native compilation
-        try:
-            import yara
-            compiled_rules = yara.compile(filepaths={os.path.basename(f): f for f in rule_files})
-            yara_matches = compiled_rules.match(filepath=file_path)
+        if HAS_YARA and yara is not None:
+            try:
+                compiled_rules = yara.compile(filepaths={os.path.basename(f): f for f in rule_files})
+                yara_matches = compiled_rules.match(filepath=file_path)
 
-            for m in yara_matches:
-                matches.append({
-                    "rule_name": m.rule,
-                    "severity": m.meta.get("severity", "HIGH"),
-                    "score": m.meta.get("score", 20),
-                    "description": m.meta.get("description", "YARA rule match"),
-                    "matched_strings": [str(s[2])[:50] for s in m.strings[:5]]
-                })
+                for m in yara_matches:
+                    matches.append({
+                        "rule_name": m.rule,
+                        "severity": m.meta.get("severity", "HIGH"),
+                        "score": m.meta.get("score", 20),
+                        "description": m.meta.get("description", "YARA rule match"),
+                        "matched_strings": [str(s[2])[:50] for s in m.strings[:5]]
+                    })
 
-            return {
-                "status": "MATCH" if matches else "NO_MATCH",
-                "matches": matches,
-                "error_message": None
-            }
-        except ImportError:
-            # Fallback pure-Python YARA rule parser
-            return self._fallback_python_yara_scan(file_bytes, file_text, rule_files)
+                return {
+                    "status": "MATCH" if matches else "NO_MATCH",
+                    "matches": matches,
+                    "error_message": None
+                }
+            except Exception:
+                # If native yara scanning fails, fall back to pure-Python scanner
+                pass
+
+        # Fallback pure-Python YARA rule parser
+        return self._fallback_python_yara_scan(file_bytes, file_text, rule_files)
 
     def _fallback_python_yara_scan(self, file_bytes: bytes, file_text: str, rule_files: List[str]) -> Dict[str, Any]:
         """

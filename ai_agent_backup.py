@@ -10,7 +10,7 @@ except ImportError:
 
             It mimics the interface used in this project by raising a clear error upon usage.
             """
-            def __init__(self, model: str = "cybersec-ai"):
+            def __init__(self, model: str = "llama3"):
                 raise ImportError(
                     "Ollama LLM class is unavailable because the required package "
                     "'langchain_community' is not installed. Please install it "
@@ -36,13 +36,14 @@ except ImportError:
                 raise ImportError(
                     "langchain_core is not installed. Run: pip install langchain-core"
                 )
-import os
 import json
-from .scanners import scan_website_headers, check_ssl_certificate, scan_ports  # type: ignore
-from .threat_intel import check_virustotal  # type: ignore
+try:
+    from backend.core_engine.scanners import scan_website_headers, check_ssl_certificate, scan_ports  # type: ignore
+    from backend.core_engine.threat_intel import check_virustotal  # type: ignore
+except ImportError:
+    from .scanners import scan_website_headers, check_ssl_certificate, scan_ports  # type: ignore
+    from .threat_intel import check_virustotal  # type: ignore
 
-
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "cybersec-ai")
 
 def run_autonomous_analysis(target):
     """
@@ -70,8 +71,8 @@ def run_autonomous_analysis(target):
     
     # 4. Generate AI Recommendations (using local Ollama)
     try:
-        # Assumes Ollama is running locally with cybersec-ai or a similar model
-        llm = Ollama(model=OLLAMA_MODEL) 
+        # Assumes Ollama is running locally with llama3 or a similar model
+        llm = Ollama(model="llama3") 
         
         prompt = PromptTemplate(
             input_variables=["findings"],
@@ -109,7 +110,7 @@ def run_autonomous_analysis(target):
         ai_analysis = {
             "severity": "Error",
             "summary": f"Could not connect to Ollama AI Agent: {str(e)}",
-            "recommendations": [f"Ensure Ollama is running locally with the '{OLLAMA_MODEL}' model."]
+            "recommendations": ["Ensure Ollama is running locally with the llama3 model."]
         }
         
     findings["ai_analysis"] = ai_analysis
@@ -130,7 +131,7 @@ def run_log_analysis_ai(parsed_data):
     }
 
     try:
-        llm = Ollama(model=OLLAMA_MODEL)
+        llm = Ollama(model="llama3")
         
         prompt = PromptTemplate(
             input_variables=["metrics"],
