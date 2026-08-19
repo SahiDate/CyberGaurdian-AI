@@ -695,7 +695,7 @@ class SOCAnalysis(models.Model):
     )
 
     # Target & Scope
-    target = models.CharField(max_length=1024)
+    target = models.CharField(max_length=255)
     analysis_type = models.CharField(max_length=50, default='COMPOSITE')
     target_identifiers = models.JSONField(default=dict, blank=True)
 

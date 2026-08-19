@@ -87,7 +87,9 @@ export default function Register() {
             </>
           ) : (
             <>
-              <p style={{ color: 'var(--success-color)' }}>Registration initiated! Check your terminal for the OTP.</p>
+              <p style={{ color: 'var(--success-color)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                Verification code sent to your registered <strong>Email</strong> and <strong>Phone Number</strong>.
+              </p>
               <input 
                 type="text" 
                 placeholder="Enter 6-digit OTP" 

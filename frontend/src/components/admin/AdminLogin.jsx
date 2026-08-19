@@ -85,7 +85,7 @@ export default function AdminLogin() {
             </>
           ) : (
             <>
-              <p style={{ color: 'var(--success-color)', fontSize: '0.85rem' }}>Security OTP generated. Check console or registered admin email.</p>
+              <p style={{ color: 'var(--success-color)', fontSize: '0.85rem' }}>Security OTP sent to registered admin email and phone number.</p>
               <input
                 type="text"
                 placeholder="Enter 6-digit Security OTP"

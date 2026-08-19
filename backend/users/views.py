@@ -12,7 +12,7 @@ from .serializers import (
 from .permissions import IsUserRole, IsAdminRole
 from django.core.mail import EmailMultiAlternatives
 from django.utils import timezone
-from datetime import timedelta, date
+from datetime import timedelta, date, datetime
 from django.db.models import Count
 from django.db.models.functions import TruncDate, TruncWeek
 import random
@@ -22,8 +22,8 @@ try:
 except ImportError:
     _PSUTIL_AVAILABLE = False
 from rest_framework_simplejwt.tokens import RefreshToken
-from .utils import send_sms
 from django.conf import settings
+from .utils import send_sms, dispatch_otp, print_terminal_otp_banner
 from scanner.models import (
     ScanResult, Report, ThreatIntelResult, FileAnalysis, Incident, AIActivity,
     SSLScanResult, WhoisLookupResult, URLScanResult, PortScanResult, SOCAnalysis
@@ -198,18 +198,18 @@ def _print_terminal_otp(to_email: str, otp: str, purpose: str):
         'password_reset': 'Password Reset',
     }
     purpose_label = purpose_labels.get(purpose, purpose.replace('_', ' ').title())
-    border = '═' * 64
-    print(f"\n╔{border}╗")
-    print(f"║{'🔐 CYBERGUARDIAN — OTP TERMINAL FALLBACK':^64}║")
-    print(f"╠{border}╣")
-    print(f"║  {'Purpose':<12}: {purpose_label:<48}║")
-    print(f"║  {'To Email':<12}: {to_email:<48}║")
-    print(f"║  {'OTP Code':<12}: {otp:<48}║")
-    print(f"║  {'Expires':<12}: {'10 minutes from now':<48}║")
-    print(f"╠{border}╣")
-    print(f"║  ⚠️  SMTP FAILED — Gmail App Password rejected by Google.    ║")
-    print(f"║  Fix  : https://myaccount.google.com/apppasswords            ║")
-    print(f"╚{border}╝\n")
+    border = '=' * 64
+    print(f"\n+{border}+")
+    print(f"|{' [OTP] CYBERGUARDIAN -- OTP TERMINAL FALLBACK':^64}|")
+    print(f"+{border}+")
+    print(f"|  {'Purpose':<12}: {purpose_label:<48}|")
+    print(f"|  {'To Email':<12}: {to_email:<48}|")
+    print(f"|  {'OTP Code':<12}: {otp:<48}|")
+    print(f"|  {'Expires':<12}: {'10 minutes from now':<48}|")
+    print(f"+{border}+")
+    print(f"|  [!] SMTP FAILED -- Check Gmail App Password settings.         |")
+    print(f"|  Fix : https://myaccount.google.com/apppasswords              |")
+    print(f"+{border}+\n")
 
 
 def _send_otp_email(to_email: str, otp: str, purpose: str):
@@ -304,14 +304,13 @@ class RegisterView(generics.CreateAPIView):
         user.otp_created_at = timezone.now()
         user.save()
         
-        _send_otp_email(user.email, otp, purpose='registration')
-
-        if user.phone_number:
-            send_sms(
-                user.phone_number,
-                f"[CyberGuardian] Your account verification OTP is: {otp}\n"
-                f"Valid for 10 minutes. Do NOT share this code with anyone."
-            )
+        dispatch_otp(
+            to_email=user.email,
+            otp=otp,
+            purpose='registration',
+            to_phone=user.phone_number,
+            username=user.username
+        )
 
 
 class VerifyRegistrationView(APIView):
@@ -384,19 +383,18 @@ class LoginInitiateView(APIView):
         user.otp_created_at = timezone.now()
         user.save()
         
-        _send_otp_email(user.email, otp, purpose='login')
-
-        if user.phone_number:
-            send_sms(
-                user.phone_number,
-                f"[CyberGuardian] Your login OTP is: {otp}\n"
-                f"Valid for 10 minutes. If you did not attempt to log in, secure your account immediately."
-            )
+        dispatch_otp(
+            to_email=user.email,
+            otp=otp,
+            purpose='login',
+            to_phone=user.phone_number,
+            username=user.username
+        )
             
         return Response({
             "otp_required": True,
             "username": user.username,
-            "message": "OTP has been sent to your registered email."
+            "message": "OTP has been sent to your registered email and phone number."
         }, status=status.HTTP_200_OK)
 
 
@@ -490,18 +488,18 @@ class AdminLoginInitiateView(APIView):
         user.otp_created_at = timezone.now()
         user.save()
         
-        _send_otp_email(user.email, otp, purpose='login')
-
-        if user.phone_number:
-            send_sms(
-                user.phone_number,
-                f"[CyberGuardian Admin] Your SOC Portal login OTP is: {otp}"
-            )
+        dispatch_otp(
+            to_email=user.email,
+            otp=otp,
+            purpose='admin_login',
+            to_phone=user.phone_number,
+            username=user.username
+        )
             
         return Response({
             "otp_required": True,
             "username": user.username,
-            "message": "Admin OTP sent to registered email."
+            "message": "Admin OTP sent to registered email and phone number."
         }, status=status.HTTP_200_OK)
 
 
@@ -586,31 +584,26 @@ class ForgotPasswordView(APIView):
         if not target_email:
             return Response({"error": "No valid email address is associated with this account."}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            sent_ok, status_msg = _send_otp_email(target_email, otp, purpose='password_reset')
-        except Exception as e:
-            # Even on unexpected errors, fall back gracefully — print OTP and continue
-            _print_terminal_otp(target_email, otp, 'password_reset')
-            print(f"  Unexpected Error Detail: {e}")
-            sent_ok = True
-
+        target_phone = ""
+        target_username = ""
         for user in users:
             if user.phone_number:
-                send_sms(
-                    user.phone_number,
-                    f"[CyberGuardian] Your password reset OTP is: {otp}\n"
-                    f"Valid for 10 minutes. Do NOT share this code with anyone."
-                )
+                target_phone = user.phone_number
+            if user.username:
+                target_username = user.username
+            if target_phone and target_username:
                 break
 
-        if sent_ok:
-            return Response({
-                "message": f"A 6-digit password reset OTP has been dispatched to {target_email}. "
-                           f"If you don't receive it within a minute, ask your administrator to check the server terminal."
-            }, status=status.HTTP_200_OK)
+        dispatch_otp(
+            to_email=target_email,
+            otp=otp,
+            purpose='password_reset',
+            to_phone=target_phone,
+            username=target_username
+        )
 
         return Response({
-            "message": f"OTP generated for {target_email}. Check the server terminal for the code."
+            "message": f"A 6-digit password reset OTP has been dispatched to {target_email} and your registered phone number."
         }, status=status.HTTP_200_OK)
 
 

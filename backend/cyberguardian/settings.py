@@ -138,10 +138,12 @@ else:
     EMAIL_HOST_USER = 'noreply@cyberguardian.local'
     EMAIL_HOST_PASSWORD = ''
 
-# Twilio configuration for SMS OTP (optional, falls back to console printing)
+# SMS OTP Configuration (Twilio, Fast2SMS, or Console mock fallback)
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
-TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER') or os.environ.get('TWILIO_FROM_NUMBER', '')
+FAST2SMS_API_KEY = os.environ.get('FAST2SMS_API_KEY', '')
+DEFAULT_COUNTRY_CODE = os.environ.get('DEFAULT_COUNTRY_CODE', '+91')
 
 # Django REST Framework — JWT auth as default
 REST_FRAMEWORK = {

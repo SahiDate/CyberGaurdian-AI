@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             name='SOCAnalysis',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('target', models.CharField(max_length=1024)),
+                ('target', models.CharField(max_length=255)),
                 ('analysis_type', models.CharField(default='COMPOSITE', max_length=50)),
                 ('target_identifiers', models.JSONField(blank=True, default=dict)),
                 ('risk_score', models.IntegerField(default=0, help_text='0-100 deterministic combined risk score')),

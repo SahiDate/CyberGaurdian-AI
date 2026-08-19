@@ -73,7 +73,7 @@ export default function Login() {
             </>
           ) : (
             <>
-              <p style={{ color: 'var(--success-color)', fontSize: '0.9rem' }}>Enter the 6-digit OTP code sent to your email.</p>
+              <p style={{ color: 'var(--success-color)', fontSize: '0.9rem' }}>Enter the 6-digit OTP code sent to your registered email & phone number.</p>
               <input 
                 type="text" 
                 placeholder="Enter 6-digit OTP" 
