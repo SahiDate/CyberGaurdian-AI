@@ -59,14 +59,20 @@ class AnalyzeTargetView(APIView):
                 )
 
                 # 3. Create ThreatIntelResult
+                severity_val = 'HIGH' if risk_level in ['high', 'critical'] else ('MEDIUM' if risk_level == 'medium' else 'LOW')
                 threat = ThreatIntelResult.objects.create(
                     user=user,
                     scan=scan,
                     target=domain,
-                    threat_type="VULNERABILITY",
-                    severity=ai_severity.upper(),
-                    indicator_count=len(results.get("security_headers", {}).get("missing_headers", [])),
-                    raw_data=results.get("threat_intel", {})
+                    target_type="DOMAIN",
+                    provider="Multi-Provider",
+                    query_type="REPUTATION",
+                    threat_score=score,
+                    severity=severity_val,
+                    confidence=80,
+                    detection_summary=results.get("security_headers", {}),
+                    normalized_result=results.get("threat_intel", {}),
+                    status="SUCCESS"
                 )
 
                 # 4. Create AIActivity (Concise operational info only — no chain-of-thought!)
@@ -101,6 +107,8 @@ class AnalyzeTargetView(APIView):
 
             return Response(results)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response({"error": str(e)}, status=500)
 
 

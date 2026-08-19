@@ -12,6 +12,12 @@ const navItems = [
   { section: 'SECURITY' },
   { path: '/admin/scans',         label: 'Security Monitoring',   icon: '🔍' },
   { path: '/admin/threats',       label: 'Threat Intelligence',   icon: '🚨' },
+  { path: '/admin/file-analysis', label: 'File Analysis',         icon: '📁' },
+  { path: '/admin/ssl-scanner',   label: 'SSL Scanner',           icon: '🔒' },
+  { path: '/admin/whois',         label: 'WHOIS & Domains',       icon: '🌐' },
+  { path: '/admin/url-scanner',   label: 'URL Scanner',           icon: '🔗' },
+  { path: '/admin/port-scanner',  label: 'Port Scanner',          icon: '🔌' },
+  { path: '/admin/soc-analysis',  label: 'SOC Engine',            icon: '🧠' },
   { path: '/admin/incidents',     label: 'Incident Management',   icon: '🔥' },
 
   { section: 'TOOLS' },

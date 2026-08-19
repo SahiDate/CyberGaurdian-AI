@@ -53,9 +53,13 @@ def scan_ports(ip_or_domain):
     for port in common_ports:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(0.5)
-        result = sock.connect_ex((domain, port))
-        if result == 0:
-            open_ports.append(port)
-        sock.close()
+        try:
+            result = sock.connect_ex((domain, port))
+            if result == 0:
+                open_ports.append(port)
+        except Exception:
+            pass
+        finally:
+            sock.close()
         
     return open_ports

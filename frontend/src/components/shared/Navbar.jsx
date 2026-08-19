@@ -60,6 +60,56 @@ export default function Navbar() {
             fontSize: '0.875rem'
           }}>File Analyzer</Link>
 
+          <Link to="/ssl-scanner" style={{
+            padding: '0.5rem 0.9rem',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            color: isActive('/ssl-scanner') ? '#fff' : 'var(--text-muted)',
+            background: isActive('/ssl-scanner') ? 'var(--accent-color)' : 'transparent',
+            fontWeight: '600',
+            fontSize: '0.875rem'
+          }}>SSL Scanner</Link>
+
+          <Link to="/whois" style={{
+            padding: '0.5rem 0.9rem',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            color: isActive('/whois') ? '#fff' : 'var(--text-muted)',
+            background: isActive('/whois') ? 'var(--accent-color)' : 'transparent',
+            fontWeight: '600',
+            fontSize: '0.875rem'
+          }}>WHOIS</Link>
+
+          <Link to="/url-scanner" style={{
+            padding: '0.5rem 0.9rem',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            color: isActive('/url-scanner') ? '#fff' : 'var(--text-muted)',
+            background: isActive('/url-scanner') ? 'var(--accent-color)' : 'transparent',
+            fontWeight: '600',
+            fontSize: '0.875rem'
+          }}>URL Scanner</Link>
+
+          <Link to="/port-scanner" style={{
+            padding: '0.5rem 0.9rem',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            color: isActive('/port-scanner') ? '#fff' : 'var(--text-muted)',
+            background: isActive('/port-scanner') ? 'var(--accent-color)' : 'transparent',
+            fontWeight: '600',
+            fontSize: '0.875rem'
+          }}>Port Scanner</Link>
+
+          <Link to="/soc-analysis" style={{
+            padding: '0.5rem 0.9rem',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            color: isActive('/soc-analysis') ? '#fff' : 'var(--text-muted)',
+            background: isActive('/soc-analysis') ? 'var(--accent-color)' : 'transparent',
+            fontWeight: '600',
+            fontSize: '0.875rem'
+          }}>SOC Analysis</Link>
+
           <Link to="/scan" style={{
             padding: '0.5rem 0.9rem',
             borderRadius: '6px',
@@ -181,6 +231,12 @@ export default function Navbar() {
             {[
               ['/dashboard', '📊 Dashboard'],
               ['/threat-intel', '🛡️ Threat Intel'],
+              ['/file-analyzer', '📁 File Analyzer'],
+              ['/ssl-scanner', '🔒 SSL Scanner'],
+              ['/whois', '🌐 WHOIS Lookup'],
+              ['/url-scanner', '🔗 URL Scanner'],
+              ['/port-scanner', '🔌 Port Scanner'],
+              ['/soc-analysis', '🧠 SOC Analysis'],
               ['/scan', '🔍 Quick Scan'],
               ['/history', '📜 My History'],
               ['/reports', '📑 Reports'],

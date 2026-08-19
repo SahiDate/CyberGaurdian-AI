@@ -17,7 +17,17 @@ from .views import (
     ThreatIntelScanView, ThreatIntelUserHistoryView, ThreatIntelUserDetailView,
     ThreatIntelAdminListView, ThreatIntelAdminDetailView, ThreatIntelAdminAnalyticsView,
     FileAnalysisUploadView, FileAnalysisUserHistoryView, FileAnalysisUserDetailView,
-    FileAnalysisAdminListView, FileAnalysisAdminDetailView, FileAnalysisAdminAnalyticsView
+    FileAnalysisAdminListView, FileAnalysisAdminDetailView, FileAnalysisAdminAnalyticsView,
+    SSLScanCreateView, SSLScanUserHistoryView, SSLScanUserDetailView,
+    SSLScanAdminListView, SSLScanAdminDetailView, SSLScanAdminAnalyticsView,
+    WhoisLookupCreateView, WhoisUserHistoryView, WhoisUserDetailView,
+    WhoisAdminListView, WhoisAdminDetailView, WhoisAdminAnalyticsView,
+    URLScanCreateView, URLScanUserHistoryView, URLScanUserDetailView,
+    URLScanAdminListView, URLScanAdminDetailView, URLScanAdminAnalyticsView,
+    PortScanCreateView, PortScanUserHistoryView, PortScanUserDetailView,
+    PortScanAdminListView, PortScanAdminDetailView, PortScanAdminAnalyticsView,
+    SOCAnalyzeView, SOCCorrelateTargetView, SOCUserHistoryView, SOCUserDetailView,
+    SOCAdminListView, SOCAdminDetailView, SOCAdminAnalyticsView
 )
 
 urlpatterns = [
@@ -63,6 +73,32 @@ urlpatterns = [
     path('api/file-analysis/analyze/', FileAnalysisUploadView.as_view(), name='file_analysis_upload'),
     path('api/file-analysis/history/', FileAnalysisUserHistoryView.as_view(), name='file_analysis_history'),
     path('api/file-analysis/<int:pk>/', FileAnalysisUserDetailView.as_view(), name='file_analysis_detail_explicit'),
+
+    # Phase 5 User SSL Scanner Endpoints
+    path('api/ssl-scanner/scan/', SSLScanCreateView.as_view(), name='ssl_scan_create'),
+    path('api/ssl-scanner/history/', SSLScanUserHistoryView.as_view(), name='ssl_scan_history'),
+    path('api/ssl-scanner/<int:pk>/', SSLScanUserDetailView.as_view(), name='ssl_scan_detail'),
+
+    # Phase 5 User WHOIS Lookup Endpoints
+    path('api/whois/lookup/', WhoisLookupCreateView.as_view(), name='whois_lookup_create'),
+    path('api/whois/history/', WhoisUserHistoryView.as_view(), name='whois_lookup_history'),
+    path('api/whois/<int:pk>/', WhoisUserDetailView.as_view(), name='whois_lookup_detail'),
+
+    # Phase 6 User URL Scanner Endpoints
+    path('api/url-scanner/scan/', URLScanCreateView.as_view(), name='url_scan_create'),
+    path('api/url-scanner/history/', URLScanUserHistoryView.as_view(), name='url_scan_history'),
+    path('api/url-scanner/<int:pk>/', URLScanUserDetailView.as_view(), name='url_scan_detail'),
+
+    # Phase 7 User Port Scanner Endpoints
+    path('api/port-scanner/scan/', PortScanCreateView.as_view(), name='port_scan_create'),
+    path('api/port-scanner/history/', PortScanUserHistoryView.as_view(), name='port_scan_history'),
+    path('api/port-scanner/<int:pk>/', PortScanUserDetailView.as_view(), name='port_scan_detail'),
+
+    # Phase 8 User SOC Analysis Endpoints
+    path('api/soc/analyze/', SOCAnalyzeView.as_view(), name='soc_analyze'),
+    path('api/soc/correlate-target/', SOCCorrelateTargetView.as_view(), name='soc_correlate_target'),
+    path('api/soc/history/', SOCUserHistoryView.as_view(), name='soc_history'),
+    path('api/soc/<int:pk>/', SOCUserDetailView.as_view(), name='soc_detail'),
     
     # Admin Platform-Wide Endpoints
     path('api/admin/users/', AdminUserListView.as_view(), name='admin_user_list'),
@@ -80,6 +116,31 @@ urlpatterns = [
     path('api/admin/file-analysis/analytics/', FileAnalysisAdminAnalyticsView.as_view(), name='admin_file_analysis_analytics'),
     path('api/admin/file-analysis/<int:pk>/', FileAnalysisAdminDetailView.as_view(), name='admin_file_analysis_detail'),
     path('api/admin/ai-activity/', AdminAllAIActivitiesListView.as_view(), name='admin_all_ai_activities'),
+
+    # Phase 5 Admin SSL Scanner Endpoints
+    path('api/admin/ssl-scanner/', SSLScanAdminListView.as_view(), name='admin_ssl_scanner_list'),
+    path('api/admin/ssl-scanner/analytics/', SSLScanAdminAnalyticsView.as_view(), name='admin_ssl_scanner_analytics'),
+    path('api/admin/ssl-scanner/<int:pk>/', SSLScanAdminDetailView.as_view(), name='admin_ssl_scanner_detail'),
+
+    # Phase 5 Admin WHOIS Lookup Endpoints
+    path('api/admin/whois/', WhoisAdminListView.as_view(), name='admin_whois_list'),
+    path('api/admin/whois/analytics/', WhoisAdminAnalyticsView.as_view(), name='admin_whois_analytics'),
+    path('api/admin/whois/<int:pk>/', WhoisAdminDetailView.as_view(), name='admin_whois_detail'),
+
+    # Phase 6 Admin URL Scanner Endpoints
+    path('api/admin/url-scanner/', URLScanAdminListView.as_view(), name='admin_url_scanner_list'),
+    path('api/admin/url-scanner/analytics/', URLScanAdminAnalyticsView.as_view(), name='admin_url_scanner_analytics'),
+    path('api/admin/url-scanner/<int:pk>/', URLScanAdminDetailView.as_view(), name='admin_url_scanner_detail'),
+
+    # Phase 7 Admin Port Scanner Endpoints
+    path('api/admin/port-scanner/', PortScanAdminListView.as_view(), name='admin_port_scanner_list'),
+    path('api/admin/port-scanner/analytics/', PortScanAdminAnalyticsView.as_view(), name='admin_port_scanner_analytics'),
+    path('api/admin/port-scanner/<int:pk>/', PortScanAdminDetailView.as_view(), name='admin_port_scanner_detail'),
+
+    # Phase 8 Admin SOC Analysis Endpoints
+    path('api/admin/soc/', SOCAdminListView.as_view(), name='admin_soc_list'),
+    path('api/admin/soc/analytics/', SOCAdminAnalyticsView.as_view(), name='admin_soc_analytics'),
+    path('api/admin/soc/<int:pk>/', SOCAdminDetailView.as_view(), name='admin_soc_detail'),
 
     # Admin Aggregated & Analytics Endpoints
     path('api/admin/dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),

@@ -3,6 +3,7 @@ Django settings for cyberguardian project.
 """
 from pathlib import Path
 import os
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -68,7 +69,7 @@ WSGI_APPLICATION = 'cyberguardian.wsgi.application'
 
 DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.mysql')
 
-if DB_ENGINE == 'django.db.backends.sqlite3' or os.environ.get('USE_SQLITE', 'False') == 'True':
+if DB_ENGINE == 'django.db.backends.sqlite3' or os.environ.get('USE_SQLITE', 'False') == 'True' or 'test' in sys.argv:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

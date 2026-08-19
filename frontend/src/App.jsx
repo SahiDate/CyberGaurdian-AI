@@ -9,6 +9,11 @@ import ForgotPassword from './components/ForgotPassword';
 import Dashboard from './components/Dashboard';
 import ThreatIntel from './components/user/ThreatIntel';
 import FileAnalyzer from './components/user/FileAnalyzer';
+import SSLScanner from './components/user/SSLScanner';
+import WhoisLookup from './components/user/WhoisLookup';
+import URLScanner from './components/user/URLScanner';
+import PortScanner from './components/user/PortScanner';
+import SOCAnalysis from './components/user/SOCAnalysis';
 
 // Admin Portal
 import AdminLogin from './components/admin/AdminLogin';
@@ -16,6 +21,11 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import AdminUsers from './components/admin/AdminUsers';
 import AdminThreats from './components/admin/AdminThreats';
 import AdminFileAnalysis from './components/admin/AdminFileAnalysis';
+import AdminSSLScanner from './components/admin/AdminSSLScanner';
+import AdminWhois from './components/admin/AdminWhois';
+import AdminURLScanner from './components/admin/AdminURLScanner';
+import AdminPortScanner from './components/admin/AdminPortScanner';
+import AdminSOCAnalysis from './components/admin/AdminSOCAnalysis';
 import AdminIncidents from './components/admin/AdminIncidents';
 import AdminScans from './components/admin/AdminScans';
 import AdminReports from './components/admin/AdminReports';
@@ -73,6 +83,21 @@ function App() {
           <Route path="/file-analyzer" element={
             <ProtectedRoute><FileAnalyzer /></ProtectedRoute>
           } />
+          <Route path="/ssl-scanner" element={
+            <ProtectedRoute><SSLScanner /></ProtectedRoute>
+          } />
+          <Route path="/whois" element={
+            <ProtectedRoute><WhoisLookup /></ProtectedRoute>
+          } />
+          <Route path="/url-scanner" element={
+            <ProtectedRoute><URLScanner /></ProtectedRoute>
+          } />
+          <Route path="/port-scanner" element={
+            <ProtectedRoute><PortScanner /></ProtectedRoute>
+          } />
+          <Route path="/soc-analysis" element={
+            <ProtectedRoute><SOCAnalysis /></ProtectedRoute>
+          } />
 
           {/* ── Admin Portal Public ────────────────────────── */}
           <Route path="/admin/login" element={<AdminLogin />} />
@@ -89,6 +114,21 @@ function App() {
           } />
           <Route path="/admin/file-analysis" element={
             <AdminProtectedRoute><AdminFileAnalysis /></AdminProtectedRoute>
+          } />
+          <Route path="/admin/ssl-scanner" element={
+            <AdminProtectedRoute><AdminSSLScanner /></AdminProtectedRoute>
+          } />
+          <Route path="/admin/whois" element={
+            <AdminProtectedRoute><AdminWhois /></AdminProtectedRoute>
+          } />
+          <Route path="/admin/url-scanner" element={
+            <AdminProtectedRoute><AdminURLScanner /></AdminProtectedRoute>
+          } />
+          <Route path="/admin/port-scanner" element={
+            <AdminProtectedRoute><AdminPortScanner /></AdminProtectedRoute>
+          } />
+          <Route path="/admin/soc-analysis" element={
+            <AdminProtectedRoute><AdminSOCAnalysis /></AdminProtectedRoute>
           } />
           <Route path="/admin/incidents" element={
             <AdminProtectedRoute><AdminIncidents /></AdminProtectedRoute>
