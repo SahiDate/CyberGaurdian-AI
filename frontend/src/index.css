@@ -1,4 +1,9 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
 :root {
+  /* Default / Dark Theme Variables */
   --bg-color: #0d1117;
   --panel-bg: rgba(255, 255, 255, 0.04);
   --panel-solid-bg: #161b22;
@@ -8,13 +13,15 @@
   --danger-color: #f85149;
   --success-color: #3fb950;
   --warning-color: #d29922;
-  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color: rgba(255, 255, 255, 0.12);
   --border-subtle: rgba(255, 255, 255, 0.06);
+  --input-bg: rgba(0, 0, 0, 0.35);
+  --panel-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
 
   /* Radius Scale */
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
   --radius-pill: 9999px;
 
   /* Spacing Grid (8px) */
@@ -22,6 +29,23 @@
   --space-16: 16px;
   --space-24: 24px;
   --space-32: 32px;
+}
+
+/* Light Mode Overrides with Frosted VisionOS Glass Variables */
+html.light {
+  --bg-color: #eef3f9;
+  --panel-bg: rgba(255, 255, 255, 0.45);
+  --panel-solid-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --accent-color: #2563eb;
+  --danger-color: #dc2626;
+  --success-color: #059669;
+  --warning-color: #d97706;
+  --border-color: rgba(255, 255, 255, 0.95);
+  --border-subtle: rgba(255, 255, 255, 0.65);
+  --input-bg: rgba(255, 255, 255, 0.55);
+  --panel-shadow: 0 16px 48px 0 rgba(31, 38, 135, 0.08), 0 4px 12px 0 rgba(0, 0, 0, 0.03), inset 0 1.5px 2px 0 rgba(255, 255, 255, 1);
 }
 
 body {
@@ -32,6 +56,20 @@ body {
   line-height: 1.5;
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 300ms ease, color 300ms ease;
+  min-height: 100vh;
+}
+
+/* Vibrant ambient light backdrop gradient to give light glass ultra-rich refractive depth */
+html.light body {
+  background: 
+    radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.16) 0%, transparent 45%),
+    radial-gradient(circle at 85% 20%, rgba(99, 102, 241, 0.14) 0%, transparent 45%),
+    radial-gradient(circle at 50% 60%, rgba(14, 165, 233, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 80% 85%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 20% 90%, rgba(6, 182, 212, 0.14) 0%, transparent 50%),
+    #eef3f9;
+  background-attachment: fixed;
 }
 
 * {
@@ -44,12 +82,14 @@ h1, .h1-fluid {
   letter-spacing: -0.02em;
   line-height: 1.05;
   font-weight: 700;
+  color: var(--text-main);
 }
 
 h2, h3, h4, h5, h6 {
   margin-top: 0;
   letter-spacing: -0.01em;
   line-height: 1.2;
+  color: var(--text-main);
 }
 
 a {
@@ -57,22 +97,37 @@ a {
   text-decoration: none;
 }
 
-/* Apple Material & Depth: Frosted Glass */
+/* Ultra Frosted Glass Panel in Dark & Light Modes */
 .glass-panel {
   background: var(--panel-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   border: 1px solid var(--border-subtle);
   border-top: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  box-shadow: var(--panel-shadow);
+  transition: background-color 300ms ease, border-color 300ms ease, box-shadow 300ms ease, color 300ms ease;
+}
+
+/* Hyper-glassy Light Mode Frosted Effect */
+html.light .glass-panel {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(40px) saturate(210%) brightness(106%);
+  -webkit-backdrop-filter: blur(40px) saturate(210%) brightness(106%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 
+    0 20px 50px 0 rgba(31, 38, 135, 0.08),
+    0 4px 14px 0 rgba(0, 0, 0, 0.02),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 /* Fluid Button Press Feedback */
 .btn-fluid, button {
   font-family: inherit;
-  transition: transform 100ms ease-out, background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+  transition: transform 100ms ease-out, background-color 150ms ease, border-color 150ms ease, opacity 150ms ease, color 150ms ease, box-shadow 150ms ease;
   user-select: none;
 }
 
@@ -91,8 +146,12 @@ a {
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
 }
 
+/* Dark Mode Chip Colors */
 .chip-danger {
   background: rgba(248, 81, 73, 0.15);
   color: #ff7b72;
@@ -117,17 +176,101 @@ a {
   border: 1px solid rgba(210, 153, 34, 0.3);
 }
 
+/* Light Mode Chip Colors with Ultra-Crisp Frosted Glass */
+html.light .chip-danger {
+  background: rgba(254, 242, 242, 0.65);
+  color: #dc2626;
+  border: 1px solid rgba(252, 165, 165, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+html.light .chip-success {
+  background: rgba(236, 253, 245, 0.65);
+  color: #059669;
+  border: 1px solid rgba(110, 231, 183, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+html.light .chip-accent {
+  background: rgba(239, 246, 255, 0.65);
+  color: #2563eb;
+  border: 1px solid rgba(147, 197, 253, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+html.light .chip-warning {
+  background: rgba(255, 251, 235, 0.65);
+  color: #b45309;
+  border: 1px solid rgba(252, 211, 77, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
 /* Responsive Layout Utilities & Table Containers */
 .table-responsive-container {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   margin-bottom: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
+}
+
+.table-responsive-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.table-responsive-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-responsive-container::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 2px;
 }
 
 .table-responsive-container table {
   width: 100%;
   min-width: 600px;
+}
+
+/* Universal Table & Input Theme Styles */
+input, select, textarea {
+  color: var(--text-main);
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--border-color);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 150ms ease, background-color 250ms ease, color 250ms ease;
+}
+
+html.light input, html.light select, html.light textarea {
+  color: var(--text-main);
+  background-color: var(--input-bg);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.95);
+}
+
+html.light select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+html.dark select option {
+  background-color: #161b22;
+  color: #f0f6fc;
+}
+
+table th {
+  color: var(--text-muted);
+}
+
+table td {
+  color: var(--text-main);
 }
 
 .grid-responsive-auto {
@@ -176,6 +319,32 @@ a {
   button, input, select, textarea {
     min-height: 44px;
   }
+
+  .desktop-only-nav {
+    display: none !important;
+  }
+
+  .mobile-hamburger-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-content-area {
+    padding: 1rem !important;
+  }
+
+  .stat-card-value {
+    font-size: 1.6rem !important;
+  }
+
+  canvas {
+    max-width: 100%;
+  }
+
+  select, input[type="text"], input[type="search"], input[type="number"] {
+    max-width: 100% !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -186,6 +355,11 @@ a {
 
   .table-responsive-container table {
     min-width: 500px;
+  }
+
+  .glass-panel {
+    padding: 1rem !important;
+    border-radius: 10px !important;
   }
 }
 
@@ -218,68 +392,3 @@ a {
     box-shadow: none !important;
   }
 }
-/* ─── Responsive Table Container ─── */
-.table-responsive-container {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  /* Subtle scrollbar styling */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-.table-responsive-container::-webkit-scrollbar {
-  height: 4px;
-}
-
-.table-responsive-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.table-responsive-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
-}
-
-/* ─── Mobile-First Responsive Overrides ─── */
-@media (max-width: 768px) {
-  /* Hide desktop navbar elements and show mobile hamburger */
-  .desktop-only-nav {
-    display: none !important;
-  }
-
-  .mobile-hamburger-btn {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Admin sidebar content area padding */
-  .admin-content-area {
-    padding: 1rem !important;
-  }
-
-  /* Tighten stat card numbers on mobile */
-  .stat-card-value {
-    font-size: 1.6rem !important;
-  }
-
-  /* Make chart panels not clip on small viewports */
-  canvas {
-    max-width: 100%;
-  }
-
-  /* Full-width select / inputs inside filter bars */
-  select, input[type="text"], input[type="search"], input[type="number"] {
-    max-width: 100% !important;
-  }
-}
-
-@media (max-width: 480px) {
-  /* Even tighter spacing on very small screens */
-  .glass-panel {
-    padding: 1rem !important;
-    border-radius: 10px !important;
-  }
-}
-

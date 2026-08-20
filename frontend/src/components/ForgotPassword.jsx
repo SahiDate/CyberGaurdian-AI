@@ -1,6 +1,8 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import ThemeToggle from './ThemeToggle';
 
 export default function ForgotPassword() {
   const [step, setStep] = useState(1);
@@ -15,6 +17,7 @@ export default function ForgotPassword() {
   const [resendCooldown, setResendCooldown] = useState(0);
 
   const { forgotPassword, resetPassword } = useContext(AuthContext);
+  const { isDark } = useTheme();
   const navigate = useNavigate();
 
   // Cooldown timer for OTP Resend
@@ -114,63 +117,57 @@ export default function ForgotPassword() {
   return (
     <div
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        height: '100vh',
+        position: 'relative',
+        minHeight: '100vh',
         width: '100vw',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'radial-gradient(circle at 50% 30%, #161b22 0%, #0d1117 100%)',
-        color: '#c9d1d9',
-        fontFamily: "'Segoe UI', Roboto, sans-serif",
-        padding: '2rem 1rem',
-        boxSizing: 'border-box',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '1.5rem',
         overflowY: 'auto',
-        overflowX: 'hidden',
-        zIndex: 9999,
+        boxSizing: 'border-box'
       }}
     >
+      {/* Top Right Theme Toggle */}
+      <div style={{ position: 'fixed', top: '1.25rem', right: '1.25rem', zIndex: 1000 }}>
+        <ThemeToggle />
+      </div>
+
       <div
+        className="glass-panel"
         style={{
+          position: 'relative',
+          zIndex: 10,
           width: '100%',
           maxWidth: '460px',
           margin: 'auto',
-          background: 'rgba(22, 27, 34, 0.95)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid #30363d',
           borderRadius: '16px',
-          padding: 'clamp(1.2rem, 4vw, 2rem)',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 139, 253, 0.1)',
+          padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+          boxSizing: 'border-box'
         }}
       >
         {/* Brand Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div
             style={{
               width: '52px',
               height: '52px',
               margin: '0 auto 0.75rem',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #1f6feb, #388bfd)',
+              background: 'linear-gradient(135deg, var(--accent-color), #60a5fa)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '1.6rem',
-              boxShadow: '0 0 20px rgba(56, 139, 253, 0.4)',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
             }}
           >
             🛡️
           </div>
-          <h2 style={{ margin: 0, color: '#ffffff', fontSize: '1.45rem', fontWeight: '700', letterSpacing: '0.5px' }}>
+          <h2 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
             CyberGuardian AI
           </h2>
-          <p style={{ margin: '0.3rem 0 0', color: '#8b949e', fontSize: '0.85rem' }}>
+          <p style={{ margin: '0.35rem 0 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
             Enterprise Password Recovery Service
           </p>
         </div>
@@ -182,35 +179,35 @@ export default function ForgotPassword() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.5rem',
-            marginBottom: '1.2rem',
+            marginBottom: '1.5rem',
           }}
         >
           <div
             style={{
-              padding: '4px 12px',
+              padding: '5px 14px',
               borderRadius: '20px',
               fontSize: '0.75rem',
-              fontWeight: '600',
-              background: step === 1 ? '#1f6feb' : '#21262d',
-              color: step === 1 ? '#ffffff' : '#8b949e',
+              fontWeight: '700',
+              background: step === 1 ? 'var(--accent-color)' : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
+              color: step === 1 ? '#ffffff' : 'var(--text-muted)',
               border: '1px solid',
-              borderColor: step === 1 ? '#388bfd' : '#30363d',
+              borderColor: step === 1 ? 'var(--accent-color)' : 'var(--border-subtle)',
               transition: 'all 0.3s ease',
             }}
           >
             1. Verify Email
           </div>
-          <div style={{ width: '20px', height: '1px', background: '#30363d' }} />
+          <div style={{ width: '20px', height: '1px', background: 'var(--border-subtle)' }} />
           <div
             style={{
-              padding: '4px 12px',
+              padding: '5px 14px',
               borderRadius: '20px',
               fontSize: '0.75rem',
-              fontWeight: '600',
-              background: step === 2 ? '#1f6feb' : '#21262d',
-              color: step === 2 ? '#ffffff' : '#8b949e',
+              fontWeight: '700',
+              background: step === 2 ? 'var(--accent-color)' : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
+              color: step === 2 ? '#ffffff' : 'var(--text-muted)',
               border: '1px solid',
-              borderColor: step === 2 ? '#388bfd' : '#30363d',
+              borderColor: step === 2 ? 'var(--accent-color)' : 'var(--border-subtle)',
               transition: 'all 0.3s ease',
             }}
           >
@@ -222,9 +219,9 @@ export default function ForgotPassword() {
         {message && (
           <div
             style={{
-              background: 'rgba(46, 160, 67, 0.15)',
-              border: '1px solid #2ea043',
-              color: '#56d364',
+              background: isDark ? 'rgba(63, 185, 80, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid var(--success-color)',
+              color: 'var(--success-color)',
               padding: '0.85rem 1rem',
               borderRadius: '8px',
               fontSize: '0.88rem',
@@ -239,9 +236,9 @@ export default function ForgotPassword() {
         {error && (
           <div
             style={{
-              background: 'rgba(248, 81, 73, 0.15)',
-              border: '1px solid #f85149',
-              color: '#ff7b72',
+              background: isDark ? 'rgba(248, 81, 73, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid var(--danger-color)',
+              color: 'var(--danger-color)',
               padding: '0.85rem 1rem',
               borderRadius: '8px',
               fontSize: '0.88rem',
@@ -260,11 +257,11 @@ export default function ForgotPassword() {
               <label
                 style={{
                   display: 'block',
-                  color: '#8b949e',
-                  fontSize: '0.82rem',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
-                  fontWeight: '600',
+                  fontWeight: '700',
                   marginBottom: '0.5rem',
                 }}
               >
@@ -278,10 +275,11 @@ export default function ForgotPassword() {
                 style={{
                   width: '100%',
                   padding: '0.85rem 1rem',
-                  background: '#0d1117',
-                  border: '1px solid #30363d',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-subtle)',
+                  borderTop: '1px solid var(--border-color)',
                   borderRadius: '8px',
-                  color: '#ffffff',
+                  color: 'var(--text-main)',
                   fontSize: '0.95rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -293,18 +291,18 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={loading}
+              className="btn-fluid"
               style={{
                 width: '100%',
                 padding: '0.9rem',
-                background: 'linear-gradient(135deg, #1f6feb, #238636)',
+                background: 'var(--accent-color)',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '0.95rem',
-                fontWeight: '600',
+                fontWeight: '700',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 15px rgba(31, 111, 235, 0.3)',
-                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 16px rgba(37, 99, 235, 0.35)',
               }}
             >
               {loading ? 'Dispatching OTP Email...' : 'Send Reset Code to Email'}
@@ -312,16 +310,16 @@ export default function ForgotPassword() {
           </form>
         ) : (
           /* STEP 2: OTP Verification & Password Reset */
-          <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+          <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <label
                   style={{
-                    color: '#8b949e',
-                    fontSize: '0.82rem',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.8rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
-                    fontWeight: '600',
+                    fontWeight: '700',
                   }}
                 >
                   6-Digit OTP Code
@@ -333,8 +331,9 @@ export default function ForgotPassword() {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: resendCooldown > 0 ? '#484f58' : '#58a6ff',
+                    color: resendCooldown > 0 ? 'var(--text-muted)' : 'var(--accent-color)',
                     fontSize: '0.8rem',
+                    fontWeight: 600,
                     cursor: resendCooldown > 0 ? 'default' : 'pointer',
                     padding: 0,
                     textDecoration: resendCooldown > 0 ? 'none' : 'underline',
@@ -351,11 +350,11 @@ export default function ForgotPassword() {
                 style={{
                   width: '100%',
                   padding: '0.85rem 1rem',
-                  background: '#0d1117',
-                  border: '1px solid #388bfd',
+                  background: 'var(--input-bg)',
+                  border: '1.5px solid var(--accent-color)',
                   borderRadius: '8px',
-                  color: '#58a6ff',
-                  fontSize: '1.4rem',
+                  color: 'var(--accent-color)',
+                  fontSize: '1.35rem',
                   fontWeight: '700',
                   letterSpacing: '8px',
                   textAlign: 'center',
@@ -366,8 +365,8 @@ export default function ForgotPassword() {
                 maxLength={6}
                 required
               />
-              <p style={{ margin: '0.35rem 0 0', color: '#6e7681', fontSize: '0.78rem', textAlign: 'center' }}>
-                OTP sent to <span style={{ color: '#c9d1d9' }}>{email}</span> (Expires in 10 minutes)
+              <p style={{ margin: '0.35rem 0 0', color: 'var(--text-muted)', fontSize: '0.78rem', textAlign: 'center' }}>
+                OTP sent to <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{email}</span> (Expires in 10 minutes)
               </p>
             </div>
 
@@ -375,11 +374,11 @@ export default function ForgotPassword() {
               <label
                 style={{
                   display: 'block',
-                  color: '#8b949e',
-                  fontSize: '0.82rem',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
-                  fontWeight: '600',
+                  fontWeight: '700',
                   marginBottom: '0.5rem',
                 }}
               >
@@ -394,10 +393,11 @@ export default function ForgotPassword() {
                   style={{
                     width: '100%',
                     padding: '0.85rem 2.8rem 0.85rem 1rem',
-                    background: '#0d1117',
-                    border: '1px solid #30363d',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-subtle)',
+                    borderTop: '1px solid var(--border-color)',
                     borderRadius: '8px',
-                    color: '#ffffff',
+                    color: 'var(--text-main)',
                     fontSize: '0.95rem',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -414,7 +414,7 @@ export default function ForgotPassword() {
                     transform: 'translateY(-50%)',
                     background: 'none',
                     border: 'none',
-                    color: '#8b949e',
+                    color: 'var(--text-muted)',
                     fontSize: '1rem',
                     cursor: 'pointer',
                     padding: '4px',
@@ -427,7 +427,7 @@ export default function ForgotPassword() {
               {/* Password Strength Indicator */}
               {newPassword && (
                 <div style={{ marginTop: '0.5rem' }}>
-                  <div style={{ height: '4px', background: '#21262d', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ height: '4px', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
                     <div
                       style={{
                         width: strength.percent,
@@ -437,7 +437,7 @@ export default function ForgotPassword() {
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: strength.color, marginTop: '2px', display: 'block' }}>
+                  <span style={{ fontSize: '0.75rem', color: strength.color, marginTop: '2px', display: 'block', fontWeight: 600 }}>
                     {strength.label}
                   </span>
                 </div>
@@ -448,11 +448,11 @@ export default function ForgotPassword() {
               <label
                 style={{
                   display: 'block',
-                  color: '#8b949e',
-                  fontSize: '0.82rem',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
-                  fontWeight: '600',
+                  fontWeight: '700',
                   marginBottom: '0.5rem',
                 }}
               >
@@ -466,10 +466,11 @@ export default function ForgotPassword() {
                 style={{
                   width: '100%',
                   padding: '0.85rem 1rem',
-                  background: '#0d1117',
-                  border: '1px solid #30363d',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-subtle)',
+                  borderTop: '1px solid var(--border-color)',
                   borderRadius: '8px',
-                  color: '#ffffff',
+                  color: 'var(--text-main)',
                   fontSize: '0.95rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -481,18 +482,18 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={loading}
+              className="btn-fluid"
               style={{
                 width: '100%',
                 padding: '0.9rem',
-                background: 'linear-gradient(135deg, #1f6feb, #388bfd)',
+                background: 'var(--accent-color)',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '0.95rem',
-                fontWeight: '600',
+                fontWeight: '700',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 15px rgba(31, 111, 235, 0.4)',
-                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 16px rgba(37, 99, 235, 0.35)',
                 marginTop: '0.5rem',
               }}
             >
@@ -504,16 +505,16 @@ export default function ForgotPassword() {
         {/* Footer Navigation */}
         <div
           style={{
-            marginTop: '1.2rem',
-            paddingTop: '1rem',
-            borderTop: '1px solid #21262d',
+            marginTop: '1.5rem',
+            paddingTop: '1.25rem',
+            borderTop: '1px solid var(--border-subtle)',
             textAlign: 'center',
-            fontSize: '0.85rem',
-            color: '#8b949e',
+            fontSize: '0.88rem',
+            color: 'var(--text-muted)',
           }}
         >
           Remembered your password?{' '}
-          <Link to="/login" style={{ color: '#58a6ff', textDecoration: 'none', fontWeight: '600' }}>
+          <Link to="/login" style={{ color: 'var(--accent-color)', textDecoration: 'none', fontWeight: '700' }}>
             Back to Sign In
           </Link>
         </div>

@@ -39,8 +39,8 @@ export default function FluidTabs({ tabs, activeTab, onChange }) {
         position: 'relative',
         display: 'inline-flex',
         alignItems: 'center',
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        background: 'var(--panel-bg)',
+        border: '1px solid var(--border-color)',
         borderRadius: '12px',
         padding: '4px',
         gap: '4px',
@@ -49,7 +49,8 @@ export default function FluidTabs({ tabs, activeTab, onChange }) {
         marginBottom: '24px',
         maxWidth: '100%',
         overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch'
+        WebkitOverflowScrolling: 'touch',
+        transition: 'background-color 300ms ease, border-color 300ms ease'
       }}
     >
       {/* Sliding spring background pill */}

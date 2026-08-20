@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthProvider, AuthContext } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+
+import Scene3D from './components/three/Scene3D';
 
 // User Portal
 import Login from './components/Login';
@@ -67,103 +70,107 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          {/* ── Public User Routes ─────────────────────────── */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+        <ThemeProvider>
+          {/* Persistent continuous 3D canvas background across all page transitions */}
+          <Scene3D />
+          <Routes>
+            {/* ── Public User Routes ─────────────────────────── */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          {/* ── Protected User Portal ──────────────────────── */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute><Dashboard /></ProtectedRoute>
-          } />
-          <Route path="/threat-intel" element={
-            <ProtectedRoute><ThreatIntel /></ProtectedRoute>
-          } />
-          <Route path="/file-analyzer" element={
-            <ProtectedRoute><FileAnalyzer /></ProtectedRoute>
-          } />
-          <Route path="/ssl-scanner" element={
-            <ProtectedRoute><SSLScanner /></ProtectedRoute>
-          } />
-          <Route path="/whois" element={
-            <ProtectedRoute><WhoisLookup /></ProtectedRoute>
-          } />
-          <Route path="/url-scanner" element={
-            <ProtectedRoute><URLScanner /></ProtectedRoute>
-          } />
-          <Route path="/port-scanner" element={
-            <ProtectedRoute><PortScanner /></ProtectedRoute>
-          } />
-          <Route path="/soc-analysis" element={
-            <ProtectedRoute><SOCAnalysis /></ProtectedRoute>
-          } />
+            {/* ── Protected User Portal ──────────────────────── */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute><Dashboard /></ProtectedRoute>
+            } />
+            <Route path="/threat-intel" element={
+              <ProtectedRoute><ThreatIntel /></ProtectedRoute>
+            } />
+            <Route path="/file-analyzer" element={
+              <ProtectedRoute><FileAnalyzer /></ProtectedRoute>
+            } />
+            <Route path="/ssl-scanner" element={
+              <ProtectedRoute><SSLScanner /></ProtectedRoute>
+            } />
+            <Route path="/whois" element={
+              <ProtectedRoute><WhoisLookup /></ProtectedRoute>
+            } />
+            <Route path="/url-scanner" element={
+              <ProtectedRoute><URLScanner /></ProtectedRoute>
+            } />
+            <Route path="/port-scanner" element={
+              <ProtectedRoute><PortScanner /></ProtectedRoute>
+            } />
+            <Route path="/soc-analysis" element={
+              <ProtectedRoute><SOCAnalysis /></ProtectedRoute>
+            } />
 
-          {/* ── Admin Portal Public ────────────────────────── */}
-          <Route path="/admin/login" element={<AdminLogin />} />
+            {/* ── Admin Portal Public ────────────────────────── */}
+            <Route path="/admin/login" element={<AdminLogin />} />
 
-          {/* ── Admin Portal Protected ─────────────────────── */}
-          <Route path="/admin/dashboard" element={
-            <AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/users" element={
-            <AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/threats" element={
-            <AdminProtectedRoute><AdminThreats /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/file-analysis" element={
-            <AdminProtectedRoute><AdminFileAnalysis /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/ssl-scanner" element={
-            <AdminProtectedRoute><AdminSSLScanner /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/whois" element={
-            <AdminProtectedRoute><AdminWhois /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/url-scanner" element={
-            <AdminProtectedRoute><AdminURLScanner /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/port-scanner" element={
-            <AdminProtectedRoute><AdminPortScanner /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/soc-analysis" element={
-            <AdminProtectedRoute><AdminSOCAnalysis /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/incidents" element={
-            <AdminProtectedRoute><AdminIncidents /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/scans" element={
-            <AdminProtectedRoute><AdminScans /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/reports" element={
-            <AdminProtectedRoute><AdminReports /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/ai-agent" element={
-            <AdminProtectedRoute><AdminAIAgent /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/analytics" element={
-            <AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/system-health" element={
-            <AdminProtectedRoute><AdminSystemHealth /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/audit-logs" element={
-            <AdminProtectedRoute><AdminAuditLogs /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/settings" element={
-            <AdminProtectedRoute><AdminSettings /></AdminProtectedRoute>
-          } />
-          <Route path="/admin/api-health" element={
-            <AdminProtectedRoute><AdminApiHealth /></AdminProtectedRoute>
-          } />
+            {/* ── Admin Portal Protected ─────────────────────── */}
+            <Route path="/admin/dashboard" element={
+              <AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/users" element={
+              <AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/threats" element={
+              <AdminProtectedRoute><AdminThreats /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/file-analysis" element={
+              <AdminProtectedRoute><AdminFileAnalysis /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/ssl-scanner" element={
+              <AdminProtectedRoute><AdminSSLScanner /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/whois" element={
+              <AdminProtectedRoute><AdminWhois /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/url-scanner" element={
+              <AdminProtectedRoute><AdminURLScanner /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/port-scanner" element={
+              <AdminProtectedRoute><AdminPortScanner /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/soc-analysis" element={
+              <AdminProtectedRoute><AdminSOCAnalysis /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/incidents" element={
+              <AdminProtectedRoute><AdminIncidents /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/scans" element={
+              <AdminProtectedRoute><AdminScans /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/reports" element={
+              <AdminProtectedRoute><AdminReports /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/ai-agent" element={
+              <AdminProtectedRoute><AdminAIAgent /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/analytics" element={
+              <AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/system-health" element={
+              <AdminProtectedRoute><AdminSystemHealth /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/audit-logs" element={
+              <AdminProtectedRoute><AdminAuditLogs /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/settings" element={
+              <AdminProtectedRoute><AdminSettings /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/api-health" element={
+              <AdminProtectedRoute><AdminApiHealth /></AdminProtectedRoute>
+            } />
 
-          {/* ── Shared / Utility ───────────────────────────── */}
-          <Route path="/unauthorized" element={<Unauthorized403 />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="*" element={<NotFound404 />} />
-        </Routes>
+            {/* ── Shared / Utility ───────────────────────────── */}
+            <Route path="/unauthorized" element={<Unauthorized403 />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="*" element={<NotFound404 />} />
+          </Routes>
+        </ThemeProvider>
       </AuthProvider>
     </Router>
   );
