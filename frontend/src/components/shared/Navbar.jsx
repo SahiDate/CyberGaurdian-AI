@@ -110,6 +110,16 @@ export default function Navbar() {
             fontSize: '0.875rem'
           }}>SOC Analysis</Link>
 
+          <Link to="/ai-agent" style={{
+            padding: '0.5rem 0.9rem',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            color: isActive('/ai-agent') ? '#fff' : 'var(--text-muted)',
+            background: isActive('/ai-agent') ? 'var(--accent-color)' : 'transparent',
+            fontWeight: '600',
+            fontSize: '0.875rem'
+          }}>AI Agent</Link>
+
           <Link to="/scan" style={{
             padding: '0.5rem 0.9rem',
             borderRadius: '6px',
@@ -237,6 +247,7 @@ export default function Navbar() {
               ['/url-scanner', '🔗 URL Scanner'],
               ['/port-scanner', '🔌 Port Scanner'],
               ['/soc-analysis', '🧠 SOC Analysis'],
+              ['/ai-agent', '🤖 AI Security Agent'],
               ['/scan', '🔍 Quick Scan'],
               ['/history', '📜 My History'],
               ['/reports', '📑 Reports'],

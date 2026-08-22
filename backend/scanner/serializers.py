@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     ScanResult, Report, ThreatIntelResult, FileAnalysis, Incident, AIActivity,
-    SSLScanResult, WhoisLookupResult, URLScanResult, PortScanResult, SOCAnalysis
+    SSLScanResult, WhoisLookupResult, URLScanResult, PortScanResult, SOCAnalysis,
+    AgentSession, AgentStep, AgentToolExecution, SecurityReport
 )
 
 
@@ -512,6 +513,185 @@ class SOCAnalysisSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'user_id', 'username', 'created_at', 'updated_at']
+
+
+# ==============================================================================
+# PHASE 9: AUTONOMOUS AI SECURITY AGENT SERIALIZERS
+# ==============================================================================
+
+class AgentAnalyzeRequestSerializer(serializers.Serializer):
+    target = serializers.CharField(
+        max_length=512,
+        required=True,
+        error_messages={
+            'required': 'Target (domain, URL, IP, or file hash) is required for AI Agent analysis.',
+            'blank': 'Target cannot be blank.'
+        }
+    )
+    analysis_mode = serializers.CharField(
+        max_length=50,
+        required=False,
+        default='SECURITY_ASSESSMENT'
+    )
+    max_steps = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=10,
+        default=5
+    )
+
+
+class AgentStepSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AgentStep
+        fields = [
+            'id',
+            'step_number',
+            'action',
+            'tool_name',
+            'status',
+            'reasoning_summary',
+            'input_summary',
+            'output_summary',
+            'created_at',
+        ]
+        read_only_fields = ['id', 'created_at']
+
+
+class AgentToolExecutionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AgentToolExecution
+        fields = [
+            'id',
+            'tool_name',
+            'status',
+            'duration_seconds',
+            'error_message',
+            'created_at',
+        ]
+        read_only_fields = ['id', 'created_at']
+
+
+class AgentSessionSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source='user.id')
+    username = serializers.ReadOnlyField(source='user.username')
+
+    class Meta:
+        model = AgentSession
+        fields = [
+            'id',
+            'user_id',
+            'username',
+            'target',
+            'analysis_mode',
+            'status',
+            'risk_score',
+            'severity',
+            'confidence',
+            'threat_level',
+            'summary',
+            'findings',
+            'recommendations',
+            'evidence_sources',
+            'tools_used',
+            'steps_completed',
+            'soc_analysis_id',
+            'error_message',
+            'duration_seconds',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'user_id', 'username', 'created_at', 'updated_at']
+
+
+class AgentSessionDetailSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source='user.id')
+    username = serializers.ReadOnlyField(source='user.username')
+    steps = AgentStepSerializer(many=True, read_only=True)
+    tool_executions = AgentToolExecutionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = AgentSession
+        fields = [
+            'id',
+            'user_id',
+            'username',
+            'target',
+            'analysis_mode',
+            'status',
+            'risk_score',
+            'severity',
+            'confidence',
+            'threat_level',
+            'summary',
+            'findings',
+            'recommendations',
+            'evidence_sources',
+            'tools_used',
+            'steps_completed',
+            'soc_analysis_id',
+            'error_message',
+            'duration_seconds',
+            'steps',
+            'tool_executions',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'user_id', 'username', 'created_at', 'updated_at']
+
+
+class SecurityReportGenerateRequestSerializer(serializers.Serializer):
+    target = serializers.CharField(max_length=512, required=True)
+    soc_analysis_id = serializers.IntegerField(required=False, allow_null=True)
+    agent_session_id = serializers.IntegerField(required=False, allow_null=True)
+    report_type = serializers.ChoiceField(
+        choices=['COMPREHENSIVE', 'SOC_ASSESSMENT', 'AI_SECURITY_ASSESSMENT', 'MODULE_SPECIFIC'],
+        default='COMPREHENSIVE'
+    )
+
+
+class SecurityReportSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source='user.id')
+    username = serializers.ReadOnlyField(source='user.username')
+    soc_analysis_id = serializers.ReadOnlyField(source='soc_analysis.id')
+    agent_session_id = serializers.ReadOnlyField(source='agent_session.id')
+    pdf_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SecurityReport
+        fields = [
+            'id',
+            'report_id',
+            'user_id',
+            'username',
+            'target',
+            'title',
+            'report_type',
+            'status',
+            'risk_score',
+            'severity',
+            'confidence',
+            'threat_level',
+            'summary',
+            'soc_analysis_id',
+            'agent_session_id',
+            'pdf_url',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'report_id', 'user_id', 'username', 'created_at', 'updated_at']
+
+    def get_pdf_url(self, obj):
+        if obj.pdf_file:
+            return f"/api/reports/{obj.id}/pdf/"
+        return None
+
+
+class SecurityReportDetailSerializer(SecurityReportSerializer):
+    class Meta(SecurityReportSerializer.Meta):
+        fields = SecurityReportSerializer.Meta.fields + ['structured_data']
+
+
 
 
 

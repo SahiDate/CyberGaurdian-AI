@@ -21,12 +21,13 @@ try:
     _PSUTIL_AVAILABLE = True
 except ImportError:
     _PSUTIL_AVAILABLE = False
-from rest_framework_simplejwt.tokens import RefreshToken
+from django.http import HttpResponse, Http404
 from django.conf import settings
 from .utils import send_sms, dispatch_otp, print_terminal_otp_banner
 from scanner.models import (
     ScanResult, Report, ThreatIntelResult, FileAnalysis, Incident, AIActivity,
-    SSLScanResult, WhoisLookupResult, URLScanResult, PortScanResult, SOCAnalysis
+    SSLScanResult, WhoisLookupResult, URLScanResult, PortScanResult, SOCAnalysis,
+    AgentSession, AgentStep, AgentToolExecution, SecurityReport
 )
 from scanner.serializers import (
     ScanResultSerializer, ScanResultListSerializer,
@@ -35,7 +36,10 @@ from scanner.serializers import (
     SSLScanSerializer, SSLScanRequestSerializer, WhoisLookupSerializer, WhoisRequestSerializer,
     URLScanSerializer, URLScanRequestSerializer,
     PortScanSerializer, PortScanRequestSerializer,
-    SOCAnalysisSerializer, SOCAnalysisRequestSerializer
+    SOCAnalysisSerializer, SOCAnalysisRequestSerializer,
+    AgentAnalyzeRequestSerializer, AgentSessionSerializer, AgentSessionDetailSerializer,
+    AgentStepSerializer,
+    SecurityReportSerializer, SecurityReportDetailSerializer, SecurityReportGenerateRequestSerializer
 )
 from scanner.services.threat_intel.service import ThreatIntelligenceService
 from scanner.services.file_analyzer.service import FileAnalyzerService
@@ -44,6 +48,8 @@ from scanner.services.whois_service.service import WhoisService
 from scanner.services.url_scanner.service import URLScannerService
 from scanner.services.port_scanner.service import PortScannerService
 from scanner.services.soc_engine.engine import SOCAnalysisEngine, extract_target_identifiers
+from scanner.services.agent import AutonomousAIAgentService, check_ollama_health
+from scanner.services.reports import SecurityReportService
 from scanner.validators import ValidationError as TargetValidationError
 
 
@@ -704,13 +710,66 @@ class UserScanDetailView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class UserReportGenerateView(APIView):
+    permission_classes = [IsUserRole]
+
+    def post(self, request):
+        serializer = SecurityReportGenerateRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        target = serializer.validated_data['target'].strip()
+        soc_analysis_id = serializer.validated_data.get('soc_analysis_id')
+        agent_session_id = serializer.validated_data.get('agent_session_id')
+        report_type = serializer.validated_data.get('report_type', 'COMPREHENSIVE')
+
+        try:
+            report = SecurityReportService.generate_report(
+                target=target,
+                user=request.user,
+                soc_analysis_id=soc_analysis_id,
+                agent_session_id=agent_session_id,
+                report_type=report_type
+            )
+            return Response(SecurityReportDetailSerializer(report).data, status=status.HTTP_201_CREATED)
+        except ValueError as ve:
+            return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Failed to generate report: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class UserReportsListView(APIView):
     permission_classes = [IsUserRole]
 
     def get(self, request):
-        reports = Report.objects.filter(user=request.user).order_by('-created_at')
-        serializer = ReportSerializer(reports, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        sec_reports = SecurityReport.objects.filter(user=request.user).order_by('-created_at')
+        
+        # Apply search and filters if provided
+        search = request.query_params.get('search')
+        if search:
+            sec_reports = sec_reports.filter(Q(target__icontains=search) | Q(report_id__icontains=search) | Q(summary__icontains=search))
+            
+        severity = request.query_params.get('severity')
+        if severity and severity.upper() != 'ALL':
+            sec_reports = sec_reports.filter(severity=severity.upper())
+            
+        status_filter = request.query_params.get('status')
+        if status_filter and status_filter.upper() != 'ALL':
+            sec_reports = sec_reports.filter(status=status_filter.upper())
+
+        report_type = request.query_params.get('report_type')
+        if report_type and report_type.upper() != 'ALL':
+            sec_reports = sec_reports.filter(report_type=report_type.upper())
+
+        data = SecurityReportSerializer(sec_reports, many=True).data
+
+        # Fallback to legacy Report records if user has legacy records and no search query
+        if not data and not search and not severity:
+            legacy_reports = Report.objects.filter(user=request.user).order_by('-created_at')
+            if legacy_reports.exists():
+                return Response(ReportSerializer(legacy_reports, many=True).data, status=status.HTTP_200_OK)
+
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class UserReportDetailView(APIView):
@@ -718,11 +777,75 @@ class UserReportDetailView(APIView):
 
     def get(self, request, pk):
         # Strictly filter by request.user — no cross-tenant leakage!
-        report = Report.objects.filter(user=request.user, pk=pk).first()
+        report = SecurityReport.objects.filter(user=request.user, pk=pk).first()
+        if report:
+            return Response(SecurityReportDetailSerializer(report).data, status=status.HTTP_200_OK)
+
+        # Fallback to legacy Report model
+        legacy = Report.objects.filter(user=request.user, pk=pk).first()
+        if legacy:
+            return Response(ReportSerializer(legacy).data, status=status.HTTP_200_OK)
+
+        return Response({"error": "Report not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, pk):
+        report = SecurityReport.objects.filter(user=request.user, pk=pk).first()
+        if report:
+            report.delete()
+            return Response({"message": "Report deleted successfully."}, status=status.HTTP_200_OK)
+
+        legacy = Report.objects.filter(user=request.user, pk=pk).first()
+        if legacy:
+            legacy.delete()
+            return Response({"message": "Report deleted successfully."}, status=status.HTTP_200_OK)
+
+        return Response({"error": "Report not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class UserReportPDFDownloadView(APIView):
+    permission_classes = [IsUserRole]
+
+    def get(self, request, pk):
+        report = SecurityReport.objects.filter(user=request.user, pk=pk).first()
         if not report:
             return Response({"error": "Report not found."}, status=status.HTTP_404_NOT_FOUND)
-        serializer = ReportSerializer(report)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        try:
+            pdf_bytes, filename = SecurityReportService.get_report_pdf(report, request.user, is_admin=False)
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except Exception as e:
+            return Response({"error": f"Failed to retrieve PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UserReportJSONDownloadView(APIView):
+    permission_classes = [IsUserRole]
+
+    def get(self, request, pk):
+        report = SecurityReport.objects.filter(user=request.user, pk=pk).first()
+        if not report:
+            return Response({"error": "Report not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        json_data, filename = SecurityReportService.get_report_json(report, request.user, is_admin=False)
+        import json
+        response = HttpResponse(json.dumps(json_data, indent=2), content_type='application/json')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+
+class UserReportCSVDownloadView(APIView):
+    permission_classes = [IsUserRole]
+
+    def get(self, request, pk):
+        report = SecurityReport.objects.filter(user=request.user, pk=pk).first()
+        if not report:
+            return Response({"error": "Report not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        csv_str, filename = SecurityReportService.get_report_csv(report, request.user, is_admin=False)
+        response = HttpResponse(csv_str, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
 
 class UserThreatsListView(APIView):
@@ -2801,6 +2924,371 @@ class SOCAdminAnalyticsView(APIView):
             "by_threat_level": by_threat_level,
             "by_type": by_type,
         }, status=status.HTTP_200_OK)
+
+
+# ==============================================================================
+# PHASE 9: AUTONOMOUS AI SECURITY AGENT VIEWS (USER & ADMIN)
+# ==============================================================================
+
+class AgentHealthView(APIView):
+    """
+    Checks Ollama local LLM runtime status and configured Qwen model health.
+    GET /api/agent/health/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        status_data = check_ollama_health()
+        return Response(status_data, status=status.HTTP_200_OK)
+
+
+class AgentAnalyzeView(APIView):
+    """
+    Executes controlled Autonomous AI Security Agent analysis for given target.
+    POST /api/agent/analyze/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = AgentAnalyzeRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        target = serializer.validated_data['target'].strip()
+        analysis_mode = serializer.validated_data.get('analysis_mode', 'SECURITY_ASSESSMENT')
+        max_steps = serializer.validated_data.get('max_steps', 5)
+
+        agent_service = AutonomousAIAgentService()
+        session = agent_service.run_session(
+            target=target,
+            user=request.user,
+            max_steps=max_steps,
+            analysis_mode=analysis_mode
+        )
+
+        response_serializer = AgentSessionDetailSerializer(session)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+class AgentUserHistoryView(APIView):
+    """
+    User Portal AI Agent Session History Endpoint.
+    GET /api/agent/history/
+    Strictly isolated: returns AgentSession.objects.filter(user=request.user)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        queryset = AgentSession.objects.filter(user=request.user).order_by('-created_at')
+
+        target_query = request.query_params.get('search', '').strip() or request.query_params.get('target', '').strip()
+        if target_query:
+            queryset = queryset.filter(target__icontains=target_query)
+
+        severity_param = request.query_params.get('severity', '').strip()
+        if severity_param and severity_param != 'ALL':
+            queryset = queryset.filter(severity__iexact=severity_param)
+
+        status_param = request.query_params.get('status', '').strip()
+        if status_param and status_param != 'ALL':
+            queryset = queryset.filter(status__iexact=status_param)
+
+        serializer = AgentSessionSerializer(queryset[:100], many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AgentUserDetailView(APIView):
+    """
+    User Portal Isolated AI Agent Session Detail Endpoint.
+    GET /api/agent/<pk>/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            record = AgentSession.objects.prefetch_related('steps', 'tool_executions').get(pk=pk, user=request.user)
+            serializer = AgentSessionDetailSerializer(record)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except AgentSession.DoesNotExist:
+            return Response({"error": "AI Agent session not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class AgentAdminListView(APIView):
+    """
+    SOC Admin Portal Platform-wide AI Agent Sessions Endpoint.
+    GET /api/admin/agent/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        queryset = AgentSession.objects.all().select_related('user').order_by('-created_at')
+
+        search = request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(target__icontains=search) |
+                Q(summary__icontains=search) |
+                Q(user__username__icontains=search)
+            )
+
+        severity = request.query_params.get('severity', '').strip()
+        if severity and severity != 'ALL':
+            queryset = queryset.filter(severity__iexact=severity)
+
+        status_param = request.query_params.get('status', '').strip()
+        if status_param and status_param != 'ALL':
+            queryset = queryset.filter(status__iexact=status_param)
+
+        user_id = request.query_params.get('user_id', '').strip()
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+
+        serializer = AgentSessionSerializer(queryset[:200], many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AgentAdminDetailView(APIView):
+    """
+    SOC Admin Portal Platform-wide AI Agent Session Detail Inspection Endpoint.
+    GET /api/admin/agent/<pk>/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, pk):
+        try:
+            record = AgentSession.objects.select_related('user').prefetch_related('steps', 'tool_executions').get(pk=pk)
+            serializer = AgentSessionDetailSerializer(record)
+
+            AdminAuditLog.objects.create(
+                admin=request.user,
+                action='ADMIN_VIEW_AI_AGENT_SESSION',
+                target_user=record.user,
+                target_record=f"AgentSession #{record.id} ({record.target})"
+            )
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except AgentSession.DoesNotExist:
+            return Response({"error": "AI Agent session not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class AgentAdminAnalyticsView(APIView):
+    """
+    SOC Admin Portal AI Agent Platform Analytics Endpoint.
+    GET /api/admin/agent/analytics/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        today = timezone.now().date()
+        total_sessions = AgentSession.objects.count()
+        sessions_today = AgentSession.objects.filter(created_at__date=today).count()
+
+        completed_count = AgentSession.objects.filter(status='COMPLETED').count()
+        failed_count = AgentSession.objects.filter(status='FAILED').count()
+        failed_ai_count = AgentSession.objects.filter(status='FAILED_AI').count()
+        running_count = AgentSession.objects.filter(status='RUNNING').count()
+
+        critical_count = AgentSession.objects.filter(severity__iexact='CRITICAL').count()
+        high_count = AgentSession.objects.filter(severity__iexact='HIGH').count()
+        medium_count = AgentSession.objects.filter(severity__iexact='MEDIUM').count()
+        low_count = AgentSession.objects.filter(severity__iexact='LOW').count()
+
+        total_steps = AgentStep.objects.count()
+        avg_steps = round(total_steps / total_sessions, 1) if total_sessions > 0 else 0
+
+        # Tool execution breakdown
+        tool_counts = list(AgentToolExecution.objects.values('tool_name').annotate(count=Count('id')).order_by('-count'))
+
+        return Response({
+            "total_sessions": total_sessions,
+            "sessions_today": sessions_today,
+            "status_breakdown": {
+                "completed": completed_count,
+                "failed": failed_count,
+                "failed_ai": failed_ai_count,
+                "running": running_count
+            },
+            "severity_breakdown": {
+                "critical": critical_count,
+                "high": high_count,
+                "medium": medium_count,
+                "low": low_count
+            },
+            "avg_steps": avg_steps,
+            "tool_usage": tool_counts
+        }, status=status.HTTP_200_OK)
+
+
+class AdminAllReportsListView(APIView):
+    """
+    SOC Admin Portal Platform-Wide Security Reports List with Filters.
+    GET /api/admin/reports/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        queryset = SecurityReport.objects.select_related('user').all().order_by('-created_at')
+
+        search = request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(target__icontains=search) |
+                Q(report_id__icontains=search) |
+                Q(summary__icontains=search) |
+                Q(user__username__icontains=search)
+            )
+
+        severity = request.query_params.get('severity', '').strip()
+        if severity and severity.upper() != 'ALL':
+            queryset = queryset.filter(severity__iexact=severity)
+
+        status_param = request.query_params.get('status', '').strip()
+        if status_param and status_param.upper() != 'ALL':
+            queryset = queryset.filter(status__iexact=status_param)
+
+        user_id = request.query_params.get('user_id', '').strip()
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+
+        serializer = SecurityReportSerializer(queryset[:200], many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AdminReportsAnalyticsView(APIView):
+    """
+    SOC Admin Portal Security Reports Analytics Endpoint.
+    GET /api/admin/reports/analytics/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        total_reports = SecurityReport.objects.count()
+        today = timezone.now().date()
+        reports_today = SecurityReport.objects.filter(created_at__date=today).count()
+
+        completed_count = SecurityReport.objects.filter(status='COMPLETED').count()
+        partial_count = SecurityReport.objects.filter(status='PARTIAL').count()
+        failed_count = SecurityReport.objects.filter(status='FAILED').count()
+
+        critical_count = SecurityReport.objects.filter(severity__iexact='CRITICAL').count()
+        high_count = SecurityReport.objects.filter(severity__iexact='HIGH').count()
+        medium_count = SecurityReport.objects.filter(severity__iexact='MEDIUM').count()
+        low_count = SecurityReport.objects.filter(severity__iexact='LOW').count()
+
+        from django.db.models import Avg
+        avg_risk = SecurityReport.objects.aggregate(avg=Avg('risk_score'))['avg'] or 0
+        avg_conf = SecurityReport.objects.aggregate(avg=Avg('confidence'))['avg'] or 0
+
+        return Response({
+            "total_reports": total_reports,
+            "reports_today": reports_today,
+            "status_breakdown": {
+                "completed": completed_count,
+                "partial": partial_count,
+                "failed": failed_count
+            },
+            "severity_breakdown": {
+                "critical": critical_count,
+                "high": high_count,
+                "medium": medium_count,
+                "low": low_count
+            },
+            "avg_risk_score": round(avg_risk, 1),
+            "avg_confidence": round(avg_conf, 1)
+        }, status=status.HTTP_200_OK)
+
+
+class AdminReportDetailView(APIView):
+    """
+    SOC Admin Portal Platform-Wide Security Report Detail Inspection Endpoint.
+    GET /api/admin/reports/<pk>/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, pk):
+        try:
+            report = SecurityReport.objects.select_related('user', 'soc_analysis', 'agent_session').get(pk=pk)
+            serializer = SecurityReportDetailSerializer(report)
+
+            AdminAuditLog.objects.create(
+                admin=request.user,
+                action='ADMIN_VIEW_SECURITY_REPORT',
+                target_user=report.user,
+                target_record=f"Report {report.report_id} ({report.target})"
+            )
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except SecurityReport.DoesNotExist:
+            return Response({"error": "Security report not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class AdminReportPDFDownloadView(APIView):
+    """
+    SOC Admin Portal Report PDF Download Endpoint.
+    GET /api/admin/reports/<pk>/pdf/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, pk):
+        try:
+            report = SecurityReport.objects.get(pk=pk)
+            pdf_bytes, filename = SecurityReportService.get_report_pdf(report, request.user, is_admin=True)
+
+            AdminAuditLog.objects.create(
+                admin=request.user,
+                action='ADMIN_DOWNLOAD_REPORT_PDF',
+                target_user=report.user,
+                target_record=f"Report {report.report_id} PDF"
+            )
+
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except SecurityReport.DoesNotExist:
+            return Response({"error": "Security report not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": f"Failed to retrieve PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminReportJSONDownloadView(APIView):
+    """
+    SOC Admin Portal Report JSON Download Endpoint.
+    GET /api/admin/reports/<pk>/json/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, pk):
+        try:
+            report = SecurityReport.objects.get(pk=pk)
+            json_data, filename = SecurityReportService.get_report_json(report, request.user, is_admin=True)
+
+            import json
+            response = HttpResponse(json.dumps(json_data, indent=2), content_type='application/json')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except SecurityReport.DoesNotExist:
+            return Response({"error": "Security report not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class AdminReportCSVDownloadView(APIView):
+    """
+    SOC Admin Portal Report CSV Findings Download Endpoint.
+    GET /api/admin/reports/<pk>/csv/
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, pk):
+        try:
+            report = SecurityReport.objects.get(pk=pk)
+            csv_str, filename = SecurityReportService.get_report_csv(report, request.user, is_admin=True)
+
+            response = HttpResponse(csv_str, content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except SecurityReport.DoesNotExist:
+            return Response({"error": "Security report not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
 
 
 

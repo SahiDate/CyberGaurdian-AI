@@ -737,5 +737,206 @@ class SOCAnalysis(models.Model):
         return f"SOCAnalysis #{self.id}: {self.target} ({self.risk_score}/100 - {self.severity}) [{self.user.username}]"
 
 
+# ==============================================================================
+# PHASE 9: AUTONOMOUS AI SECURITY AGENT MODELS
+# ==============================================================================
+
+class AgentSession(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('RUNNING', 'Running'),
+        ('COMPLETED', 'Completed'),
+        ('PARTIAL', 'Partial'),
+        ('FAILED', 'Failed'),
+        ('FAILED_AI', 'AI Unavailable (Fallback)'),
+    ]
+
+    SEVERITY_LEVELS = [
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+        ('CRITICAL', 'Critical'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='agent_sessions'
+    )
+    target = models.CharField(max_length=512)
+    analysis_mode = models.CharField(max_length=50, default='SECURITY_ASSESSMENT')
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='PENDING')
+
+    # Deterministic SOC Engine Metric Authority
+    risk_score = models.IntegerField(default=0, help_text="0-100 deterministic risk score from SOC Engine")
+    severity = models.CharField(max_length=20, choices=SEVERITY_LEVELS, default='LOW')
+    confidence = models.IntegerField(default=0)
+    threat_level = models.CharField(max_length=30, default='LOW')
+    summary = models.TextField(blank=True, default='')
+
+    # Synthesized Findings & Recommendations
+    findings = models.JSONField(default=list, blank=True)
+    recommendations = models.JSONField(default=list, blank=True)
+    evidence_sources = models.JSONField(default=list, blank=True)
+    tools_used = models.JSONField(default=list, blank=True)
+    steps_completed = models.IntegerField(default=0)
+
+    # Optional Link to SOCAnalysis Record
+    soc_analysis = models.ForeignKey(
+        SOCAnalysis,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='agent_sessions'
+    )
+
+    error_message = models.TextField(blank=True, null=True)
+    duration_seconds = models.FloatField(default=0.0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['target']),
+            models.Index(fields=['status']),
+            models.Index(fields=['severity']),
+        ]
+
+    def __str__(self):
+        return f"AgentSession #{self.id}: {self.target} ({self.status}) [{self.user.username}]"
+
+
+class AgentStep(models.Model):
+    session = models.ForeignKey(
+        AgentSession,
+        on_delete=models.CASCADE,
+        related_name='steps'
+    )
+    step_number = models.IntegerField(default=1)
+    action = models.CharField(max_length=50, default='EVALUATE')
+    tool_name = models.CharField(max_length=100, blank=True, default='')
+    status = models.CharField(max_length=50, default='COMPLETED')
+
+    # Concise operational reasoning summary only (NO raw chain-of-thought)
+    reasoning_summary = models.TextField(blank=True, default='')
+    input_summary = models.JSONField(default=dict, blank=True)
+    output_summary = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['step_number']
+        indexes = [
+            models.Index(fields=['session', 'step_number']),
+        ]
+
+    def __str__(self):
+        return f"AgentStep #{self.step_number} ({self.tool_name or self.action}) for Session #{self.session_id}"
+
+
+class AgentToolExecution(models.Model):
+    session = models.ForeignKey(
+        AgentSession,
+        on_delete=models.CASCADE,
+        related_name='tool_executions'
+    )
+    tool_name = models.CharField(max_length=100)
+    status = models.CharField(max_length=50, default='SUCCESS')
+    duration_seconds = models.FloatField(default=0.0)
+    error_message = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['session', '-created_at']),
+            models.Index(fields=['tool_name']),
+            models.Index(fields=['status']),
+        ]
+
+    def __str__(self):
+        return f"ToolExecution {self.tool_name} ({self.status}) for Session #{self.session_id}"
+
+
+class SecurityReport(models.Model):
+    REPORT_TYPES = [
+        ('COMPREHENSIVE', 'Comprehensive Security Assessment'),
+        ('SOC_ASSESSMENT', 'SOC Security Assessment'),
+        ('AI_SECURITY_ASSESSMENT', 'AI-Assisted Security Assessment'),
+        ('MODULE_SPECIFIC', 'Module-Specific Assessment'),
+    ]
+
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('GENERATING', 'Generating'),
+        ('COMPLETED', 'Completed'),
+        ('PARTIAL', 'Partial (Available Sources)'),
+        ('FAILED', 'Failed'),
+    ]
+
+    report_id = models.CharField(max_length=64, unique=True, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='security_reports'
+    )
+    target = models.CharField(max_length=512, db_index=True)
+    title = models.CharField(max_length=255, default='CyberGuardian Security Assessment Report')
+    report_type = models.CharField(max_length=50, choices=REPORT_TYPES, default='COMPREHENSIVE')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='COMPLETED')
+
+    # Deterministic risk metrics strictly from SOC engine
+    risk_score = models.IntegerField(default=0)
+    severity = models.CharField(max_length=20, default='LOW')
+    confidence = models.IntegerField(default=0)
+    threat_level = models.CharField(max_length=20, default='LOW')
+
+    summary = models.TextField(blank=True, default='')
+
+    # Linked core entities
+    soc_analysis = models.ForeignKey(
+        SOCAnalysis,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='generated_reports'
+    )
+    agent_session = models.ForeignKey(
+        AgentSession,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='generated_reports'
+    )
+
+    # Immutable structured JSON snapshot (contains findings, evidence, correlations, recommendations, limitations, metadata)
+    structured_data = models.JSONField(default=dict, blank=True)
+
+    # Generated PDF artifact file
+    pdf_file = models.FileField(upload_to='reports/pdf/', null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['target', '-created_at']),
+            models.Index(fields=['status']),
+            models.Index(fields=['severity']),
+            models.Index(fields=['report_type']),
+        ]
+
+    def __str__(self):
+        return f"Report {self.report_id} — {self.target} ({self.severity} {self.risk_score}/100) [{self.status}]"
+
+
+
+
 
 

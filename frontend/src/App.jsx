@@ -17,6 +17,7 @@ import WhoisLookup from './components/user/WhoisLookup';
 import URLScanner from './components/user/URLScanner';
 import PortScanner from './components/user/PortScanner';
 import SOCAnalysis from './components/user/SOCAnalysis';
+import AIAgent from './components/user/AIAgent';
 
 // Admin Portal
 import AdminLogin from './components/admin/AdminLogin';
@@ -103,6 +104,9 @@ function App() {
             } />
             <Route path="/soc-analysis" element={
               <ProtectedRoute><SOCAnalysis /></ProtectedRoute>
+            } />
+            <Route path="/ai-agent" element={
+              <ProtectedRoute><AIAgent /></ProtectedRoute>
             } />
 
             {/* ── Admin Portal Public ────────────────────────── */}

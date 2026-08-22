@@ -164,3 +164,12 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+# Phase 9 — Autonomous AI Security Agent Settings
+OLLAMA_BASE_URL = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
+OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'qwen2.5:7b')
+AGENT_TIMEOUT = int(os.environ.get('AGENT_TIMEOUT', 45))
+AGENT_MAX_STEPS = int(os.environ.get('AGENT_MAX_STEPS', 5))
+AGENT_ENABLED = os.environ.get('AGENT_ENABLED', 'True').lower() in ('true', '1', 'yes', 'on')
+MAX_CONCURRENT_AGENT_SESSIONS = int(os.environ.get('MAX_CONCURRENT_AGENT_SESSIONS', 3))
+

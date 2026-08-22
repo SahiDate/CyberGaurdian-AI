@@ -27,7 +27,12 @@ from .views import (
     PortScanCreateView, PortScanUserHistoryView, PortScanUserDetailView,
     PortScanAdminListView, PortScanAdminDetailView, PortScanAdminAnalyticsView,
     SOCAnalyzeView, SOCCorrelateTargetView, SOCUserHistoryView, SOCUserDetailView,
-    SOCAdminListView, SOCAdminDetailView, SOCAdminAnalyticsView
+    SOCAdminListView, SOCAdminDetailView, SOCAdminAnalyticsView,
+    AgentHealthView, AgentAnalyzeView, AgentUserHistoryView, AgentUserDetailView,
+    AgentAdminListView, AgentAdminDetailView, AgentAdminAnalyticsView,
+    UserReportGenerateView, UserReportPDFDownloadView, UserReportJSONDownloadView, UserReportCSVDownloadView,
+    AdminReportsAnalyticsView, AdminReportDetailView, AdminReportPDFDownloadView,
+    AdminReportJSONDownloadView, AdminReportCSVDownloadView
 )
 
 urlpatterns = [
@@ -53,8 +58,12 @@ urlpatterns = [
     path('api/scans/', UserScansListView.as_view(), name='scans_list'),
     path('api/scans/<int:pk>/', UserScanDetailView.as_view(), name='scan_detail'),
     path('api/user/scans/', UserScansListView.as_view(), name='user_scans'),
+    path('api/reports/generate/', UserReportGenerateView.as_view(), name='user_reports_generate'),
     path('api/reports/', UserReportsListView.as_view(), name='user_reports'),
     path('api/reports/<int:pk>/', UserReportDetailView.as_view(), name='user_report_detail'),
+    path('api/reports/<int:pk>/pdf/', UserReportPDFDownloadView.as_view(), name='user_report_pdf'),
+    path('api/reports/<int:pk>/json/', UserReportJSONDownloadView.as_view(), name='user_report_json'),
+    path('api/reports/<int:pk>/csv/', UserReportCSVDownloadView.as_view(), name='user_report_csv'),
     path('api/threats/', UserThreatsListView.as_view(), name='user_threats'),
     path('api/history/', UserScansListView.as_view(), name='user_history'),
     path('api/incidents/', UserIncidentsListView.as_view(), name='user_incidents'),
@@ -99,6 +108,12 @@ urlpatterns = [
     path('api/soc/correlate-target/', SOCCorrelateTargetView.as_view(), name='soc_correlate_target'),
     path('api/soc/history/', SOCUserHistoryView.as_view(), name='soc_history'),
     path('api/soc/<int:pk>/', SOCUserDetailView.as_view(), name='soc_detail'),
+
+    # Phase 9 User Autonomous AI Security Agent Endpoints
+    path('api/agent/health/', AgentHealthView.as_view(), name='agent_health'),
+    path('api/agent/analyze/', AgentAnalyzeView.as_view(), name='agent_analyze'),
+    path('api/agent/history/', AgentUserHistoryView.as_view(), name='agent_history'),
+    path('api/agent/<int:pk>/', AgentUserDetailView.as_view(), name='agent_detail'),
     
     # Admin Platform-Wide Endpoints
     path('api/admin/users/', AdminUserListView.as_view(), name='admin_user_list'),
@@ -110,6 +125,11 @@ urlpatterns = [
     path('api/admin/settings/', AdminSettingsView.as_view(), name='admin_settings'),
     path('api/admin/scans/', AdminAllScansListView.as_view(), name='admin_scans'),
     path('api/admin/reports/', AdminAllReportsListView.as_view(), name='admin_all_reports'),
+    path('api/admin/reports/analytics/', AdminReportsAnalyticsView.as_view(), name='admin_reports_analytics'),
+    path('api/admin/reports/<int:pk>/', AdminReportDetailView.as_view(), name='admin_report_detail'),
+    path('api/admin/reports/<int:pk>/pdf/', AdminReportPDFDownloadView.as_view(), name='admin_report_pdf'),
+    path('api/admin/reports/<int:pk>/json/', AdminReportJSONDownloadView.as_view(), name='admin_report_json'),
+    path('api/admin/reports/<int:pk>/csv/', AdminReportCSVDownloadView.as_view(), name='admin_report_csv'),
     path('api/admin/threats-list/', AdminAllThreatsListView.as_view(), name='admin_all_threats'),
     path('api/admin/incidents/', AdminAllIncidentsListView.as_view(), name='admin_all_incidents'),
     path('api/admin/file-analysis/', FileAnalysisAdminListView.as_view(), name='admin_file_analysis_list'),
@@ -151,5 +171,11 @@ urlpatterns = [
     path('api/admin/threat-intelligence/', ThreatIntelAdminListView.as_view(), name='admin_threat_intel_list'),
     path('api/admin/threat-intelligence/analytics/', ThreatIntelAdminAnalyticsView.as_view(), name='admin_threat_intel_analytics'),
     path('api/admin/threat-intelligence/<int:pk>/', ThreatIntelAdminDetailView.as_view(), name='admin_threat_intel_detail'),
+
+    # Phase 9 Admin AI Security Agent Endpoints
+    path('api/admin/agent/', AgentAdminListView.as_view(), name='admin_agent_list'),
+    path('api/admin/agent/analytics/', AgentAdminAnalyticsView.as_view(), name='admin_agent_analytics'),
+    path('api/admin/agent/<int:pk>/', AgentAdminDetailView.as_view(), name='admin_agent_detail'),
 ]
+
 
