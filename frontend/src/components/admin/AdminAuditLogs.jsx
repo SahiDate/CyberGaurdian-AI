@@ -44,62 +44,64 @@ export default function AdminAuditLogs() {
     <AdminSidebar>
       <div style={{ maxWidth: '1300px', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800 }}>📜 Audit Logs</h1>
-          <p style={{ color: 'rgba(255,255,255,0.45)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)' }}>📜 Audit Logs</h1>
+          <p style={{ color: 'var(--text-muted)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
             Immutable audit trail of all administrator actions on the platform.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
           <input
             placeholder="Search by action, admin, target..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            style={{ flex: 1, minWidth: '280px', maxWidth: '480px', padding: '0.65rem 1rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
+            className="glass-panel"
+            style={{ flex: 1, minWidth: '280px', maxWidth: '480px', padding: '0.65rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
           />
           <button
             onClick={() => { setLoading(true); fetchLogs(); }}
-            style={{ padding: '0.6rem 1.1rem', background: 'rgba(56,139,253,0.1)', border: '1px solid rgba(56,139,253,0.3)', color: '#388bfd', borderRadius: '7px', cursor: 'pointer', fontSize: '0.83rem', fontWeight: 600 }}
+            className="glass-panel"
+            style={{ padding: '0.6rem 1.1rem', background: 'rgba(56,139,253,0.15)', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.83rem', fontWeight: 700 }}
           >
             ↺ Refresh
           </button>
-          <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
             {filtered.length} entries
           </span>
         </div>
 
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', overflow: 'hidden' }}>
+        <div className="glass-panel" style={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
           {loading ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>Loading audit logs...</div>
+            <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading audit logs...</div>
           ) : paginated.length === 0 ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+            <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
               {search ? 'No logs matching your search.' : 'No audit log entries yet.'}
             </div>
           ) : (
-            <div className="table-responsive-container">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: '650px' }}>
+            <div className="table-responsive-container" style={{ margin: 0 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '650px' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
+                  <tr style={{ background: 'var(--panel-bg)', borderBottom: '1px solid var(--border-subtle)' }}>
                     {['Timestamp', 'Admin', 'Action', 'Target User', 'Target Record', 'IP', 'Result'].map(h => (
-                      <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '0.85rem 1rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {paginated.map((log, i) => (
-                    <tr key={log.id || i} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                    <tr key={log.id || i} style={{ borderTop: '1px solid var(--border-subtle)', transition: 'background-color 0.15s ease' }}>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
                         {new Date(log.timestamp).toLocaleString()}
                       </td>
-                      <td style={{ padding: '0.65rem 1rem', fontWeight: 600, color: '#388bfd', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--accent-color)', whiteSpace: 'nowrap' }}>
                         {log.admin_username || log.admin || '—'}
                       </td>
-                      <td style={{ padding: '0.65rem 1rem', color: '#fff', fontWeight: 600 }}>{log.action}</td>
-                      <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.6)' }}>{log.target_user || '—'}</td>
-                      <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', fontSize: '0.75rem' }}>{log.target_record || '—'}</td>
-                      <td style={{ padding: '0.65rem 1rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', fontSize: '0.75rem' }}>{log.ip_address || '—'}</td>
-                      <td style={{ padding: '0.65rem 1rem' }}>
-                        <span style={{ padding: '0.1rem 0.4rem', borderRadius: '3px', fontSize: '0.68rem', fontWeight: 700, background: log.result === 'SUCCESS' ? 'rgba(57,211,83,0.12)' : 'rgba(248,81,73,0.12)', color: log.result === 'SUCCESS' ? '#39d353' : '#f85149' }}>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-main)', fontWeight: 700 }}>{log.action}</td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-main)', fontWeight: 600 }}>{log.target_user || '—'}</td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.78rem' }}>{log.target_record || '—'}</td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.78rem' }}>{log.ip_address || '—'}</td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <span style={{ padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800, background: log.result === 'SUCCESS' ? 'rgba(57,211,83,0.15)' : 'rgba(248,81,73,0.15)', color: log.result === 'SUCCESS' ? 'var(--success-color)' : 'var(--danger-color)' }}>
                           {log.result || 'SUCCESS'}
                         </span>
                       </td>
@@ -113,9 +115,9 @@ export default function AdminAuditLogs() {
 
         {totalPages > 1 && (
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'center' }}>
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ padding: '0.4rem 0.85rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '0.83rem' }}>‹ Prev</button>
-            <span style={{ padding: '0.4rem 0.85rem', color: 'rgba(255,255,255,0.5)', fontSize: '0.83rem' }}>Page {page} of {totalPages}</span>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ padding: '0.4rem 0.85rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '0.83rem' }}>Next ›</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="glass-panel" style={{ padding: '0.4rem 0.85rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.83rem' }}>‹ Prev</button>
+            <span style={{ padding: '0.4rem 0.85rem', color: 'var(--text-muted)', fontSize: '0.83rem' }}>Page {page} of {totalPages}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="glass-panel" style={{ padding: '0.4rem 0.85rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.83rem' }}>Next ›</button>
           </div>
         )}
       </div>

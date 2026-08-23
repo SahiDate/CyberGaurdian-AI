@@ -1,8 +1,11 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import ThemeToggle from '../ThemeToggle';
+
+// Module-level persistent scroll memory across React component remounts
+let cachedSidebarScrollTop = 0;
 
 const navItems = [
   { section: 'OVERVIEW' },
@@ -47,8 +50,36 @@ export default function AdminSidebar({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const navRef = useRef(null);
 
   const rc = roleColors[user?.role] || roleColors['ADMIN'];
+
+  // Restore and maintain sidebar scroll position seamlessly across page changes
+  useEffect(() => {
+    if (navRef.current) {
+      if (cachedSidebarScrollTop > 0) {
+        navRef.current.scrollTop = cachedSidebarScrollTop;
+      } else {
+        const activeLink = navRef.current.querySelector('.admin-nav-item-active');
+        if (activeLink) {
+          activeLink.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
+      }
+    }
+  }, [location.pathname]);
+
+  const handleNavScroll = (e) => {
+    cachedSidebarScrollTop = e.currentTarget.scrollTop;
+  };
+
+  const handleLinkClick = () => {
+    if (navRef.current) {
+      cachedSidebarScrollTop = navRef.current.scrollTop;
+    }
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -76,7 +107,7 @@ export default function AdminSidebar({ children }) {
       minHeight: '100vh',
       background: 'var(--bg-color)',
       color: 'var(--text-main)',
-      fontFamily: "system-ui, -apple-system, sans-serif",
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       transition: 'background-color 300ms ease, color 300ms ease'
     }}>
 
@@ -154,119 +185,132 @@ export default function AdminSidebar({ children }) {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          padding: (collapsed && !isMobile) ? '1.25rem 0.5rem' : '1.25rem 0.85rem',
+          padding: (collapsed && !isMobile) ? '1.25rem 0.5rem 1rem' : '1.25rem 0.85rem 1rem',
           position: isMobile ? 'fixed' : 'sticky',
           top: 0,
           bottom: isMobile ? 0 : 'auto',
           left: isMobile ? (mobileOpen ? 0 : '-300px') : 0,
           height: '100vh',
-          overflowY: 'auto',
-          overflowX: 'hidden',
+          maxHeight: '100vh',
+          overflow: 'hidden',
           transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
           zIndex: 101,
           boxShadow: (isMobile && mobileOpen) ? '4px 0 24px rgba(0,0,0,0.35)' : 'var(--panel-shadow)'
         }}
       >
-        <div>
-          {/* Logo & Header */}
-          <div style={{
-            padding: (collapsed && !isMobile) ? '0 0.25rem 1.25rem' : '0 0.5rem 1.25rem',
-            borderBottom: '1px solid var(--border-subtle)',
-            marginBottom: '1.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: (collapsed && !isMobile) ? 'center' : 'space-between',
-          }}>
-            {(!collapsed || isMobile) && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                  <span style={{ fontSize: '1.3rem' }}>🛡️</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-main)', letterSpacing: '0.3px' }}>
-                    CyberGuardian
-                  </span>
-                </div>
-                <span style={{ fontSize: '0.68rem', color: 'var(--danger-color)', letterSpacing: '2px', textTransform: 'uppercase', fontWeight: 700 }}>
-                  SOC Admin Portal
+        {/* Pinned Logo & Header */}
+        <div style={{
+          flexShrink: 0,
+          padding: (collapsed && !isMobile) ? '0 0.25rem 1rem' : '0 0.25rem 1rem',
+          borderBottom: '1px solid var(--border-subtle)',
+          marginBottom: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: (collapsed && !isMobile) ? 'center' : 'space-between',
+        }}>
+          {(!collapsed || isMobile) && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                <span style={{ fontSize: '1.3rem' }}>🛡️</span>
+                <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-main)', letterSpacing: '0.3px' }}>
+                  CyberGuardian
                 </span>
               </div>
-            )}
-            {(collapsed && !isMobile) && <span style={{ fontSize: '1.4rem' }}>🛡️</span>}
-            
-            {!isMobile && (
-              <button
-                onClick={() => setCollapsed(!collapsed)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: 0, lineHeight: 1 }}
-                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              >
-                {collapsed ? '›' : '‹'}
-              </button>
-            )}
-          </div>
-
-          {/* Nav Links */}
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-            {navItems.map((item, idx) => {
-              if (item.section) {
-                if (collapsed && !isMobile) return null;
-                return (
-                  <div key={idx} style={{
-                    fontSize: '0.65rem', fontWeight: 700, letterSpacing: '1.5px',
-                    color: 'var(--text-muted)', textTransform: 'uppercase',
-                    padding: '0.9rem 0.75rem 0.3rem', marginTop: idx === 0 ? 0 : '0.4rem'
-                  }}>
-                    {item.section}
-                  </div>
-                );
-              }
-
-              const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  title={(collapsed && !isMobile) ? item.label : ''}
-                  onClick={() => { if (isMobile) setMobileOpen(false); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: (collapsed && !isMobile) ? 0 : '0.65rem',
-                    justifyContent: (collapsed && !isMobile) ? 'center' : 'flex-start',
-                    padding: (collapsed && !isMobile) ? '0.7rem' : '0.65rem 0.85rem',
-                    borderRadius: '8px',
-                    textDecoration: 'none',
-                    color: active ? (isDark ? '#fff' : 'var(--accent-color)') : 'var(--text-muted)',
-                    background: active
-                      ? (isDark ? 'linear-gradient(90deg, rgba(88,166,255,0.2), rgba(88,166,255,0.05))' : 'rgba(37,99,235,0.12)')
-                      : 'transparent',
-                    borderLeft: active ? '3px solid var(--accent-color)' : '3px solid transparent',
-                    fontWeight: active ? 700 : 500,
-                    fontSize: '0.875rem',
-                    transition: 'all 0.15s ease',
-                    whiteSpace: 'nowrap',
-                  }}
-                  onMouseEnter={e => {
-                    if (!active) {
-                      e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
-                      e.currentTarget.style.color = 'var(--text-main)';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!active) {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = 'var(--text-muted)';
-                    }
-                  }}
-                >
-                  <span style={{ fontSize: '1rem', minWidth: '1.1rem', textAlign: 'center' }}>{item.icon}</span>
-                  {(!collapsed || isMobile) && <span>{item.label}</span>}
-                </Link>
-              );
-            })}
-          </nav>
+              <span style={{ fontSize: '0.68rem', color: 'var(--danger-color)', letterSpacing: '2px', textTransform: 'uppercase', fontWeight: 700 }}>
+                SOC Admin Portal
+              </span>
+            </div>
+          )}
+          {(collapsed && !isMobile) && <span style={{ fontSize: '1.4rem' }}>🛡️</span>}
+          
+          {!isMobile && (
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px', lineHeight: 1 }}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? '›' : '‹'}
+            </button>
+          )}
         </div>
 
-        {/* ── User Footer with Theme Toggle ────────────────── */}
-        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', marginTop: '1rem' }}>
+        {/* Scrollable Nav Links Area with Persistent Position */}
+        <nav
+          ref={navRef}
+          onScroll={handleNavScroll}
+          className="admin-sidebar-scroll"
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.15rem',
+            paddingRight: '2px'
+          }}
+        >
+          {navItems.map((item, idx) => {
+            if (item.section) {
+              if (collapsed && !isMobile) return null;
+              return (
+                <div key={idx} style={{
+                  fontSize: '0.65rem', fontWeight: 700, letterSpacing: '1.5px',
+                  color: 'var(--text-muted)', textTransform: 'uppercase',
+                  padding: '0.85rem 0.65rem 0.25rem', marginTop: idx === 0 ? 0 : '0.25rem'
+                }}>
+                  {item.section}
+                </div>
+              );
+            }
+
+            const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                title={(collapsed && !isMobile) ? item.label : ''}
+                onClick={handleLinkClick}
+                className={active ? 'admin-nav-item-active' : ''}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: (collapsed && !isMobile) ? 0 : '0.65rem',
+                  justifyContent: (collapsed && !isMobile) ? 'center' : 'flex-start',
+                  padding: (collapsed && !isMobile) ? '0.7rem' : '0.6rem 0.75rem',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  color: active ? (isDark ? '#fff' : 'var(--accent-color)') : 'var(--text-muted)',
+                  background: active
+                    ? (isDark ? 'linear-gradient(90deg, rgba(88,166,255,0.2), rgba(88,166,255,0.05))' : 'rgba(37,99,235,0.12)')
+                    : 'transparent',
+                  borderLeft: active ? '3px solid var(--accent-color)' : '3px solid transparent',
+                  fontWeight: active ? 700 : 500,
+                  fontSize: '0.86rem',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => {
+                  if (!active) {
+                    e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+                    e.currentTarget.style.color = 'var(--text-main)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!active) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                  }
+                }}
+              >
+                <span style={{ fontSize: '1rem', minWidth: '1.1rem', textAlign: 'center' }}>{item.icon}</span>
+                {(!collapsed || isMobile) && <span>{item.label}</span>}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* ── User Footer with Theme Toggle (Pinned at bottom) ── */}
+        <div style={{ flexShrink: 0, borderTop: '1px solid var(--border-subtle)', paddingTop: '0.85rem', marginTop: '0.65rem' }}>
           {(!collapsed || isMobile) && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', padding: '0 0.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>

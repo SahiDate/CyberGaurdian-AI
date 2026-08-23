@@ -21,89 +21,92 @@ export default function AdminSettings() {
     <AdminSidebar>
       <div style={{ maxWidth: '900px', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, fontSize: 'clamp(1.3rem, 4vw, 1.65rem)', fontWeight: 800 }}>⚙️ Platform & Security Settings</h1>
-          <p style={{ color: 'rgba(255,255,255,0.45)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
+          <h1 style={{ margin: 0, fontSize: 'clamp(1.3rem, 4vw, 1.65rem)', fontWeight: 800, color: 'var(--text-main)' }}>⚙️ Platform & Security Settings</h1>
+          <p style={{ color: 'var(--text-muted)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
             Enterprise authentication, session policy, AI automation rules, and log retention enforcement.
           </p>
         </div>
 
         {msg && (
-          <div style={{ color: '#39d353', marginBottom: '1.5rem', background: 'rgba(57,211,83,0.1)', border: '1px solid rgba(57,211,83,0.3)', padding: '0.85rem 1.15rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>
+          <div className="glass-panel" style={{ color: 'var(--success-color)', marginBottom: '1.5rem', borderLeft: '3.5px solid var(--success-color)', padding: '0.85rem 1.15rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700 }}>
             {msg}
           </div>
         )}
 
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Section: Authentication & Access */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 700, color: '#388bfd' }}>🔒 Authentication & Access Policies</h3>
+          <div className="glass-panel" style={{ borderRadius: '14px', padding: '1.5rem', border: '1px solid var(--border-subtle)' }}>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 800, color: 'var(--accent-color)' }}>🔒 Authentication & Access Policies</h3>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', borderRadius: '8px', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Enforce 2FA / OTP Verification</div>
-                <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Require email OTP verification for high-privilege logins and registrations.</div>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>Enforce 2FA / OTP Verification</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Require email OTP verification for high-privilege logins and registrations.</div>
               </div>
               <input
                 type="checkbox"
                 checked={requireOtp}
                 onChange={e => setRequireOtp(e.target.checked)}
-                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#388bfd' }}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent-color)' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>JWT Access Token Lifetime (Minutes)</label>
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-muted)' }}>JWT Access Token Lifetime (Minutes)</label>
                 <input
                   type="number"
                   value={sessionTimeout}
                   onChange={e => setSessionTimeout(Number(e.target.value))}
-                  style={{ width: '100%', padding: '0.6rem 0.85rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '7px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                  className="glass-panel"
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>Max Failed Login Attempts</label>
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Max Failed Login Attempts</label>
                 <input
                   type="number"
                   value={maxLoginAttempts}
                   onChange={e => setMaxLoginAttempts(Number(e.target.value))}
-                  style={{ width: '100%', padding: '0.6rem 0.85rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '7px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                  className="glass-panel"
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
           </div>
 
           {/* Section: AI Agent Automation */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 700, color: '#a371f7' }}>🤖 AI Engine Controls</h3>
+          <div className="glass-panel" style={{ borderRadius: '14px', padding: '1.5rem', border: '1px solid var(--border-subtle)' }}>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 800, color: 'var(--accent-color)' }}>🤖 AI Engine Controls</h3>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', borderRadius: '8px', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Auto-run AI Risk Assessment on Scans</div>
-                <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Automatically trigger Gemini AI analysis for scans with security score below 70.</div>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>Auto-run AI Risk Assessment on Scans</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Automatically trigger Gemini AI analysis for scans with security score below 70.</div>
               </div>
               <input
                 type="checkbox"
                 checked={aiAnalysisAutoRun}
                 onChange={e => setAiAnalysisAutoRun(e.target.checked)}
-                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#a371f7' }}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent-color)' }}
               />
             </div>
           </div>
 
           {/* Section: Governance & Audit */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 700, color: '#e3b341' }}>📜 Governance & Audit Policy</h3>
+          <div className="glass-panel" style={{ borderRadius: '14px', padding: '1.5rem', border: '1px solid var(--border-subtle)' }}>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 800, color: 'var(--warning-color)' }}>📜 Governance & Audit Policy</h3>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>Audit Log Retention Period (Days)</label>
+              <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Audit Log Retention Period (Days)</label>
               <input
                 type="number"
                 value={auditLogRetentionDays}
                 onChange={e => setAuditLogRetentionDays(Number(e.target.value))}
-                style={{ width: '100%', padding: '0.6rem 0.85rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '7px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                className="glass-panel"
+                style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
               />
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', marginTop: '0.3rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
                 Audit log entries older than this limit will be archived automatically.
               </div>
             </div>
@@ -111,8 +114,9 @@ export default function AdminSettings() {
 
           <button
             type="submit"
+            className="glass-panel"
             style={{
-              padding: '0.85rem 1.5rem', background: '#388bfd', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem', alignSelf: 'flex-start', width: 'min(100%, 320px)'
+              padding: '0.85rem 1.5rem', background: 'var(--accent-color)', color: '#fff', border: '1px solid var(--accent-color)', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem', alignSelf: 'flex-start', width: 'min(100%, 320px)'
             }}
           >
             💾 Save Platform Configuration

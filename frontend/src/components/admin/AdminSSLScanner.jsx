@@ -71,31 +71,31 @@ export default function AdminSSLScanner() {
   });
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0d12', color: '#c9d1d9', fontFamily: 'Inter, sans-serif' }}>
-      <AdminSidebar />
-      <div style={{ flex: 1, padding: '2rem', overflowX: 'hidden' }}>
+    <AdminSidebar>
+      <div style={{ maxWidth: '1300px', fontFamily: "'Inter', sans-serif" }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f0f6fc', margin: 0 }}>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
               🛡️ SOC Platform SSL / TLS Inspector
             </h1>
-            <p style={{ color: '#8b949e', fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>
               Platform-wide TLS certificate posture, expiration telemetry, and cryptographic vulnerabilities.
             </p>
           </div>
           <button
             onClick={fetchData}
+            className="glass-panel"
             style={{
-              background: '#21262d',
-              border: '1px solid #30363d',
-              color: '#c9d1d9',
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
+              padding: '0.55rem 1.1rem',
+              background: 'rgba(56,139,253,0.15)',
+              border: '1px solid var(--accent-color)',
+              color: 'var(--accent-color)',
+              borderRadius: '8px',
               cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.85rem'
+              fontWeight: 700,
+              fontSize: '0.82rem'
             }}
           >
             🔄 Refresh Analytics
@@ -105,65 +105,68 @@ export default function AdminSSLScanner() {
         {/* Real DB Analytics Stats Cards */}
         {analytics && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-            <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem' }}>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Total SSL Scans</div>
-              <div style={{ color: '#f0f6fc', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.total_scans}</div>
-              <div style={{ color: '#58a6ff', fontSize: '0.75rem', marginTop: '0.25rem' }}>+{analytics.scans_today} today</div>
+            <div className="glass-panel" style={{ borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total SSL Scans</div>
+              <div style={{ color: 'var(--text-main)', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.total_scans}</div>
+              <div style={{ color: 'var(--accent-color)', fontSize: '0.75rem', marginTop: '0.25rem', fontWeight: 600 }}>+{analytics.scans_today} today</div>
             </div>
 
-            <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem' }}>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Expired Certs</div>
-              <div style={{ color: '#f85149', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.expired_certs}</div>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', marginTop: '0.25rem' }}>Requires immediate renewal</div>
+            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--danger-color)', borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ color: 'var(--danger-color)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expired Certs</div>
+              <div style={{ color: 'var(--danger-color)', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.expired_certs}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>Requires immediate renewal</div>
             </div>
 
-            <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem' }}>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Expiring &lt; 30 Days</div>
-              <div style={{ color: '#e3b341', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.expiring_soon}</div>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', marginTop: '0.25rem' }}>Proactive alert flagged</div>
+            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--warning-color)', borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ color: 'var(--warning-color)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expiring &lt; 30 Days</div>
+              <div style={{ color: 'var(--warning-color)', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.expiring_soon}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>Proactive alert flagged</div>
             </div>
 
-            <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem' }}>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Hostname Mismatches</div>
-              <div style={{ color: '#ff7b72', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.hostname_mismatches}</div>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', marginTop: '0.25rem' }}>Potential MITM / config error</div>
+            <div className="glass-panel" style={{ borderLeft: '3.5px solid #ff7b72', borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ color: '#ff7b72', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hostname Mismatches</div>
+              <div style={{ color: '#ff7b72', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.hostname_mismatches}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>Potential MITM / config error</div>
             </div>
 
-            <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem' }}>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Valid Certificates</div>
-              <div style={{ color: '#39d353', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.valid_certs}</div>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', marginTop: '0.25rem' }}>Healthy posture</div>
+            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--success-color)', borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ color: 'var(--success-color)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Valid Certificates</div>
+              <div style={{ color: 'var(--success-color)', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.valid_certs}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>Healthy posture</div>
             </div>
           </div>
         )}
 
         {/* Filter Controls */}
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           <input
             type="text"
             placeholder="Search domain, issuer, user..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            className="glass-panel"
             style={{
               flex: '1 1 280px',
-              padding: '0.5rem 0.75rem',
-              background: '#0d1117',
-              border: '1px solid #30363d',
-              borderRadius: '6px',
-              color: '#f0f6fc',
-              fontSize: '0.85rem'
+              padding: '0.65rem 1rem',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              color: 'var(--text-main)',
+              fontSize: '0.85rem',
+              outline: 'none'
             }}
           />
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+            className="glass-panel"
             style={{
-              padding: '0.5rem 0.75rem',
-              background: '#0d1117',
-              border: '1px solid #30363d',
-              borderRadius: '6px',
-              color: '#f0f6fc',
+              padding: '0.65rem 1rem',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              color: 'var(--text-main)',
               fontSize: '0.85rem'
             }}
           >
@@ -177,12 +180,13 @@ export default function AdminSSLScanner() {
           <select
             value={sevFilter}
             onChange={(e) => setSevFilter(e.target.value)}
+            className="glass-panel"
             style={{
-              padding: '0.5rem 0.75rem',
-              background: '#0d1117',
-              border: '1px solid #30363d',
-              borderRadius: '6px',
-              color: '#f0f6fc',
+              padding: '0.65rem 1rem',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              color: 'var(--text-main)',
               fontSize: '0.85rem'
             }}
           >
@@ -195,26 +199,26 @@ export default function AdminSSLScanner() {
         </div>
 
         {/* Platform-wide Scans Table */}
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', overflow: 'hidden' }}>
+        <div className="glass-panel" style={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#8b949e' }}>Loading platform SSL telemetry...</div>
+            <div style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>Loading platform SSL telemetry...</div>
           ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#8b949e' }}>No SSL scan records match current criteria.</div>
+            <div style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>No SSL scan records match current criteria.</div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <div className="table-responsive-container" style={{ margin: 0 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '850px' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #30363d', background: '#0d1117', textAlign: 'left', color: '#8b949e' }}>
-                    <th style={{ padding: '0.85rem' }}>User / Account</th>
-                    <th style={{ padding: '0.85rem' }}>Domain & Port</th>
-                    <th style={{ padding: '0.85rem' }}>Certificate Status</th>
-                    <th style={{ padding: '0.85rem' }}>Days Left</th>
-                    <th style={{ padding: '0.85rem' }}>Issuer CA</th>
-                    <th style={{ padding: '0.85rem' }}>TLS & Cipher</th>
-                    <th style={{ padding: '0.85rem' }}>Threat Score</th>
-                    <th style={{ padding: '0.85rem' }}>Severity</th>
-                    <th style={{ padding: '0.85rem' }}>Scanned At</th>
-                    <th style={{ padding: '0.85rem' }}>Action</th>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--panel-bg)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>User / Account</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Domain & Port</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Certificate Status</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Days Left</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Issuer CA</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>TLS & Cipher</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Threat Score</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Severity</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Scanned At</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -222,50 +226,51 @@ export default function AdminSSLScanner() {
                     const statusBadge = CERT_STATUS_STYLES[row.certificate_status] || CERT_STATUS_STYLES.UNAVAILABLE;
                     const sevBadge = SEVERITY_STYLES[row.severity?.toUpperCase()] || SEVERITY_STYLES.LOW;
                     return (
-                      <tr key={row.id} style={{ borderBottom: '1px solid #21262d' }}>
-                        <td style={{ padding: '0.85rem', color: '#58a6ff', fontWeight: 600 }}>
+                      <tr key={row.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s ease' }}>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--accent-color)', fontWeight: 700 }}>
                           {row.username || `User #${row.user_id}`}
                         </td>
-                        <td style={{ padding: '0.85rem', fontWeight: 700, color: '#f0f6fc' }}>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                           {row.domain}:{row.port}
                         </td>
-                        <td style={{ padding: '0.85rem' }}>
-                          <span style={{ color: statusBadge.color, background: statusBadge.bg, border: `1px solid ${statusBadge.border}`, padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <span style={{ color: statusBadge.color, background: statusBadge.bg, border: `1px solid ${statusBadge.border}`, padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.73rem', fontWeight: 700 }}>
                             {row.certificate_status}
                           </span>
                         </td>
-                        <td style={{ padding: '0.85rem', color: (row.days_remaining ?? 0) <= 0 ? '#f85149' : (row.days_remaining ?? 0) <= 30 ? '#e3b341' : '#c9d1d9' }}>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: (row.days_remaining ?? 0) <= 0 ? 'var(--danger-color)' : (row.days_remaining ?? 0) <= 30 ? 'var(--warning-color)' : 'var(--text-main)' }}>
                           {row.days_remaining !== null ? `${row.days_remaining}d` : 'N/A'}
                         </td>
-                        <td style={{ padding: '0.85rem', color: '#8b949e', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {row.issuer_cn || 'N/A'}
                         </td>
-                        <td style={{ padding: '0.85rem', color: '#8b949e', fontSize: '0.8rem' }}>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                           {row.tls_version}
                         </td>
-                        <td style={{ padding: '0.85rem', fontWeight: 800, color: row.threat_score >= 75 ? '#f85149' : row.threat_score >= 50 ? '#e3b341' : '#39d353' }}>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: row.threat_score >= 75 ? 'var(--danger-color)' : row.threat_score >= 50 ? 'var(--warning-color)' : 'var(--success-color)' }}>
                           {row.threat_score}/100
                         </td>
-                        <td style={{ padding: '0.85rem' }}>
-                          <span style={{ color: sevBadge.color, background: sevBadge.bg, border: `1px solid ${sevBadge.border}`, padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <span style={{ color: sevBadge.color, background: sevBadge.bg, border: `1px solid ${sevBadge.border}`, padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>
                             {row.severity}
                           </span>
                         </td>
-                        <td style={{ padding: '0.85rem', color: '#8b949e', fontSize: '0.78rem' }}>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                           {new Date(row.created_at).toLocaleString()}
                         </td>
-                        <td style={{ padding: '0.85rem' }}>
+                        <td style={{ padding: '0.85rem 1rem' }}>
                           <button
                             onClick={() => setSelectedScan(row)}
+                            className="glass-panel"
                             style={{
-                              background: '#21262d',
-                              border: '1px solid #30363d',
-                              borderRadius: '4px',
-                              color: '#58a6ff',
-                              padding: '0.25rem 0.6rem',
+                              background: 'rgba(56,139,253,0.15)',
+                              border: '1px solid var(--accent-color)',
+                              borderRadius: '6px',
+                              color: 'var(--accent-color)',
+                              padding: '0.35rem 0.75rem',
                               fontSize: '0.75rem',
                               cursor: 'pointer',
-                              fontWeight: 600
+                              fontWeight: 700
                             }}
                           >
                             Inspect
@@ -284,34 +289,32 @@ export default function AdminSSLScanner() {
         {selectedScan && (
           <div style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
+            inset: 0,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
-            padding: '2rem'
+            padding: '1.5rem'
           }}>
-            <div style={{
-              background: '#161b22',
-              border: '1px solid #30363d',
-              borderRadius: '12px',
+            <div className="glass-panel" style={{
+              borderRadius: '16px',
               maxWidth: '800px',
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
-              padding: '2rem'
+              padding: '2rem',
+              border: '1px solid var(--accent-color)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f0f6fc', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                     SSL Investigation: {selectedScan.domain}:{selectedScan.port}
                   </h2>
-                  <div style={{ color: '#8b949e', fontSize: '0.82rem', marginTop: '0.25rem' }}>
-                    User: <span style={{ color: '#58a6ff' }}>{selectedScan.username}</span> | Target: {selectedScan.target}
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.25rem' }}>
+                    User: <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{selectedScan.username}</span> | Target: {selectedScan.target}
                   </div>
                 </div>
                 <button
@@ -319,9 +322,10 @@ export default function AdminSSLScanner() {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#8b949e',
+                    color: 'var(--text-main)',
                     fontSize: '1.5rem',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    lineHeight: 1
                   }}
                 >
                   ✕
@@ -329,35 +333,35 @@ export default function AdminSSLScanner() {
               </div>
 
               {/* Details grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-                <div style={{ background: '#0d1117', padding: '1rem', borderRadius: '8px' }}>
-                  <div style={{ color: '#8b949e' }}>Subject CN:</div>
-                  <div style={{ color: '#f0f6fc', fontWeight: 600 }}>{selectedScan.subject_cn || 'N/A'}</div>
-                  <div style={{ color: '#8b949e', marginTop: '0.5rem' }}>Issuer CA:</div>
-                  <div style={{ color: '#58a6ff', fontWeight: 600 }}>{selectedScan.issuer_cn || 'N/A'}</div>
-                  <div style={{ color: '#8b949e', marginTop: '0.5rem' }}>TLS Version:</div>
-                  <div style={{ color: '#f0f6fc' }}>{selectedScan.tls_version}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                <div className="glass-panel" style={{ padding: '1rem', borderRadius: '10px' }}>
+                  <div style={{ color: 'var(--text-muted)' }}>Subject CN:</div>
+                  <div style={{ color: 'var(--text-main)', fontWeight: 700 }}>{selectedScan.subject_cn || 'N/A'}</div>
+                  <div style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Issuer CA:</div>
+                  <div style={{ color: 'var(--accent-color)', fontWeight: 700 }}>{selectedScan.issuer_cn || 'N/A'}</div>
+                  <div style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>TLS Version:</div>
+                  <div style={{ color: 'var(--text-main)', fontWeight: 600 }}>{selectedScan.tls_version}</div>
                 </div>
 
-                <div style={{ background: '#0d1117', padding: '1rem', borderRadius: '8px' }}>
-                  <div style={{ color: '#8b949e' }}>Valid From:</div>
-                  <div style={{ color: '#c9d1d9' }}>{selectedScan.valid_from ? new Date(selectedScan.valid_from).toUTCString() : 'N/A'}</div>
-                  <div style={{ color: '#8b949e', marginTop: '0.5rem' }}>Valid Until:</div>
-                  <div style={{ color: '#c9d1d9' }}>{selectedScan.valid_until ? new Date(selectedScan.valid_until).toUTCString() : 'N/A'}</div>
-                  <div style={{ color: '#8b949e', marginTop: '0.5rem' }}>Cipher:</div>
-                  <div style={{ color: '#f0f6fc' }}>{selectedScan.cipher_name} ({selectedScan.cipher_bits} bits)</div>
+                <div className="glass-panel" style={{ padding: '1rem', borderRadius: '10px' }}>
+                  <div style={{ color: 'var(--text-muted)' }}>Valid From:</div>
+                  <div style={{ color: 'var(--text-main)' }}>{selectedScan.valid_from ? new Date(selectedScan.valid_from).toUTCString() : 'N/A'}</div>
+                  <div style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Valid Until:</div>
+                  <div style={{ color: 'var(--text-main)' }}>{selectedScan.valid_until ? new Date(selectedScan.valid_until).toUTCString() : 'N/A'}</div>
+                  <div style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Cipher:</div>
+                  <div style={{ color: 'var(--text-main)', fontWeight: 600 }}>{selectedScan.cipher_name} ({selectedScan.cipher_bits} bits)</div>
                 </div>
               </div>
 
               {/* SAN List */}
               {selectedScan.san_list?.length > 0 && (
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f0f6fc', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
                     SANs ({selectedScan.san_list.length})
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '100px', overflowY: 'auto' }}>
                     {selectedScan.san_list.map((san, idx) => (
-                      <span key={idx} style={{ background: '#0d1117', border: '1px solid #30363d', color: '#58a6ff', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}>
+                      <span key={idx} className="glass-panel" style={{ color: 'var(--accent-color)', padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
                         {san}
                       </span>
                     ))}
@@ -368,14 +372,14 @@ export default function AdminSSLScanner() {
               {/* Issues */}
               {selectedScan.security_issues?.length > 0 && (
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f85149', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--danger-color)', marginBottom: '0.5rem' }}>
                     Security Findings ({selectedScan.security_issues.length})
                   </div>
                   {selectedScan.security_issues.map((issue, idx) => (
-                    <div key={idx} style={{ background: '#0d1117', borderLeft: '3px solid #f85149', padding: '0.65rem 0.85rem', marginBottom: '0.5rem', borderRadius: '0 6px 6px 0', fontSize: '0.82rem' }}>
-                      <div style={{ fontWeight: 700, color: '#f0f6fc' }}>{issue.type} ({issue.severity})</div>
-                      <div style={{ color: '#8b949e' }}>{issue.description}</div>
-                      {issue.remediation && <div style={{ color: '#58a6ff', fontSize: '0.78rem', marginTop: '0.2rem' }}>Fix: {issue.remediation}</div>}
+                    <div key={idx} className="glass-panel" style={{ borderLeft: '3.5px solid var(--danger-color)', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0 8px 8px 0', fontSize: '0.82rem' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{issue.type} ({issue.severity})</div>
+                      <div style={{ color: 'var(--text-muted)', marginTop: '0.15rem' }}>{issue.description}</div>
+                      {issue.remediation && <div style={{ color: 'var(--accent-color)', fontSize: '0.78rem', marginTop: '0.25rem', fontWeight: 600 }}>Fix: {issue.remediation}</div>}
                     </div>
                   ))}
                 </div>
@@ -383,8 +387,8 @@ export default function AdminSSLScanner() {
 
               {/* JSON */}
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f0f6fc', marginBottom: '0.5rem' }}>Structured SOC Evidence</div>
-                <pre style={{ background: '#010409', border: '1px solid #30363d', borderRadius: '8px', padding: '1rem', color: '#7ee787', fontSize: '0.75rem', maxHeight: '200px', overflowY: 'auto' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Structured SOC Evidence</div>
+                <pre className="glass-panel" style={{ borderRadius: '8px', padding: '1rem', color: 'var(--success-color)', fontSize: '0.75rem', maxHeight: '200px', overflowY: 'auto' }}>
                   {JSON.stringify(selectedScan.structured_evidence || selectedScan, null, 2)}
                 </pre>
               </div>
@@ -393,6 +397,6 @@ export default function AdminSSLScanner() {
         )}
 
       </div>
-    </div>
+    </AdminSidebar>
   );
 }

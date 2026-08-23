@@ -90,322 +90,326 @@ export default function AdminSOCAnalysis() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0d12', color: '#c9d1d9', fontFamily: 'Inter, sans-serif' }}>
-      <AdminSidebar />
-      <div style={{ flex: 1, padding: '2rem', overflowX: 'hidden' }}>
+    <AdminSidebar>
+      <div style={{ maxWidth: '1300px', fontFamily: "'Inter', sans-serif" }}>
         {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)',
-          border: '1px solid var(--border-color, #334155)',
-          borderRadius: '12px',
-          padding: '1.75rem',
-          marginBottom: '2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span>🧠</span> SOC Analysis Engine Operations
-          </h1>
-          <p style={{ margin: '0.5rem 0 0 0', color: 'var(--text-muted, #94a3b8)', fontSize: '0.95rem' }}>
-            Platform-wide correlated multi-module security evidence, unified threat scores, and audit logging.
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.75rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 800 }}>
+              <span>🧠</span> SOC Analysis Engine Operations
+            </h1>
+            <p style={{ margin: '0.35rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Platform-wide correlated multi-module security evidence, unified threat scores, and audit logging.
+            </p>
+          </div>
+          <button
+            onClick={fetchAnalyses}
+            className="glass-panel"
+            style={{
+              padding: '0.55rem 1.1rem',
+              background: 'rgba(56,139,253,0.15)',
+              border: '1px solid var(--accent-color)',
+              color: 'var(--accent-color)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.82rem'
+            }}
+          >
+            🔄 Refresh SOC Stream
+          </button>
         </div>
-      </div>
 
-      {/* Analytics KPIs */}
-      {analytics && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '1rem',
-          marginBottom: '2rem'
-        }}>
-          <div style={{ background: 'var(--card-bg, #1e293b)', padding: '1.25rem', borderRadius: '10px', border: '1px solid #334155' }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94a3b8)' }}>Total Analyses</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f8fafc' }}>{analytics.total_analyses}</div>
-          </div>
-          <div style={{ background: 'var(--card-bg, #1e293b)', padding: '1.25rem', borderRadius: '10px', border: '1px solid #334155' }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94a3b8)' }}>Analyses Today</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#38bdf8' }}>{analytics.analyses_today}</div>
-          </div>
-          <div style={{ background: 'var(--card-bg, #1e293b)', padding: '1.25rem', borderRadius: '10px', border: '1px solid #334155' }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94a3b8)' }}>High/Crit Threats</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f87171' }}>{analytics.threats_detected}</div>
-          </div>
-          <div style={{ background: 'var(--card-bg, #1e293b)', padding: '1.25rem', borderRadius: '10px', border: '1px solid #334155' }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94a3b8)' }}>Critical Severities</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ef4444' }}>
-              {analytics.severity_breakdown?.critical || 0}
+        {/* Analytics KPIs */}
+        {analytics && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1rem',
+            marginBottom: '2rem'
+          }}>
+            <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '12px' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Total Analyses</div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.2rem' }}>{analytics.total_analyses}</div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filter Bar */}
-      <div style={{
-        background: 'var(--card-bg, #1e293b)',
-        border: '1px solid var(--border-color, #334155)',
-        borderRadius: '12px',
-        padding: '1.25rem',
-        marginBottom: '2rem',
-        display: 'flex',
-        gap: '1rem',
-        flexWrap: 'wrap',
-        alignItems: 'center'
-      }}>
-        <input
-          type="text"
-          placeholder="Search by target, user, or summary..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && fetchAnalyses()}
-          style={{
-            flex: 1,
-            minWidth: '220px',
-            padding: '0.55rem 0.85rem',
-            borderRadius: '6px',
-            border: '1px solid #475569',
-            background: 'rgba(15, 23, 42, 0.6)',
-            color: '#fff',
-            fontSize: '0.9rem',
-            outline: 'none'
-          }}
-        />
-        <select
-          value={severityFilter}
-          onChange={(e) => setSeverityFilter(e.target.value)}
-          style={{
-            padding: '0.55rem 0.85rem',
-            borderRadius: '6px',
-            border: '1px solid #475569',
-            background: 'rgba(15, 23, 42, 0.6)',
-            color: '#fff',
-            fontSize: '0.9rem'
-          }}
-        >
-          <option value="">All Severities</option>
-          <option value="CRITICAL">Critical</option>
-          <option value="HIGH">High</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="LOW">Low</option>
-        </select>
-        <select
-          value={threatLevelFilter}
-          onChange={(e) => setThreatLevelFilter(e.target.value)}
-          style={{
-            padding: '0.55rem 0.85rem',
-            borderRadius: '6px',
-            border: '1px solid #475569',
-            background: 'rgba(15, 23, 42, 0.6)',
-            color: '#fff',
-            fontSize: '0.9rem'
-          }}
-        >
-          <option value="">All Threat Levels</option>
-          <option value="CRITICAL">Critical Threat</option>
-          <option value="HIGH">High Threat</option>
-          <option value="MEDIUM">Medium Threat</option>
-          <option value="LOW">Low Threat</option>
-          <option value="REVIEW_REQUIRED">Review Required</option>
-        </select>
-        <button
-          onClick={fetchAnalyses}
-          style={{
-            padding: '0.55rem 1.25rem',
-            borderRadius: '6px',
-            border: 'none',
-            background: '#0284c7',
-            color: '#fff',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}
-        >
-          Filter
-        </button>
-      </div>
-
-      {/* Analyses Table */}
-      <div style={{
-        background: 'var(--card-bg, #1e293b)',
-        border: '1px solid var(--border-color, #334155)',
-        borderRadius: '12px',
-        padding: '1.5rem'
-      }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>Loading platform telemetry...</div>
-        ) : analyses.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No SOC analyses matching filters.</div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #334155', color: 'var(--text-muted, #94a3b8)' }}>
-                  <th style={{ padding: '0.75rem' }}>ID</th>
-                  <th style={{ padding: '0.75rem' }}>User</th>
-                  <th style={{ padding: '0.75rem' }}>Target</th>
-                  <th style={{ padding: '0.75rem' }}>Type</th>
-                  <th style={{ padding: '0.75rem' }}>Risk Score</th>
-                  <th style={{ padding: '0.75rem' }}>Severity</th>
-                  <th style={{ padding: '0.75rem' }}>Threat Level</th>
-                  <th style={{ padding: '0.75rem' }}>Findings</th>
-                  <th style={{ padding: '0.75rem' }}>Created At</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'right' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analyses.map((rec) => (
-                  <tr key={rec.id} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>
-                    <td style={{ padding: '0.75rem', color: '#94a3b8' }}>#{rec.id}</td>
-                    <td style={{ padding: '0.75rem', color: '#38bdf8' }}>{rec.username}</td>
-                    <td style={{ padding: '0.75rem', fontWeight: '600', color: '#f8fafc' }}>{rec.target}</td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.8rem', color: '#cbd5e1' }}>{rec.analysis_type}</td>
-                    <td style={{ padding: '0.75rem', fontWeight: 'bold', color: SEVERITY_COLORS[rec.severity]?.text || '#38bdf8' }}>
-                      {rec.risk_score}/100
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span style={{
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: 'bold',
-                        background: SEVERITY_COLORS[rec.severity]?.bg,
-                        color: SEVERITY_COLORS[rec.severity]?.text
-                      }}>
-                        {rec.severity}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.85rem' }}>{rec.threat_level}</td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.85rem' }}>{rec.findings?.length || 0}</td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.8rem', color: '#94a3b8' }}>
-                      {new Date(rec.created_at).toLocaleString()}
-                    </td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      <button
-                        onClick={() => handleInspect(rec.id)}
-                        style={{
-                          padding: '0.35rem 0.75rem',
-                          borderRadius: '6px',
-                          border: '1px solid #38bdf8',
-                          background: 'rgba(56, 189, 248, 0.1)',
-                          color: '#38bdf8',
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Deep Inspect
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--accent-color)', padding: '1.25rem', borderRadius: '12px' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--accent-color)' }}>Analyses Today</div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--accent-color)', marginTop: '0.2rem' }}>+{analytics.analyses_today}</div>
+            </div>
+            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--warning-color)', padding: '1.25rem', borderRadius: '12px' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--warning-color)' }}>High/Crit Threats</div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--warning-color)', marginTop: '0.2rem' }}>{analytics.threats_detected}</div>
+            </div>
+            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--danger-color)', padding: '1.25rem', borderRadius: '12px' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--danger-color)' }}>Critical Severities</div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--danger-color)', marginTop: '0.2rem' }}>
+                {analytics.severity_breakdown?.critical || 0}
+              </div>
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Deep Inspection Modal */}
-      {selectedRecord && (
+        {/* Filter Bar */}
         <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.8)',
           display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 9999,
-          padding: '1.5rem'
+          gap: '0.75rem',
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          alignItems: 'center'
         }}>
+          <input
+            type="text"
+            placeholder="Search by target, user, or summary..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && fetchAnalyses()}
+            className="glass-panel"
+            style={{
+              flex: '1 1 240px',
+              padding: '0.65rem 1rem',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--input-bg)',
+              color: 'var(--text-main)',
+              fontSize: '0.85rem',
+              outline: 'none'
+            }}
+          />
+          <select
+            value={severityFilter}
+            onChange={(e) => setSeverityFilter(e.target.value)}
+            className="glass-panel"
+            style={{
+              padding: '0.65rem 1rem',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--input-bg)',
+              color: 'var(--text-main)',
+              fontSize: '0.85rem'
+            }}
+          >
+            <option value="">All Severities</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+          <select
+            value={threatLevelFilter}
+            onChange={(e) => setThreatLevelFilter(e.target.value)}
+            className="glass-panel"
+            style={{
+              padding: '0.65rem 1rem',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--input-bg)',
+              color: 'var(--text-main)',
+              fontSize: '0.85rem'
+            }}
+          >
+            <option value="">All Threat Levels</option>
+            <option value="CRITICAL">Critical Threat</option>
+            <option value="HIGH">High Threat</option>
+            <option value="MEDIUM">Medium Threat</option>
+            <option value="LOW">Low Threat</option>
+            <option value="REVIEW_REQUIRED">Review Required</option>
+          </select>
+          <button
+            onClick={fetchAnalyses}
+            className="glass-panel"
+            style={{
+              padding: '0.65rem 1.25rem',
+              borderRadius: '8px',
+              border: '1px solid var(--accent-color)',
+              background: 'var(--accent-color)',
+              color: '#fff',
+              fontWeight: '700',
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+          >
+            Apply Filter
+          </button>
+        </div>
+
+        {/* Analyses Table */}
+        <div className="glass-panel" style={{
+          borderRadius: '14px',
+          overflow: 'hidden',
+          border: '1px solid var(--border-subtle)'
+        }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>Loading platform telemetry...</div>
+          ) : analyses.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>No SOC analyses matching filters.</div>
+          ) : (
+            <div className="table-responsive-container" style={{ margin: 0 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem', minWidth: '850px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--panel-bg)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>ID</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>User</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Target</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Type</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Risk Score</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Severity</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Threat Level</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Findings</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Created At</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px', textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analyses.map((rec) => (
+                    <tr key={rec.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s ease' }}>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontWeight: 600 }}>#{rec.id}</td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--accent-color)', fontWeight: 700 }}>{rec.username}</td>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-main)' }}>{rec.target}</td>
+                      <td style={{ padding: '0.85rem 1rem', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{rec.analysis_type}</td>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: SEVERITY_COLORS[rec.severity]?.text || 'var(--accent-color)' }}>
+                        {rec.risk_score}/100
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <span style={{
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.73rem',
+                          fontWeight: 800,
+                          background: SEVERITY_COLORS[rec.severity]?.bg,
+                          color: SEVERITY_COLORS[rec.severity]?.text
+                        }}>
+                          {rec.severity}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: 600 }}>{rec.threat_level}</td>
+                      <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{rec.findings?.length || 0}</td>
+                      <td style={{ padding: '0.85rem 1rem', fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        {new Date(rec.created_at).toLocaleString()}
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                        <button
+                          onClick={() => handleInspect(rec.id)}
+                          className="glass-panel"
+                          style={{
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '6px',
+                            border: '1px solid var(--accent-color)',
+                            background: 'rgba(56, 189, 248, 0.1)',
+                            color: 'var(--accent-color)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Deep Inspect
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Deep Inspection Modal */}
+        {selectedRecord && (
           <div style={{
-            background: 'var(--card-bg, #1e293b)',
-            border: '1px solid var(--border-color, #334155)',
-            borderRadius: '12px',
-            width: '100%',
-            maxWidth: '950px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '2rem',
-            color: '#fff'
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+            padding: '1.5rem'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#38bdf8' }}>
-                  Platform SOC Inspection #{selectedRecord.id}: {selectedRecord.target}
-                </h2>
-                <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                  Owner: {selectedRecord.username} • Type: {selectedRecord.analysis_type}
+            <div className="glass-panel" style={{
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '950px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              padding: '2rem',
+              border: '1px solid var(--accent-color)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--text-main)', fontWeight: 800 }}>
+                    Platform SOC Inspection #{selectedRecord.id}: {selectedRecord.target}
+                  </h2>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Owner: <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{selectedRecord.username}</span> • Type: {selectedRecord.analysis_type}
+                  </div>
                 </div>
+                <button
+                  onClick={() => setSelectedRecord(null)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                onClick={() => setSelectedRecord(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.5rem', cursor: 'pointer' }}
-              >
-                ✕
-              </button>
-            </div>
 
-            <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '0.85rem', color: '#38bdf8', fontWeight: 'bold' }}>Executive Summary:</div>
-              <div style={{ fontSize: '0.9rem', color: '#cbd5e1', marginTop: '0.25rem' }}>{selectedRecord.summary}</div>
-            </div>
+              <div className="glass-panel" style={{ padding: '1rem', borderRadius: '10px', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--accent-color)', fontWeight: 700 }}>Executive Summary:</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-main)', marginTop: '0.25rem', lineHeight: 1.5 }}>{selectedRecord.summary}</div>
+              </div>
 
-            {/* Correlations */}
-            {selectedRecord.correlations && selectedRecord.correlations.length > 0 && (
+              {/* Correlations */}
+              {selectedRecord.correlations && selectedRecord.correlations.length > 0 && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--warning-color)', fontWeight: 700 }}>Cross-Module Correlations:</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {selectedRecord.correlations.map((c, i) => (
+                      <div key={i} className="glass-panel" style={{ borderLeft: '3.5px solid var(--warning-color)', padding: '0.75rem 1rem', borderRadius: '0 8px 8px 0' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.9rem' }}>[{c.rule_id}] {c.title}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{c.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Findings */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <h4 style={{ margin: '0 0 0.5rem 0', color: '#fb923c' }}>Cross-Module Correlations:</h4>
+                <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)', fontWeight: 700 }}>Unified Findings ({selectedRecord.findings?.length || 0}):</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {selectedRecord.correlations.map((c, i) => (
-                    <div key={i} style={{ background: 'rgba(249, 115, 22, 0.1)', border: '1px solid rgba(249, 115, 22, 0.3)', padding: '0.75rem', borderRadius: '6px' }}>
-                      <div style={{ fontWeight: 'bold', color: '#fdba74', fontSize: '0.9rem' }}>[{c.rule_id}] {c.title}</div>
-                      <div style={{ fontSize: '0.85rem', color: '#cbd5e1', marginTop: '0.25rem' }}>{c.description}</div>
+                  {selectedRecord.findings?.map((f, i) => (
+                    <div key={i} className="glass-panel" style={{ padding: '0.85rem 1rem', borderRadius: '8px' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{f.finding_id}: {f.title}</span>
+                        <span style={{ color: SEVERITY_COLORS[f.severity]?.text }}>{f.severity}</span>
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{f.description}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-color)', marginTop: '0.25rem', fontWeight: 600 }}>Sources: {f.sources?.join(', ')}</div>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
 
-            {/* Findings */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <h4 style={{ margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Unified Findings ({selectedRecord.findings?.length || 0}):</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {selectedRecord.findings?.map((f, i) => (
-                  <div key={i} style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '0.75rem', borderRadius: '6px', border: '1px solid #334155' }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#f8fafc', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{f.finding_id}: {f.title}</span>
-                      <span style={{ color: SEVERITY_COLORS[f.severity]?.text }}>{f.severity}</span>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>{f.description}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#38bdf8', marginTop: '0.25rem' }}>Sources: {f.sources?.join(', ')}</div>
-                  </div>
-                ))}
+              <div style={{ textAlign: 'right', marginTop: '1.5rem' }}>
+                <button
+                  onClick={() => setSelectedRecord(null)}
+                  className="glass-panel"
+                  style={{
+                    padding: '0.6rem 1.6rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--accent-color)',
+                    background: 'var(--accent-color)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Close Inspection
+                </button>
               </div>
             </div>
-
-            <div style={{ textAlign: 'right', marginTop: '1.5rem' }}>
-              <button
-                onClick={() => setSelectedRecord(null)}
-                style={{
-                  padding: '0.55rem 1.5rem',
-                  borderRadius: '6px',
-                  border: '1px solid #64748b',
-                  background: '#334155',
-                  color: '#fff',
-                  cursor: 'pointer'
-                }}
-              >
-                Close Inspection
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
-    </div>
+    </AdminSidebar>
   );
 }

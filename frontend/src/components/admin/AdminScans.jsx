@@ -50,46 +50,74 @@ export default function AdminScans() {
     <AdminSidebar>
       <div style={{ maxWidth: '1400px', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800 }}>🔍 Security Monitoring</h1>
-          <p style={{ color: 'rgba(255,255,255,0.45)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)' }}>🔍 Security Monitoring</h1>
+          <p style={{ color: 'var(--text-muted)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
             All platform-wide scans — website, SSL, WHOIS, port, URL, threat checks.
           </p>
         </div>
 
-        {/* Summary cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          {[['all', 'Total', scans.length, '#388bfd'], ...Object.entries(RISK_CONFIG).map(([k, v]) => [k, v.label, riskCounts[k] || 0, v.color])].map(([k, label, count, color]) => (
-            <button key={k} onClick={() => { setRiskFilter(k); setPage(1); }} style={{
-              padding: '0.85rem', borderRadius: '9px', border: `1px solid ${riskFilter === k ? color : 'rgba(255,255,255,0.07)'}`,
-              background: riskFilter === k ? `${color}18` : 'rgba(255,255,255,0.02)', cursor: 'pointer', textAlign: 'left',
-            }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: riskFilter === k ? color : '#fff' }}>{count}</div>
-              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', fontWeight: 600 }}>{label}</div>
-            </button>
-          ))}
+        {/* Summary cards / filter tabs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
+          {[['all', 'Total', scans.length, 'var(--accent-color)'], ...Object.entries(RISK_CONFIG).map(([k, v]) => [k, v.label, riskCounts[k] || 0, v.color])].map(([k, label, count, color]) => {
+            const isSelected = riskFilter === k;
+            return (
+              <button
+                key={k}
+                onClick={() => { setRiskFilter(k); setPage(1); }}
+                className="glass-panel"
+                style={{
+                  padding: '0.95rem 1rem',
+                  borderRadius: '12px',
+                  border: isSelected ? `2px solid ${color}` : '1px solid var(--border-subtle)',
+                  background: isSelected ? `${color}20` : 'var(--panel-bg)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease',
+                  boxShadow: isSelected ? `0 4px 20px ${color}35` : 'var(--panel-shadow)',
+                }}
+              >
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: isSelected ? color : 'var(--text-main)', lineHeight: 1.2 }}>{count}</div>
+                <div style={{ fontSize: '0.72rem', color: isSelected ? color : 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px', marginTop: '0.3rem' }}>{label}</div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Search */}
-        <input
-          placeholder="Search by domain or URL..."
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          style={{ width: '100%', maxWidth: '480px', marginBottom: '1.25rem', padding: '0.65rem 1rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
-        />
+        <div style={{ marginBottom: '1.25rem' }}>
+          <input
+            placeholder="Search by domain or URL..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            className="glass-panel"
+            style={{
+              width: '100%',
+              maxWidth: '480px',
+              padding: '0.7rem 1rem',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-main)',
+              borderRadius: '10px',
+              fontSize: '0.875rem',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
 
-        {/* Table */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', overflow: 'hidden' }}>
+        {/* Table Card */}
+        <div className="glass-panel" style={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
           {loading ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>Loading scans...</div>
+            <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading scans...</div>
           ) : paginated.length === 0 ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No scans found.</div>
+            <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.95rem' }}>No scans found.</div>
           ) : (
-            <div className="table-responsive-container">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: '600px' }}>
+            <div className="table-responsive-container" style={{ margin: 0 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '600px' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
+                  <tr style={{ background: 'var(--panel-bg)', borderBottom: '1px solid var(--border-subtle)' }}>
                     {['#', 'Domain', 'HTTPS', 'Score', 'Risk Level', 'Scanned At', ''].map(h => (
-                      <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '0.85rem 1rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -99,28 +127,30 @@ export default function AdminScans() {
                     return (
                       <React.Fragment key={scan.id}>
                         <tr
-                          style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}
+                          style={{ borderTop: '1px solid var(--border-subtle)', cursor: 'pointer', transition: 'background-color 0.15s ease' }}
                           onClick={() => setExpanded(expanded === scan.id ? null : scan.id)}
+                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(88,166,255,0.06)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                         >
-                          <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem' }}>#{scan.id}</td>
-                          <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#fff' }}>{scan.domain}</td>
-                          <td style={{ padding: '0.75rem 1rem' }}>{scan.is_https ? '✅' : '❌'}</td>
-                          <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: scan.security_score >= 70 ? '#39d353' : scan.security_score >= 40 ? '#e3b341' : '#f85149' }}>
+                          <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>#{scan.id}</td>
+                          <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-main)' }}>{scan.domain}</td>
+                          <td style={{ padding: '0.85rem 1rem' }}>{scan.is_https ? '✅' : '❌'}</td>
+                          <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: scan.security_score >= 70 ? '#39d353' : scan.security_score >= 40 ? '#e3b341' : '#f85149' }}>
                             {scan.security_score}/100
                           </td>
-                          <td style={{ padding: '0.75rem 1rem' }}>
-                            <span style={{ padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: `${rc.color}22`, color: rc.color, border: `1px solid ${rc.color}44` }}>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <span style={{ padding: '0.25rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: `${rc.color}18`, color: rc.color, border: `1px solid ${rc.color}40`, display: 'inline-block' }}>
                               {scan.risk_level_display || rc.label}
                             </span>
                           </td>
-                          <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{new Date(scan.scanned_at).toLocaleString()}</td>
-                          <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.3)' }}>{expanded === scan.id ? '▲' : '▼'}</td>
+                          <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(scan.scanned_at).toLocaleString()}</td>
+                          <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{expanded === scan.id ? '▲' : '▼'}</td>
                         </tr>
                         {expanded === scan.id && (
                           <tr>
-                            <td colSpan={7} style={{ padding: '1rem 1.5rem', background: 'rgba(0,0,0,0.3)' }}>
-                              <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
-                                <strong style={{ color: '#58a6ff' }}>Scan Metadata:</strong> Domain: {scan.domain} | IP: {scan.ip_address || 'N/A'} | Server: {scan.server_header || 'N/A'}
+                            <td colSpan={7} style={{ padding: '1rem 1.5rem', background: 'rgba(88,166,255,0.04)', borderTop: '1px solid var(--border-subtle)' }}>
+                              <div style={{ fontSize: '0.84rem', color: 'var(--text-main)', lineHeight: 1.6 }}>
+                                <strong style={{ color: 'var(--accent-color)' }}>Scan Metadata:</strong> Domain: {scan.domain} | IP: {scan.ip_address || 'N/A'} | Server: {scan.server_header || 'N/A'}
                               </div>
                             </td>
                           </tr>
@@ -136,14 +166,28 @@ export default function AdminScans() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'center' }}>
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ padding: '0.4rem 0.85rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '0.83rem' }}>‹ Prev</button>
-            <span style={{ padding: '0.4rem 0.85rem', color: 'rgba(255,255,255,0.5)', fontSize: '0.83rem' }}>Page {page} of {totalPages}</span>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ padding: '0.4rem 0.85rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '0.83rem' }}>Next ›</button>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem', justifyContent: 'center', alignItems: 'center' }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="glass-panel"
+              style={{ padding: '0.45rem 0.95rem', color: 'var(--text-main)', border: '1px solid var(--border-subtle)', borderRadius: '8px', cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize: '0.83rem', opacity: page === 1 ? 0.4 : 1 }}
+            >
+              ‹ Prev
+            </button>
+            <span style={{ padding: '0.45rem 0.95rem', color: 'var(--text-muted)', fontSize: '0.83rem', fontWeight: 600 }}>Page {page} of {totalPages}</span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="glass-panel"
+              style={{ padding: '0.45rem 0.95rem', color: 'var(--text-main)', border: '1px solid var(--border-subtle)', borderRadius: '8px', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontSize: '0.83rem', opacity: page === totalPages ? 0.4 : 1 }}
+            >
+              Next ›
+            </button>
           </div>
         )}
 
-        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
+        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
           {filtered.length} scans found, showing page {page} of {totalPages || 1}
         </div>
       </div>

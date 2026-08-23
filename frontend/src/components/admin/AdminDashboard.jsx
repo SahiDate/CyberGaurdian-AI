@@ -192,7 +192,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminSidebar>
-      <div style={{ maxWidth: '1400px', margin: '0 auto', fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', fontFamily: "'Inter', sans-serif" }}>
 
         {/* ── Header ───────────────────────────────────────── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>

@@ -25,43 +25,43 @@ export default function AdminApiHealth() {
 
   return (
     <AdminSidebar>
-      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-        <h1 style={{ margin: '0 0 0.5rem 0', fontSize: 'clamp(1.4rem, 4vw, 1.8rem)', color: '#fff' }}>⚡ API Health & Endpoint Status</h1>
+      <div style={{ maxWidth: '1100px', fontFamily: "'Inter', sans-serif" }}>
+        <h1 style={{ margin: '0 0 0.5rem 0', fontSize: 'clamp(1.4rem, 4vw, 1.8rem)', color: 'var(--text-main)', fontWeight: 800 }}>⚡ API Health & Endpoint Status</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
           Endpoint status verification, http status code monitor, and average response latencies.
         </p>
 
         {apiData ? (
-          <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '14px', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Global API Uptime: </span>
-                <strong style={{ color: '#39d353', fontSize: '1.1rem' }}>{apiData.overall_uptime}</strong>
+                <strong style={{ color: 'var(--success-color)', fontSize: '1.1rem', fontWeight: 800 }}>{apiData.overall_uptime}</strong>
               </div>
-              <div style={{ color: 'var(--success-color)', fontWeight: 'bold' }}>
+              <div style={{ color: 'var(--success-color)', fontWeight: 800, fontSize: '0.9rem' }}>
                 🟢 API STATUS: {apiData.api_status}
               </div>
             </div>
 
-            <div className="table-responsive-container">
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', minWidth: '400px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                  <th style={{ padding: '0.75rem' }}>Endpoint Name</th>
-                  <th style={{ padding: '0.75rem' }}>HTTP Status</th>
-                  <th style={{ padding: '0.75rem' }}>Latency</th>
-                </tr>
-              </thead>
-              <tbody>
-                {apiData.endpoints?.map((ep, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{ep.name}</td>
-                    <td style={{ padding: '0.75rem', color: '#39d353', fontWeight: 'bold' }}>{ep.status}</td>
-                    <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>{ep.latency_ms} ms</td>
+            <div className="table-responsive-container" style={{ margin: 0 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem', minWidth: '400px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--panel-bg)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Endpoint Name</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>HTTP Status</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Latency</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {apiData.endpoints?.map((ep, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s ease' }}>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-main)' }}>{ep.name}</td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--success-color)', fontWeight: 800 }}>{ep.status}</td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontWeight: 600 }}>{ep.latency_ms} ms</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         ) : (

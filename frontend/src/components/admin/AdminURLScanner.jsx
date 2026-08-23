@@ -62,31 +62,31 @@ export default function AdminURLScanner() {
   });
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0d12', color: '#c9d1d9', fontFamily: 'Inter, sans-serif' }}>
-      <AdminSidebar />
-      <div style={{ flex: 1, padding: '2rem', overflowX: 'hidden' }}>
+    <AdminSidebar>
+      <div style={{ maxWidth: '1300px', fontFamily: "'Inter', sans-serif" }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f0f6fc', margin: 0 }}>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
               🌐 SOC Platform URL & Destination Inspector
             </h1>
-            <p style={{ color: '#8b949e', fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>
               Platform-wide URL security telemetry, redirect chain analysis, SSRF containment, and correlated threat intelligence.
             </p>
           </div>
           <button
             onClick={fetchData}
+            className="glass-panel"
             style={{
-              background: '#21262d',
-              border: '1px solid #30363d',
-              color: '#c9d1d9',
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
+              padding: '0.55rem 1.1rem',
+              background: 'rgba(56,139,253,0.15)',
+              border: '1px solid var(--accent-color)',
+              color: 'var(--accent-color)',
+              borderRadius: '8px',
               cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.85rem'
+              fontWeight: 700,
+              fontSize: '0.82rem'
             }}
           >
             🔄 Refresh Analytics
@@ -96,59 +96,62 @@ export default function AdminURLScanner() {
         {/* Real DB Analytics Stats Cards */}
         {analytics && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-            <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem' }}>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Total URL Scans</div>
-              <div style={{ color: '#f0f6fc', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.total_scans}</div>
-              <div style={{ color: '#58a6ff', fontSize: '0.75rem', marginTop: '0.25rem' }}>+{analytics.scans_today} today</div>
+            <div className="glass-panel" style={{ borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total URL Scans</div>
+              <div style={{ color: 'var(--text-main)', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.total_scans}</div>
+              <div style={{ color: 'var(--accent-color)', fontSize: '0.75rem', marginTop: '0.25rem', fontWeight: 600 }}>+{analytics.scans_today} today</div>
             </div>
 
-            <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem' }}>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Threats Detected</div>
-              <div style={{ color: '#f85149', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.threats_detected}</div>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', marginTop: '0.25rem' }}>Medium / High / Critical</div>
+            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--danger-color)', borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ color: 'var(--danger-color)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Threats Detected</div>
+              <div style={{ color: 'var(--danger-color)', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.threats_detected}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>Medium / High / Critical</div>
             </div>
 
-            <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem' }}>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>SSRF Blocks</div>
-              <div style={{ color: '#ff7b72', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.ssrf_blocked_count}</div>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', marginTop: '0.25rem' }}>Restricted IP attempts blocked</div>
+            <div className="glass-panel" style={{ borderLeft: '3.5px solid #ff7b72', borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ color: '#ff7b72', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>SSRF Blocks</div>
+              <div style={{ color: '#ff7b72', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.ssrf_blocked_count}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>Restricted IP attempts blocked</div>
             </div>
 
-            <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem' }}>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Redirect Chains</div>
-              <div style={{ color: '#e3b341', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.redirect_chains_count}</div>
-              <div style={{ color: '#8b949e', fontSize: '0.75rem', marginTop: '0.25rem' }}>Multi-hop destinations</div>
+            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--warning-color)', borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ color: 'var(--warning-color)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Redirect Chains</div>
+              <div style={{ color: 'var(--warning-color)', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem' }}>{analytics.redirect_chains_count}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>Multi-hop destinations</div>
             </div>
           </div>
         )}
 
         {/* Filter Controls */}
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           <input
             type="text"
             placeholder="Search URL, hostname, user..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            className="glass-panel"
             style={{
               flex: '1 1 280px',
-              padding: '0.5rem 0.75rem',
-              background: '#0d1117',
-              border: '1px solid #30363d',
-              borderRadius: '6px',
-              color: '#f0f6fc',
-              fontSize: '0.85rem'
+              padding: '0.65rem 1rem',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              color: 'var(--text-main)',
+              fontSize: '0.85rem',
+              outline: 'none'
             }}
           />
 
           <select
             value={sevFilter}
             onChange={(e) => setSevFilter(e.target.value)}
+            className="glass-panel"
             style={{
-              padding: '0.5rem 0.75rem',
-              background: '#0d1117',
-              border: '1px solid #30363d',
-              borderRadius: '6px',
-              color: '#f0f6fc',
+              padding: '0.65rem 1rem',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              color: 'var(--text-main)',
               fontSize: '0.85rem'
             }}
           >
@@ -162,12 +165,13 @@ export default function AdminURLScanner() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+            className="glass-panel"
             style={{
-              padding: '0.5rem 0.75rem',
-              background: '#0d1117',
-              border: '1px solid #30363d',
-              borderRadius: '6px',
-              color: '#f0f6fc',
+              padding: '0.65rem 1rem',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              color: 'var(--text-main)',
               fontSize: '0.85rem'
             }}
           >
@@ -180,74 +184,75 @@ export default function AdminURLScanner() {
         </div>
 
         {/* Platform Scans Table */}
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', overflow: 'hidden' }}>
+        <div className="glass-panel" style={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#8b949e' }}>Loading platform URL telemetry...</div>
+            <div style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>Loading platform URL telemetry...</div>
           ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#8b949e' }}>No URL scan records match current criteria.</div>
+            <div style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>No URL scan records match current criteria.</div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <div className="table-responsive-container" style={{ margin: 0 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '850px' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #30363d', background: '#0d1117', textAlign: 'left', color: '#8b949e' }}>
-                    <th style={{ padding: '0.85rem' }}>User / Account</th>
-                    <th style={{ padding: '0.85rem' }}>URL / Hostname</th>
-                    <th style={{ padding: '0.85rem' }}>Scheme</th>
-                    <th style={{ padding: '0.85rem' }}>HTTP</th>
-                    <th style={{ padding: '0.85rem' }}>Redirects</th>
-                    <th style={{ padding: '0.85rem' }}>Threat Score</th>
-                    <th style={{ padding: '0.85rem' }}>Severity</th>
-                    <th style={{ padding: '0.85rem' }}>Status</th>
-                    <th style={{ padding: '0.85rem' }}>Scanned At</th>
-                    <th style={{ padding: '0.85rem' }}>Action</th>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--panel-bg)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>User / Account</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>URL / Hostname</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Scheme</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>HTTP</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Redirects</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Threat Score</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Severity</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Status</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Scanned At</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(row => {
                     const sevBadge = SEVERITY_STYLES[row.severity?.toUpperCase()] || SEVERITY_STYLES.LOW;
                     return (
-                      <tr key={row.id} style={{ borderBottom: '1px solid #21262d' }}>
-                        <td style={{ padding: '0.85rem', color: '#58a6ff', fontWeight: 600 }}>
+                      <tr key={row.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s ease' }}>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--accent-color)', fontWeight: 700 }}>
                           {row.username || `User #${row.user_id}`}
                         </td>
-                        <td style={{ padding: '0.85rem', fontWeight: 700, color: '#f0f6fc', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-main)', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {row.normalized_url || row.original_url}
                         </td>
-                        <td style={{ padding: '0.85rem', color: '#8b949e' }}>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>
                           {row.scheme}
                         </td>
-                        <td style={{ padding: '0.85rem', color: row.http_status === 200 ? '#39d353' : '#e3b341' }}>
+                        <td style={{ padding: '0.85rem 1rem', color: row.http_status === 200 ? 'var(--success-color)' : 'var(--warning-color)', fontWeight: 700 }}>
                           {row.http_status || 'N/A'}
                         </td>
-                        <td style={{ padding: '0.85rem', color: '#8b949e' }}>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>
                           {row.redirect_count}
                         </td>
-                        <td style={{ padding: '0.85rem', fontWeight: 800, color: row.threat_score >= 75 ? '#f85149' : row.threat_score >= 50 ? '#e3b341' : '#39d353' }}>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: row.threat_score >= 75 ? 'var(--danger-color)' : row.threat_score >= 50 ? 'var(--warning-color)' : 'var(--success-color)' }}>
                           {row.threat_score}/100
                         </td>
-                        <td style={{ padding: '0.85rem' }}>
-                          <span style={{ color: sevBadge.color, background: sevBadge.bg, border: `1px solid ${sevBadge.border}`, padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <span style={{ color: sevBadge.color, background: sevBadge.bg, border: `1px solid ${sevBadge.border}`, padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>
                             {row.severity}
                           </span>
                         </td>
-                        <td style={{ padding: '0.85rem', color: row.status === 'SUCCESS' ? '#39d353' : '#f85149', fontSize: '0.78rem' }}>
+                        <td style={{ padding: '0.85rem 1rem', color: row.status === 'SUCCESS' ? 'var(--success-color)' : 'var(--danger-color)', fontSize: '0.78rem', fontWeight: 600 }}>
                           {row.status}
                         </td>
-                        <td style={{ padding: '0.85rem', color: '#8b949e', fontSize: '0.78rem' }}>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                           {new Date(row.created_at).toLocaleString()}
                         </td>
-                        <td style={{ padding: '0.85rem' }}>
+                        <td style={{ padding: '0.85rem 1rem' }}>
                           <button
                             onClick={() => setSelectedScan(row)}
+                            className="glass-panel"
                             style={{
-                              background: '#21262d',
-                              border: '1px solid #30363d',
-                              borderRadius: '4px',
-                              color: '#58a6ff',
-                              padding: '0.25rem 0.6rem',
+                              background: 'rgba(56,139,253,0.15)',
+                              border: '1px solid var(--accent-color)',
+                              borderRadius: '6px',
+                              color: 'var(--accent-color)',
+                              padding: '0.35rem 0.75rem',
                               fontSize: '0.75rem',
                               cursor: 'pointer',
-                              fontWeight: 600
+                              fontWeight: 700
                             }}
                           >
                             Inspect
@@ -266,34 +271,32 @@ export default function AdminURLScanner() {
         {selectedScan && (
           <div style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
+            inset: 0,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
-            padding: '2rem'
+            padding: '1.5rem'
           }}>
-            <div style={{
-              background: '#161b22',
-              border: '1px solid #30363d',
-              borderRadius: '12px',
+            <div className="glass-panel" style={{
+              borderRadius: '16px',
               maxWidth: '850px',
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
-              padding: '2rem'
+              padding: '2rem',
+              border: '1px solid var(--accent-color)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f0f6fc', margin: 0, wordBreak: 'break-all' }}>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, wordBreak: 'break-all' }}>
                     URL Investigation: {selectedScan.hostname}
                   </h2>
-                  <div style={{ color: '#8b949e', fontSize: '0.82rem', marginTop: '0.25rem' }}>
-                    User: <span style={{ color: '#58a6ff' }}>{selectedScan.username}</span> | Original: {selectedScan.original_url}
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.25rem' }}>
+                    User: <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{selectedScan.username}</span> | Original: {selectedScan.original_url}
                   </div>
                 </div>
                 <button
@@ -301,9 +304,10 @@ export default function AdminURLScanner() {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#8b949e',
+                    color: 'var(--text-main)',
                     fontSize: '1.5rem',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    lineHeight: 1
                   }}
                 >
                   ✕
@@ -311,35 +315,35 @@ export default function AdminURLScanner() {
               </div>
 
               {/* URL & HTTP Details */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-                <div style={{ background: '#0d1117', padding: '1rem', borderRadius: '8px' }}>
-                  <div><span style={{ color: '#8b949e' }}>Normalized URL:</span> <span style={{ color: '#f0f6fc', wordBreak: 'break-all' }}>{selectedScan.normalized_url}</span></div>
-                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#8b949e' }}>Final Destination:</span> <span style={{ color: '#58a6ff', wordBreak: 'break-all' }}>{selectedScan.final_url || selectedScan.normalized_url}</span></div>
-                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#8b949e' }}>Domain:</span> <span style={{ color: '#f0f6fc' }}>{selectedScan.domain}</span></div>
-                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#8b949e' }}>Resolved IP:</span> <span style={{ color: '#f0f6fc' }}>{selectedScan.primary_ip || 'N/A'}</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                <div className="glass-panel" style={{ padding: '1rem', borderRadius: '10px' }}>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Normalized URL:</span> <span style={{ color: 'var(--text-main)', wordBreak: 'break-all', fontWeight: 600 }}>{selectedScan.normalized_url}</span></div>
+                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: 'var(--text-muted)' }}>Final Destination:</span> <span style={{ color: 'var(--accent-color)', wordBreak: 'break-all', fontWeight: 600 }}>{selectedScan.final_url || selectedScan.normalized_url}</span></div>
+                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: 'var(--text-muted)' }}>Domain:</span> <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{selectedScan.domain}</span></div>
+                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: 'var(--text-muted)' }}>Resolved IP:</span> <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{selectedScan.primary_ip || 'N/A'}</span></div>
                 </div>
 
-                <div style={{ background: '#0d1117', padding: '1rem', borderRadius: '8px' }}>
-                  <div><span style={{ color: '#8b949e' }}>HTTP Status:</span> <span style={{ color: selectedScan.http_status === 200 ? '#39d353' : '#e3b341', fontWeight: 700 }}>{selectedScan.http_status || 'N/A'}</span></div>
-                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#8b949e' }}>Content-Type:</span> <span style={{ color: '#c9d1d9' }}>{selectedScan.content_type || 'N/A'}</span></div>
-                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#8b949e' }}>Server Banner:</span> <span style={{ color: '#c9d1d9' }}>{selectedScan.server || 'N/A'}</span></div>
-                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#8b949e' }}>Redirect Count:</span> <span style={{ color: '#f0f6fc' }}>{selectedScan.redirect_count} Hops</span></div>
+                <div className="glass-panel" style={{ padding: '1rem', borderRadius: '10px' }}>
+                  <div><span style={{ color: 'var(--text-muted)' }}>HTTP Status:</span> <span style={{ color: selectedScan.http_status === 200 ? 'var(--success-color)' : 'var(--warning-color)', fontWeight: 700 }}>{selectedScan.http_status || 'N/A'}</span></div>
+                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: 'var(--text-muted)' }}>Content-Type:</span> <span style={{ color: 'var(--text-main)' }}>{selectedScan.content_type || 'N/A'}</span></div>
+                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: 'var(--text-muted)' }}>Server Banner:</span> <span style={{ color: 'var(--text-main)' }}>{selectedScan.server || 'N/A'}</span></div>
+                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: 'var(--text-muted)' }}>Redirect Count:</span> <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{selectedScan.redirect_count} Hops</span></div>
                 </div>
               </div>
 
               {/* Redirect Chain */}
               {selectedScan.redirect_chain?.length > 0 && (
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f0f6fc', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
                     Redirect Chain ({selectedScan.redirect_chain.length} Hops)
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {selectedScan.redirect_chain.map((hop, idx) => (
-                      <div key={idx} style={{ background: '#0d1117', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <span style={{ color: '#e3b341', fontWeight: 700 }}>[{hop.status_code}]</span>
-                        <span style={{ color: '#8b949e', wordBreak: 'break-all' }}>{hop.from_url}</span>
-                        <span style={{ color: '#58a6ff' }}>➔</span>
-                        <span style={{ color: '#f0f6fc', wordBreak: 'break-all' }}>{hop.to_url}</span>
+                      <div key={idx} className="glass-panel" style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', fontSize: '0.8rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--warning-color)', fontWeight: 700 }}>[{hop.status_code}]</span>
+                        <span style={{ color: 'var(--text-muted)', wordBreak: 'break-all' }}>{hop.from_url}</span>
+                        <span style={{ color: 'var(--accent-color)' }}>➔</span>
+                        <span style={{ color: 'var(--text-main)', wordBreak: 'break-all', fontWeight: 600 }}>{hop.to_url}</span>
                       </div>
                     ))}
                   </div>
@@ -349,13 +353,13 @@ export default function AdminURLScanner() {
               {/* Indicators */}
               {selectedScan.indicators?.length > 0 && (
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f85149', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--danger-color)', marginBottom: '0.5rem' }}>
                     Observed Indicators ({selectedScan.indicators.length})
                   </div>
                   {selectedScan.indicators.map((ind, idx) => (
-                    <div key={idx} style={{ background: '#0d1117', borderLeft: '3px solid #f85149', padding: '0.65rem 0.85rem', marginBottom: '0.5rem', borderRadius: '0 6px 6px 0', fontSize: '0.82rem' }}>
-                      <div style={{ fontWeight: 700, color: '#f0f6fc' }}>{ind.type} ({ind.severity})</div>
-                      <div style={{ color: '#8b949e' }}>{ind.description}</div>
+                    <div key={idx} className="glass-panel" style={{ borderLeft: '3.5px solid var(--danger-color)', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0 8px 8px 0', fontSize: '0.82rem' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{ind.type} ({ind.severity})</div>
+                      <div style={{ color: 'var(--text-muted)', marginTop: '0.15rem' }}>{ind.description}</div>
                     </div>
                   ))}
                 </div>
@@ -363,8 +367,8 @@ export default function AdminURLScanner() {
 
               {/* Structured JSON */}
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f0f6fc', marginBottom: '0.5rem' }}>Structured SOC Evidence</div>
-                <pre style={{ background: '#010409', border: '1px solid #30363d', borderRadius: '8px', padding: '1rem', color: '#7ee787', fontSize: '0.75rem', maxHeight: '200px', overflowY: 'auto' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Structured SOC Evidence</div>
+                <pre className="glass-panel" style={{ borderRadius: '8px', padding: '1rem', color: 'var(--success-color)', fontSize: '0.75rem', maxHeight: '200px', overflowY: 'auto' }}>
                   {JSON.stringify(selectedScan.structured_evidence || selectedScan, null, 2)}
                 </pre>
               </div>
@@ -373,6 +377,6 @@ export default function AdminURLScanner() {
         )}
 
       </div>
-    </div>
+    </AdminSidebar>
   );
 }

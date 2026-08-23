@@ -79,8 +79,8 @@ export default function AdminIncidents() {
     <AdminSidebar>
       <div style={{ maxWidth: '1300px', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800 }}>🔥 Incident Management</h1>
-          <p style={{ color: 'rgba(255,255,255,0.45)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)' }}>🔥 Incident Management</h1>
+          <p style={{ color: 'var(--text-muted)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
             Track, update, and investigate security incidents across the platform.
           </p>
         </div>
@@ -88,15 +88,15 @@ export default function AdminIncidents() {
         {/* Status filter tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
           {['ALL', 'OPEN', 'INVESTIGATING', 'CONTAINED', 'RESOLVED', 'CLOSED'].map(s => {
-            const cfg = STATUS_CONFIG[s] || { color: '#fff', bg: 'rgba(255,255,255,0.08)' };
+            const cfg = STATUS_CONFIG[s] || { color: 'var(--text-main)', bg: 'var(--input-bg)' };
             const active = statusFilter === s;
             const cnt = s === 'ALL' ? incidents.length : statusCounts[s] || 0;
             return (
-              <button key={s} onClick={() => setStatusFilter(s)} style={{
-                padding: '0.4rem 0.9rem', borderRadius: '20px', border: 'none', cursor: 'pointer',
+              <button key={s} onClick={() => setStatusFilter(s)} className="glass-panel" style={{
+                padding: '0.45rem 1rem', borderRadius: '20px', border: active ? `1px solid ${cfg.color || 'var(--accent-color)'}` : '1px solid var(--border-color)', cursor: 'pointer',
                 fontWeight: 700, fontSize: '0.75rem',
-                background: active ? (cfg.color || '#388bfd') : 'rgba(255,255,255,0.05)',
-                color: active ? '#fff' : (cfg.color || 'rgba(255,255,255,0.5)'),
+                background: active ? (cfg.color || 'var(--accent-color)') : 'var(--input-bg)',
+                color: active ? '#fff' : (cfg.color || 'var(--text-muted)'),
                 transition: 'all 0.15s',
               }}>
                 {s} ({cnt})
@@ -109,23 +109,24 @@ export default function AdminIncidents() {
           placeholder="Search incidents..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ width: '100%', maxWidth: '400px', marginBottom: '1.25rem', padding: '0.6rem 0.9rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
+          className="glass-panel"
+          style={{ width: '100%', maxWidth: '400px', marginBottom: '1.25rem', padding: '0.65rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: selected ? 'repeat(auto-fit, minmax(320px, 1fr))' : '1fr', gap: '1.25rem' }}>
           {/* Table */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', overflow: 'hidden' }}>
+          <div className="glass-panel" style={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
             {loading ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>Loading incidents...</div>
+              <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading incidents...</div>
             ) : filtered.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No incidents found.</div>
+              <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>No incidents found.</div>
             ) : (
-              <div className="table-responsive-container">
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: '550px' }}>
+              <div className="table-responsive-container" style={{ margin: 0 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '550px' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
+                  <tr style={{ background: 'var(--panel-bg)', borderBottom: '1px solid var(--border-subtle)' }}>
                     {['ID', 'Title', 'Severity', 'Status', 'Created', ''].map(h => (
-                      <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{h}</th>
+                      <th key={h} style={{ padding: '0.85rem 1rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -134,16 +135,18 @@ export default function AdminIncidents() {
                     <tr
                       key={inc.id}
                       onClick={() => { setSelected(inc); setNewStatus(''); setNotes(''); }}
-                      style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', background: selected?.id === inc.id ? 'rgba(56,139,253,0.08)' : 'transparent' }}
+                      style={{ borderTop: '1px solid var(--border-subtle)', cursor: 'pointer', background: selected?.id === inc.id ? 'rgba(56,139,253,0.08)' : 'transparent', transition: 'background-color 0.15s ease' }}
+                      onMouseEnter={e => { if (selected?.id !== inc.id) e.currentTarget.style.backgroundColor = 'rgba(88,166,255,0.05)'; }}
+                      onMouseLeave={e => { if (selected?.id !== inc.id) e.currentTarget.style.backgroundColor = 'transparent'; }}
                     >
-                      <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>#{inc.id}</td>
-                      <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{inc.title}</td>
-                      <td style={{ padding: '0.75rem 1rem' }}>
-                        <span style={{ color: SEV_CONFIG[inc.severity] || '#8b949e', fontWeight: 700, fontSize: '0.78rem' }}>{inc.severity}</span>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>#{inc.id}</td>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-main)' }}>{inc.title}</td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <span style={{ color: SEV_CONFIG[inc.severity] || 'var(--text-muted)', fontWeight: 800, fontSize: '0.78rem' }}>{inc.severity}</span>
                       </td>
-                      <td style={{ padding: '0.75rem 1rem' }}><StatusBadge s={inc.status} /></td>
-                      <td style={{ padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{new Date(inc.created_at).toLocaleDateString()}</td>
-                      <td style={{ padding: '0.75rem 1rem', color: '#388bfd' }}>›</td>
+                      <td style={{ padding: '0.85rem 1rem' }}><StatusBadge s={inc.status} /></td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(inc.created_at).toLocaleDateString()}</td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--accent-color)', fontWeight: 800 }}>›</td>
                     </tr>
                   ))}
                 </tbody>
@@ -154,35 +157,36 @@ export default function AdminIncidents() {
 
           {/* Detail Panel */}
           {selected && (
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '1.5rem', height: 'fit-content' }}>
+            <div className="glass-panel" style={{ borderRadius: '14px', padding: '1.5rem', height: 'fit-content', border: '1px solid var(--border-subtle)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Incident #{selected.id}</h3>
-                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>Incident #{selected.id}</h3>
+                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>✕</button>
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{selected.title}</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.5rem' }}>{selected.title}</div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
                   <StatusBadge s={selected.status} />
-                  <span style={{ color: SEV_CONFIG[selected.severity] || '#8b949e', fontWeight: 700, fontSize: '0.78rem', background: 'rgba(255,255,255,0.06)', padding: '0.18rem 0.55rem', borderRadius: '4px' }}>{selected.severity}</span>
+                  <span style={{ color: SEV_CONFIG[selected.severity] || 'var(--text-muted)', fontWeight: 800, fontSize: '0.78rem', background: 'rgba(56,139,253,0.1)', padding: '0.2rem 0.55rem', borderRadius: '4px' }}>{selected.severity}</span>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: '180px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '6px' }}>
+                <div className="glass-panel" style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: '180px', overflowY: 'auto', padding: '0.85rem', borderRadius: '8px' }}>
                   {selected.description || 'No description.'}
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '1rem' }}>
-                <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Update Incident</h4>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
+                <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.88rem', color: 'var(--text-main)', fontWeight: 700 }}>Update Incident</h4>
 
-                {msg && <div style={{ color: '#39d353', fontSize: '0.8rem', marginBottom: '0.75rem', background: 'rgba(57,211,83,0.1)', padding: '0.5rem 0.75rem', borderRadius: '6px' }}>{msg}</div>}
+                {msg && <div style={{ color: 'var(--success-color)', fontSize: '0.8rem', marginBottom: '0.75rem', background: 'rgba(57,211,83,0.1)', padding: '0.5rem 0.75rem', borderRadius: '6px', fontWeight: 600 }}>{msg}</div>}
 
                 <select
                   value={newStatus}
                   onChange={e => setNewStatus(e.target.value)}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.15)', color: newStatus ? '#fff' : 'rgba(255,255,255,0.4)', borderRadius: '7px', marginBottom: '0.75rem', fontSize: '0.85rem', outline: 'none' }}
+                  className="glass-panel"
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: newStatus ? 'var(--text-main)' : 'var(--text-muted)', borderRadius: '8px', marginBottom: '0.75rem', fontSize: '0.85rem', outline: 'none' }}
                 >
                   <option value="">— Change Status —</option>
-                  {['OPEN','INVESTIGATING','CONTAINED','RESOLVED','CLOSED'].map(s => <option key={s} value={s} style={{ background: '#0d1117' }}>{s}</option>)}
+                  {['OPEN','INVESTIGATING','CONTAINED','RESOLVED','CLOSED'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
 
                 <textarea
@@ -190,15 +194,17 @@ export default function AdminIncidents() {
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   rows={3}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', borderRadius: '7px', fontSize: '0.83rem', resize: 'vertical', outline: 'none', boxSizing: 'border-box', marginBottom: '0.75rem' }}
+                  className="glass-panel"
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '8px', fontSize: '0.85rem', resize: 'vertical', outline: 'none', boxSizing: 'border-box', marginBottom: '0.75rem' }}
                 />
 
                 <button
                   onClick={handleUpdate}
                   disabled={updating || (!newStatus && !notes)}
+                  className="glass-panel"
                   style={{
-                    width: '100%', padding: '0.65rem', background: 'linear-gradient(135deg, #1f6feb, #388bfd)',
-                    border: 'none', color: '#fff', borderRadius: '7px', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem',
+                    width: '100%', padding: '0.7rem', background: 'var(--accent-color)',
+                    border: '1px solid var(--accent-color)', color: '#fff', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem',
                     opacity: (!newStatus && !notes) ? 0.4 : 1, transition: 'opacity 0.15s',
                   }}
                 >
@@ -206,14 +212,14 @@ export default function AdminIncidents() {
                 </button>
               </div>
 
-              <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
+              <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Created: {new Date(selected.created_at).toLocaleString()}<br />
                 Updated: {new Date(selected.updated_at).toLocaleString()}
               </div>
             </div>
           )}
         </div>
-        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
+        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
           {filtered.length} of {incidents.length} incidents shown
         </div>
       </div>
