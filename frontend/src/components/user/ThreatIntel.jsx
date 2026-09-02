@@ -32,6 +32,55 @@ export default function ThreatIntel() {
   const [searchFilter, setSearchFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [sevFilter, setSevFilter] = useState('ALL');
+  const [searchHistory, setSearchHistory] = useState('');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async (resultObj) => {
+    const resTarget = resultObj?.target || target || 'Threat_Intel_Target';
+    setDownloadingPdf(true);
+    try {
+      const payload = {
+        target: resTarget,
+        ai_analysis: {
+          summary: `Threat intelligence query for ${resTarget} completed with severity ${resultObj?.severity || 'LOW'} (Score: ${resultObj?.threat_score || 0}/100, Confidence: ${resultObj?.confidence || 80}%).`,
+          recommendations: [
+            "Cross-reference domain/IP against DNS blacklists and threat feeds.",
+            "Block malicious reputation indicators on perimeter gateways.",
+            "Monitor egress telemetry for anomalous connection attempts."
+          ]
+        },
+        security_headers: {},
+        ssl: {},
+        open_ports: [],
+        severity: resultObj?.severity || 'LOW',
+        score: resultObj?.threat_score || 0
+      };
+      const res = await fetch(`${API_BASE}/api/reports/quick-pdf/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authTokens?.access}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Failed to generate PDF");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeTarget = resTarget.replace(/[^a-zA-Z0-9_-]/g, '_');
+      a.download = `Threat_Intel_${safeTarget}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("PDF download failed", err);
+      alert("Could not generate PDF report.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   useEffect(() => {
     fetchHistory();
@@ -107,7 +156,7 @@ export default function ThreatIntel() {
   });
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0d12', color: '#fff', paddingBottom: '4rem', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', color: 'var(--text-main)', paddingBottom: '4rem', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <Navbar />
 
       <main style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 1.5rem' }}>
@@ -116,7 +165,7 @@ export default function ThreatIntel() {
         <div style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
             <span style={{ fontSize: '2rem' }}>🛡️</span>
-            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800, background: 'linear-gradient(135deg, #fff 0%, #8b949e 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)' }}>
               Threat Intelligence Engine
             </h1>
           </div>
@@ -127,7 +176,7 @@ export default function ThreatIntel() {
 
         {/* Scan Input Card */}
         <div className="glass-panel" style={{ padding: '2rem', borderRadius: '16px', marginBottom: '2.5rem', border: '1px solid var(--border-color)' }}>
-          <h2 style={{ fontSize: '1.2rem', margin: '0 0 1.25rem 0', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h2 style={{ fontSize: '1.2rem', margin: '0 0 1.25rem 0', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
             🔍 Perform Threat Reputation Lookup
           </h2>
 
@@ -145,9 +194,9 @@ export default function ThreatIntel() {
                   style={{
                     padding: '0.9rem 1.2rem',
                     fontSize: '1rem',
-                    background: 'rgba(0,0,0,0.4)',
+                    background: 'var(--input-bg)',
                     border: '1px solid var(--border-color)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     borderRadius: '8px',
                     outline: 'none',
                   }}
@@ -164,9 +213,9 @@ export default function ThreatIntel() {
                   style={{
                     padding: '0.9rem 1rem',
                     fontSize: '0.95rem',
-                    background: 'rgba(0,0,0,0.5)',
+                    background: 'var(--input-bg)',
                     border: '1px solid var(--border-color)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     borderRadius: '8px',
                     outline: 'none',
                     cursor: 'pointer',
@@ -269,6 +318,32 @@ export default function ThreatIntel() {
                     Confidence: <strong>{scanResult.confidence}%</strong>
                   </div>
                 </div>
+
+                <div style={{ width: '1px', height: '40px', background: 'var(--border-color)' }} />
+
+                <button
+                  type="button"
+                  onClick={() => handleDownloadPdf(scanResult)}
+                  disabled={downloadingPdf}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.55rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid #38bdf8',
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    color: '#38bdf8',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: downloadingPdf ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title="Download Threat Intelligence Report as a PDF"
+                >
+                  <span>📄</span>
+                  <span>{downloadingPdf ? 'Exporting...' : 'Download PDF'}</span>
+                </button>
               </div>
             </div>
 

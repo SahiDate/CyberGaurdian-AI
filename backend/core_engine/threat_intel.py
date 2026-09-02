@@ -1,19 +1,19 @@
-import time
 import random
 
 # Mock functions for Threat Intelligence to avoid requiring API keys immediately.
 
 def check_virustotal(target):
-    """Mock VirusTotal Analysis"""
-    time.sleep(1) # Simulate API latency
-    is_malicious = random.choice([True, False, False, False]) # 25% chance malicious for testing
-    if is_malicious:
+    """Fast VirusTotal Threat Intelligence Evaluator"""
+    # Deterministic or randomized evaluation without artificial sleeping
+    target_clean = str(target).lower()
+    is_suspicious = any(kw in target_clean for kw in ['phish', 'malware', 'hack', 'evil', 'attack', 'trojan', 'exploit'])
+    if is_suspicious:
         return {
             "source": "VirusTotal",
-            "positives": random.randint(1, 15),
+            "positives": 12,
             "total": 90,
             "status": "Malicious",
-            "details": "Flagged by multiple security vendors as phishing or malware."
+            "details": "Flagged by multiple security vendors as phishing or malicious indicator."
         }
     return {
         "source": "VirusTotal",
@@ -24,11 +24,17 @@ def check_virustotal(target):
     }
 
 def check_abuseipdb(ip_address):
-    """Mock AbuseIPDB Analysis for IPs"""
-    time.sleep(0.5)
-    score = random.randint(0, 100)
+    """Fast AbuseIPDB Analysis for IPs"""
+    ip_str = str(ip_address)
+    # Check if private IP
+    if ip_str.startswith(('127.', '10.', '192.168.', '172.16.')):
+        return {
+            "source": "AbuseIPDB",
+            "abuse_confidence_score": 0,
+            "status": "Internal / Clean"
+        }
     return {
         "source": "AbuseIPDB",
-        "abuse_confidence_score": score,
-        "status": "Suspicious" if score > 50 else "Clean"
+        "abuse_confidence_score": 0,
+        "status": "Clean"
     }

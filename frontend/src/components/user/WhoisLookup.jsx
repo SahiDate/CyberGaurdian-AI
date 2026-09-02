@@ -93,7 +93,7 @@ export default function WhoisLookup() {
   });
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0d12', color: '#c9d1d9', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ minHeight: '100vh', color: 'var(--text-main)', fontFamily: 'Inter, sans-serif' }}>
       <Navbar />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
         
@@ -101,28 +101,25 @@ export default function WhoisLookup() {
         <div style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
             <span style={{ fontSize: '1.75rem' }}>🌐</span>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#f0f6fc', margin: 0 }}>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
               WHOIS & RDAP Domain Intelligence
             </h1>
           </div>
-          <p style={{ color: '#8b949e', fontSize: '0.95rem', margin: 0 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0 }}>
             Query authoritative domain registration records, creation and expiration dates, registrar metadata, authoritative nameservers, and domain age security posture.
           </p>
         </div>
 
         {/* Lookup Card */}
-        <div style={{
-          background: 'rgba(22, 27, 34, 0.8)',
-          border: '1px solid rgba(48, 54, 61, 0.8)',
+        <div className="glass-panel" style={{
           borderRadius: '12px',
           padding: '1.5rem',
-          backdropFilter: 'blur(10px)',
           marginBottom: '2rem'
         }}>
           <form onSubmit={handleLookup}>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div style={{ flex: '1 1 500px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#8b949e', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                   Domain Name
                 </label>
                 <input
@@ -133,10 +130,10 @@ export default function WhoisLookup() {
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    background: '#0d1117',
-                    border: '1px solid #30363d',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
-                    color: '#f0f6fc',
+                    color: 'var(--text-main)',
                     fontSize: '0.95rem',
                     outline: 'none',
                     boxSizing: 'border-box'

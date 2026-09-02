@@ -8,6 +8,8 @@ import {
 } from 'chart.js';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 
+import { subscribeSecurityEvents } from '../../utils/securityEventBus';
+
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
 const API = 'http://localhost:8000';
@@ -112,7 +114,13 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    const unsubscribe = subscribeSecurityEvents(() => {
+      fetchData();
+    });
+    return () => unsubscribe();
+  }, []);
 
   const fetchData = async () => {
     try {

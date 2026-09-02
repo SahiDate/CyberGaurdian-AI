@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
+import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
 const API = 'http://localhost:8000';
 
@@ -33,7 +34,12 @@ export default function AdminSOCAnalysis() {
   useEffect(() => {
     fetchAnalytics();
     fetchAnalyses();
-  }, [severityFilter, threatLevelFilter, statusFilter]);
+    const unsubscribe = subscribeSecurityEvents(() => {
+      fetchAnalytics();
+      fetchAnalyses();
+    });
+    return () => unsubscribe();
+  }, [severityFilter, threatLevelFilter, statusFilter, search]);
 
   const fetchAnalytics = async () => {
     try {

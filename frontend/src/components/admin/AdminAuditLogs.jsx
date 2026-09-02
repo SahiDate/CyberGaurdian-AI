@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
+import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
 const API = 'http://localhost:8000';
 
@@ -12,7 +13,13 @@ export default function AdminAuditLogs() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 25;
 
-  useEffect(() => { fetchLogs(); }, []);
+  useEffect(() => {
+    fetchLogs();
+    const unsubscribe = subscribeSecurityEvents(() => {
+      fetchLogs();
+    });
+    return () => unsubscribe();
+  }, []);
 
   const fetchLogs = async () => {
     try {

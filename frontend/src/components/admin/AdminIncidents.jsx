@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
+import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
 const API = 'http://localhost:8000';
 
@@ -33,7 +34,13 @@ export default function AdminIncidents() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [search, setSearch] = useState('');
 
-  useEffect(() => { fetchIncidents(); }, []);
+  useEffect(() => {
+    fetchIncidents();
+    const unsubscribe = subscribeSecurityEvents(() => {
+      fetchIncidents();
+    });
+    return () => unsubscribe();
+  }, []);
 
   const fetchIncidents = async () => {
     try {

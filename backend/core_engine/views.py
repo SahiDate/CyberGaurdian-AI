@@ -1,15 +1,18 @@
-import hashlib
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from users.authentication import GracefulJWTAuthentication
 from .ai_agent import run_autonomous_analysis, run_log_analysis_ai
 from .log_parser import LogParser
-from scanner.models import ScanResult, Report, ThreatIntelResult, FileAnalysis, Incident, AIActivity
-from users.models import Notification
+from scanner.models import ScanResult, Report, ThreatIntelResult, FileAnalysis, Incident, AIActivity, SOCAnalysis
+from users.models import User, Notification, AdminAuditLog
+from users.views import resolve_request_user
 from urllib.parse import urlparse
+import hashlib
 
 class AnalyzeTargetView(APIView):
+    authentication_classes = [GracefulJWTAuthentication]
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -21,9 +24,10 @@ class AnalyzeTargetView(APIView):
             # Trigger the autonomous scan workflow
             results = run_autonomous_analysis(target)
 
-            # Strict backend ownership — ignore any client-supplied user_id!
-            if request.user and request.user.is_authenticated:
-                user = request.user
+            # Determine user (authenticated user or fallback to guest_user)
+            user = resolve_request_user(request)
+
+            if user:
                 parsed_url = urlparse(target if target.startswith(('http://', 'https://')) else f"http://{target}")
                 domain = parsed_url.netloc or parsed_url.path
                 
@@ -59,7 +63,7 @@ class AnalyzeTargetView(APIView):
                 )
 
                 # 3. Create ThreatIntelResult
-                severity_val = 'HIGH' if risk_level in ['high', 'critical'] else ('MEDIUM' if risk_level == 'medium' else 'LOW')
+                severity_val = 'CRITICAL' if ai_severity == 'critical' else ('HIGH' if risk_level in ['high', 'critical'] else ('MEDIUM' if risk_level == 'medium' else 'LOW'))
                 threat = ThreatIntelResult.objects.create(
                     user=user,
                     scan=scan,
@@ -69,13 +73,28 @@ class AnalyzeTargetView(APIView):
                     query_type="REPUTATION",
                     threat_score=score,
                     severity=severity_val,
-                    confidence=80,
+                    confidence=85,
                     detection_summary=results.get("security_headers", {}),
                     normalized_result=results.get("threat_intel", {}),
                     status="SUCCESS"
                 )
 
-                # 4. Create AIActivity (Concise operational info only — no chain-of-thought!)
+                # 4. Create SOCAnalysis record so it updates Admin SOC & Threat analytics
+                SOCAnalysis.objects.create(
+                    user=user,
+                    target=domain,
+                    analysis_type="DOMAIN_SCAN",
+                    risk_score=score,
+                    severity=severity_val,
+                    threat_level=severity_val,
+                    summary=ai_analysis.get("summary", f"Autonomous security scan completed for {domain}"),
+                    findings=results.get("open_ports", []) or [],
+                    recommendations=ai_analysis.get("recommendations", []) or [],
+                    status="COMPLETED",
+                    source_records=results
+                )
+
+                # 5. Create AIActivity
                 AIActivity.objects.create(
                     user=user,
                     request_text=f"Autonomous scan on target: {target}",
@@ -86,18 +105,31 @@ class AnalyzeTargetView(APIView):
                     risk_score=score
                 )
 
-                # 5. Create Incident if high/critical risk
+                # 6. Create Incident if high/critical risk
                 if risk_level in ['high', 'critical']:
                     Incident.objects.create(
                         user=user,
                         scan=scan,
                         title=f"High Risk Finding: {domain}",
                         description=ai_analysis.get("summary", "Critical vulnerabilities detected during scan."),
-                        severity="HIGH",
+                        severity="HIGH" if ai_severity != 'critical' else 'CRITICAL',
                         status="OPEN"
                     )
 
-                # 6. Create Notification
+                # 7. Create AdminAuditLog entry
+                if user and getattr(user, 'pk', None):
+                    try:
+                        AdminAuditLog.objects.create(
+                            admin=user,
+                            action='USER_SCAN_EXECUTED',
+                            target_user=user,
+                            target_record=f"Scan: {domain} [{severity_val}]",
+                            ip_address=request.META.get('REMOTE_ADDR', '')
+                        )
+                    except Exception:
+                        pass
+
+                # 8. Create Notification
                 Notification.objects.create(
                     user=user,
                     title=f"Scan Completed: {domain}",
@@ -113,6 +145,7 @@ class AnalyzeTargetView(APIView):
 
 
 class LogAnalysisView(APIView):
+    authentication_classes = [GracefulJWTAuthentication]
     permission_classes = [AllowAny]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
@@ -134,19 +167,41 @@ class LogAnalysisView(APIView):
             return Response({"error": "Log content is empty."}, status=400)
 
         try:
+            # Level 1: Fast Streaming Parse & Deduplication
             parser = LogParser(log_text)
             parsed_data = parser.parse()
             
-            # Run AI synthesis
-            ai_synthesis = run_log_analysis_ai(parsed_data)
+            # Level 2 & 3: Multi-Level Threat Detection & Selective AI Synthesis
+            has_threats = bool(parsed_data.get("brute_force_ips") or parsed_data.get("directory_scans") or parsed_data.get("error_rate", 0) > 15.0)
+            
+            if has_threats:
+                # Run AI synthesis on suspicious/threat logs
+                ai_synthesis = run_log_analysis_ai(parsed_data)
+            else:
+                # Fast Deterministic Synthesis for clean logs (Instant 0ms latency)
+                total_reqs = parsed_data.get("total_requests", 0)
+                uniq_ips = parsed_data.get("unique_ips_count", 0)
+                ai_synthesis = {
+                    "severity": "Low",
+                    "summary": f"Analyzed {total_reqs} security log entries from {uniq_ips} unique hosts. All traffic matches benign operational baselines with zero anomalous indicators.",
+                    "recommendations": [
+                        "Continue regular perimeter log aggregation and baseline monitoring",
+                        "Maintain current firewall access rules and SSL configurations",
+                        "Perform scheduled periodic SOC correlation reviews"
+                    ]
+                }
+
             parsed_data["ai_analysis"] = ai_synthesis
 
-            # Strict backend ownership — bind file analysis to request.user!
-            if request.user and request.user.is_authenticated:
-                user = request.user
+            # Determine user (authenticated user or fallback to guest_user)
+            user = resolve_request_user(request)
+
+            if user:
                 file_hash = hashlib.sha256(log_text.encode('utf-8')).hexdigest()
                 ai_severity = ai_synthesis.get("severity", "Low").lower()
+                severity_val = ai_severity.upper() if ai_severity.upper() in ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] else 'LOW'
 
+                # 1. Create FileAnalysis
                 file_analysis = FileAnalysis.objects.create(
                     user=user,
                     filename=filename,
@@ -157,23 +212,70 @@ class LogAnalysisView(APIView):
                     risk_level=ai_severity
                 )
 
-                AIActivity.objects.create(
+                # 2. Create SOCAnalysis record so it updates Admin SOC & Threat analytics
+                SOCAnalysis.objects.create(
                     user=user,
-                    request_text=f"Log analysis for file: {filename}",
                     target=filename,
-                    tools_selected=["log_parser", "ai_synthesis"],
-                    execution_status="COMPLETED",
-                    result_summary=ai_synthesis.get("summary", "Log analysis complete"),
-                    risk_score=75 if ai_severity == 'high' else 90
+                    analysis_type="LOG_FILE",
+                    risk_score=75 if ai_severity in ['high', 'critical'] else (45 if ai_severity == 'medium' else 90),
+                    severity=severity_val,
+                    threat_level=severity_val,
+                    summary=ai_synthesis.get("summary", f"Log analysis complete for {filename}"),
+                    findings=(parsed_data.get("brute_force_ips") or []) + (parsed_data.get("directory_scans") or []),
+                    recommendations=ai_synthesis.get("recommendations", []) or [],
+                    status="COMPLETED",
+                    source_records={
+                        "total_requests": parsed_data.get("total_requests", 0),
+                        "error_rate": parsed_data.get("error_rate", 0),
+                        "unique_ips_count": parsed_data.get("unique_ips_count", 0)
+                    }
                 )
 
+                # 3. Create Incident if threats detected
+                if ai_severity in ['high', 'critical'] or parsed_data.get("brute_force_ips") or parsed_data.get("directory_scans"):
+                    Incident.objects.create(
+                        user=user,
+                        title=f"Flagged Threat in {filename}",
+                        description=ai_synthesis.get("summary", "Brute-force or suspicious directory traversal attempts detected in log entries."),
+                        severity="CRITICAL" if ai_severity == 'critical' else 'HIGH',
+                        status="OPEN"
+                    )
+
+                # 4. Create AIActivity
+                AIActivity.objects.create(
+                    user=user,
+                    request_text=f"SOC Log analysis for: {filename}",
+                    target=filename,
+                    tools_selected=["log_parser", "soc_engine", "ai_synthesis"],
+                    execution_status="COMPLETED",
+                    result_summary=ai_synthesis.get("summary", "SOC Log analysis complete"),
+                    risk_score=75 if ai_severity in ['high', 'critical'] else 90
+                )
+
+                # 5. Create AdminAuditLog
+                if user and getattr(user, 'pk', None):
+                    try:
+                        AdminAuditLog.objects.create(
+                            admin=user,
+                            action='USER_LOG_ANALYZED',
+                            target_user=user,
+                            target_record=f"SOC Log File: {filename} [{severity_val}]",
+                            ip_address=request.META.get('REMOTE_ADDR', '')
+                        )
+                    except Exception:
+                        pass
+
+                # 6. Create Notification
                 Notification.objects.create(
                     user=user,
-                    title=f"File Analysis Completed: {filename}",
-                    message=f"Analyzed {parsed_data.get('total_requests', 0)} log entries. Severity: {ai_severity.upper()}.",
+                    title=f"SOC Log Analysis Completed: {filename}",
+                    message=f"Analyzed {parsed_data.get('total_requests', 0)} log entries. Severity: {severity_val}.",
                     notification_type="INFO"
                 )
 
             return Response(parsed_data, status=200)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response({"error": str(e)}, status=500)
+

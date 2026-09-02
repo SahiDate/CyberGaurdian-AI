@@ -33,6 +33,7 @@ export default function SOCAnalysis() {
   const [historySearch, setHistorySearch] = useState('');
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
   const [selectedSources, setSelectedSources] = useState({});
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const token = authTokens?.access || localStorage.getItem('access_token');
 
@@ -40,6 +41,32 @@ export default function SOCAnalysis() {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
   });
+
+  const handleDownloadPdf = async (id, targetVal) => {
+    if (!id) return;
+    setDownloadingPdf(true);
+    try {
+      const res = await fetch(`${API}/api/soc/${id}/pdf/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Failed to generate PDF");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanTarget = (targetVal || 'target').replace(/[^a-zA-Z0-9_-]/g, '_');
+      a.download = `SOC_Analysis_${cleanTarget}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("PDF download failed", err);
+      alert("Could not download SOC Analysis PDF report.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   useEffect(() => {
     fetchHistory();
@@ -346,7 +373,29 @@ export default function SOCAnalysis() {
                 {currentResult.target}
               </h2>
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => handleDownloadPdf(currentResult.id, currentResult.target)}
+                disabled={downloadingPdf}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.95rem',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  border: '1px solid #38bdf8',
+                  color: '#38bdf8',
+                  borderRadius: '9999px',
+                  fontSize: '0.85rem',
+                  fontWeight: 'bold',
+                  cursor: downloadingPdf ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                title="Download SOC Correlation Assessment Report as a PDF"
+              >
+                <span>📄</span>
+                <span>{downloadingPdf ? 'Exporting PDF...' : 'Download PDF Report'}</span>
+              </button>
               <span style={{
                 padding: '0.35rem 0.85rem',
                 borderRadius: '9999px',
@@ -622,20 +671,39 @@ export default function SOCAnalysis() {
                       {new Date(item.created_at).toLocaleString()}
                     </td>
                     <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      <button
-                        onClick={() => setSelectedHistoryItem(item)}
-                        style={{
-                          padding: '0.35rem 0.75rem',
-                          borderRadius: '6px',
-                          border: '1px solid #38bdf8',
-                          background: 'rgba(56, 189, 248, 0.1)',
-                          color: '#38bdf8',
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Inspect
-                      </button>
+                      <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <button
+                          onClick={() => handleDownloadPdf(item.id, item.target)}
+                          disabled={downloadingPdf}
+                          style={{
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '6px',
+                            border: '1px solid #38bdf8',
+                            background: 'rgba(56, 189, 248, 0.1)',
+                            color: '#38bdf8',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            cursor: downloadingPdf ? 'not-allowed' : 'pointer'
+                          }}
+                          title="Download PDF Report"
+                        >
+                          📥 PDF
+                        </button>
+                        <button
+                          onClick={() => setSelectedHistoryItem(item)}
+                          style={{
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '6px',
+                            border: '1px solid #64748b',
+                            background: 'rgba(100, 116, 139, 0.15)',
+                            color: '#e2e8f0',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Inspect
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -702,7 +770,26 @@ export default function SOCAnalysis() {
               </div>
             </div>
 
-            <div style={{ textAlign: 'right', marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button
+                onClick={() => handleDownloadPdf(selectedHistoryItem.id, selectedHistoryItem.target)}
+                disabled={downloadingPdf}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '6px',
+                  border: '1px solid #38bdf8',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  color: '#38bdf8',
+                  fontWeight: '600',
+                  cursor: downloadingPdf ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <span>📄</span>
+                <span>{downloadingPdf ? 'Exporting PDF...' : 'Download PDF Report'}</span>
+              </button>
               <button
                 onClick={() => setSelectedHistoryItem(null)}
                 style={{

@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useAnimatedCount } from '../hooks/useAnimatedCount';
+import { AuthContext } from '../context/AuthContext';
+import { emitSecurityEvent } from '../utils/securityEventBus';
 
 // Inline Icon Helpers
 const AlertTriangleIcon = () => (
@@ -60,11 +62,51 @@ function MetricCard({ title, targetValue, chipText, chipClass, icon, valueColor 
 }
 
 export default function LogAnalyzer() {
+  const { authTokens } = useContext(AuthContext);
   const [logText, setLogText] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!results) return;
+    setDownloadingPdf(true);
+    try {
+      const payload = {
+        target: "Server_Log_Analysis",
+        ai_analysis: results.ai_analysis,
+        security_headers: {},
+        ssl: {},
+        open_ports: [],
+        severity: results.ai_analysis?.severity || 'LOW',
+        score: results.ai_analysis?.severity?.toLowerCase() === 'critical' ? 90 : (results.ai_analysis?.severity?.toLowerCase() === 'high' ? 75 : 20)
+      };
+      const res = await fetch('http://localhost:8000/api/reports/quick-pdf/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Failed to generate PDF");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SOC_Log_Analysis_Report.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("PDF download failed", err);
+      alert("Could not generate PDF report.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -84,16 +126,22 @@ export default function LogAnalyzer() {
     setLoading(true);
     setResults(null);
     try {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (authTokens?.access) {
+        headers['Authorization'] = `Bearer ${authTokens.access}`;
+      }
+
       const response = await fetch('http://localhost:8000/api/analyze-logs/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({ log_text: logText })
       });
       const data = await response.json();
       if (response.status === 200) {
         setResults(data);
+        emitSecurityEvent('SOC_LOG_ANALYZED', data);
       } else {
         alert(data.error || "Failed to analyze logs.");
       }
@@ -150,7 +198,7 @@ export default function LogAnalyzer() {
         <form onSubmit={handleAnalyze} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-24)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-16)', alignItems: 'stretch' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '0.9rem' }}>Paste Raw Logs</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-main)' }}>Paste Raw Logs</label>
               <textarea
                 value={logText}
                 onChange={(e) => setLogText(e.target.value)}
@@ -160,9 +208,9 @@ export default function LogAnalyzer() {
                   width: '100%',
                   flex: 1,
                   padding: '14px',
-                  background: 'rgba(0, 0, 0, 0.35)',
+                  background: 'var(--input-bg)',
                   border: '1px solid var(--border-color)',
-                  color: '#fff',
+                  color: 'var(--text-main)',
                   borderRadius: 'var(--radius-sm)',
                   fontFamily: 'monospace',
                   fontSize: '0.875rem',
@@ -180,7 +228,7 @@ export default function LogAnalyzer() {
               justifyContent: 'center',
               alignItems: 'center',
               padding: 'var(--space-24)',
-              background: 'rgba(255, 255, 255, 0.02)'
+              background: 'var(--panel-bg)'
             }}>
               <FileTextIcon />
               <span style={{ color: 'var(--text-muted)', marginTop: '8px', marginBottom: '16px', fontSize: '0.9rem' }}>
@@ -197,16 +245,18 @@ export default function LogAnalyzer() {
                 htmlFor="file-upload"
                 className="glass-panel btn-fluid"
                 style={{
-                  padding: '8px 20px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  color: '#fff',
+                  padding: '9px 22px',
+                  background: 'var(--panel-bg)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-main)',
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                   fontWeight: '600',
                   fontSize: '0.9rem',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
                 }}
               >
                 Choose File
@@ -221,7 +271,7 @@ export default function LogAnalyzer() {
             style={{
               padding: '14px',
               fontSize: '1rem',
-              background: logText.trim() ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.05)',
+              background: logText.trim() ? 'var(--accent-color)' : 'rgba(128, 128, 128, 0.12)',
               color: logText.trim() ? '#fff' : 'var(--text-muted)',
               cursor: logText.trim() && !loading ? 'pointer' : 'not-allowed',
               border: 'none',
@@ -264,7 +314,7 @@ export default function LogAnalyzer() {
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite'
           }}></div>
-          <h3 style={{ fontSize: '1.2rem', margin: '0 0 8px 0' }}>Running AI Threat Diagnostics...</h3>
+          <h3 style={{ fontSize: '1.2rem', margin: '0 0 8px 0', color: 'var(--text-main)' }}>Running AI Threat Diagnostics...</h3>
           <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>
             Parsing formatting rules, checking scan targets, and feeding to local AI agent.
           </p>
@@ -280,16 +330,40 @@ export default function LogAnalyzer() {
               <h2 style={{ color: getSeverityColor(results.ai_analysis?.severity), margin: 0, fontSize: '1.35rem' }}>
                 AI SOC Analysis: {results.ai_analysis?.severity} Risk
               </h2>
-              <span className={`chip-badge ${results.ai_analysis?.severity?.toLowerCase() === 'critical' ? 'chip-danger' : 'chip-warning'}`}>
-                <ShieldIcon />
-                {results.ai_analysis?.severity} Risk Level
-              </span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={downloadingPdf}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    border: '1px solid #38bdf8',
+                    borderRadius: 'var(--radius-sm)',
+                    color: '#38bdf8',
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                    cursor: downloadingPdf ? 'not-allowed' : 'pointer'
+                  }}
+                  title="Download SOC Log Analysis as PDF"
+                >
+                  <span>📄</span>
+                  <span>{downloadingPdf ? 'Exporting PDF...' : 'Download PDF Report'}</span>
+                </button>
+                <span className={`chip-badge ${results.ai_analysis?.severity?.toLowerCase() === 'critical' ? 'chip-danger' : 'chip-warning'}`}>
+                  <ShieldIcon />
+                  {results.ai_analysis?.severity} Risk Level
+                </span>
+              </div>
             </div>
-            <p style={{ fontSize: '1.05rem', marginBottom: 'var(--space-24)', lineHeight: '1.6' }}>
+            <p style={{ fontSize: '1.05rem', marginBottom: 'var(--space-24)', lineHeight: '1.6', color: 'var(--text-main)' }}>
               {results.ai_analysis?.summary}
             </p>
             
-            <h3 style={{ marginBottom: '12px', fontSize: '1.1rem', color: '#ffffff' }}>SOC Remediation Playbook:</h3>
+            <h3 style={{ marginBottom: '12px', fontSize: '1.1rem', color: 'var(--text-main)', fontWeight: '700' }}>SOC Remediation Playbook:</h3>
             <ul style={{ paddingLeft: '1.25rem', lineHeight: '1.6', margin: 0 }}>
               {results.ai_analysis?.recommendations?.map((rec, i) => (
                 <li key={i} style={{ marginBottom: '8px', color: 'var(--text-main)' }}>{rec}</li>
@@ -348,7 +422,7 @@ export default function LogAnalyzer() {
                   {results.brute_force_ips.map((item, idx) => (
                     <div key={idx} style={{ background: 'rgba(248, 81, 73, 0.08)', border: '1px solid rgba(248, 81, 73, 0.2)', padding: '12px 16px', borderRadius: 'var(--radius-sm)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <strong style={{ fontSize: '0.95rem' }}>IP: {item.ip}</strong>
+                        <strong style={{ fontSize: '0.95rem', color: 'var(--text-main)' }}>IP: {item.ip}</strong>
                         <span style={{ color: '#ff7b72', fontWeight: '700', fontSize: '0.85rem' }}>{item.failed_count} failed logins</span>
                       </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -375,7 +449,7 @@ export default function LogAnalyzer() {
                   {results.directory_scans.map((item, idx) => (
                     <div key={idx} style={{ background: 'rgba(248, 81, 73, 0.08)', border: '1px solid rgba(248, 81, 73, 0.2)', padding: '12px 16px', borderRadius: 'var(--radius-sm)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <strong style={{ fontSize: '0.95rem' }}>IP: {item.ip}</strong>
+                        <strong style={{ fontSize: '0.95rem', color: 'var(--text-main)' }}>IP: {item.ip}</strong>
                         <span style={{ color: '#ff7b72', fontWeight: '700', fontSize: '0.85rem' }}>{item.count} suspicious requests</span>
                       </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -407,9 +481,9 @@ export default function LogAnalyzer() {
                   style={{
                     width: '100%',
                     padding: '10px 14px',
-                    background: 'rgba(0, 0, 0, 0.35)',
+                    background: 'var(--input-bg)',
                     border: '1px solid var(--border-color)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     borderRadius: 'var(--radius-sm)',
                     outline: 'none',
                     fontSize: '0.9rem'
@@ -422,9 +496,9 @@ export default function LogAnalyzer() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 style={{
                   padding: '10px 16px',
-                  background: 'rgba(22, 27, 34, 0.8)',
+                  background: 'var(--input-bg)',
                   border: '1px solid var(--border-color)',
-                  color: '#fff',
+                  color: 'var(--text-main)',
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                   fontSize: '0.9rem',
@@ -459,12 +533,13 @@ export default function LogAnalyzer() {
                       background: log.is_threat ? 'rgba(248, 81, 73, 0.04)' : 'transparent',
                       transition: 'background 0.15s ease'
                     }}>
-                      <td style={{ padding: '12px 16px', fontWeight: '600' }}>{log.ip}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: '600', color: 'var(--text-main)' }}>{log.ip}</td>
                       <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{log.timestamp}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
                           padding: '2px 8px',
-                          background: 'rgba(255, 255, 255, 0.08)',
+                          background: 'rgba(128, 128, 128, 0.12)',
+                          color: 'var(--text-main)',
                           borderRadius: 'var(--radius-sm)',
                           fontSize: '0.75rem',
                           fontWeight: '600',
@@ -473,11 +548,11 @@ export default function LogAnalyzer() {
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
-                          color: log.status >= 400 ? '#ff7b72' : '#56d364',
+                          color: log.status >= 400 ? 'var(--danger-color)' : 'var(--success-color)',
                           fontWeight: '700'
                         }}>{log.status}</span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.85rem' }}>{log.path}</td>
+                      <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-main)' }}>{log.path}</td>
                       <td style={{ padding: '12px 16px' }}>
                         {log.is_threat ? (
                           <span className="chip-badge chip-danger">
@@ -485,7 +560,7 @@ export default function LogAnalyzer() {
                             {log.threat_reason}
                           </span>
                         ) : (
-                          <span className="chip-badge chip-success" style={{ background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-muted)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                          <span className="chip-badge chip-success" style={{ background: 'rgba(5, 150, 105, 0.1)', color: 'var(--success-color)', border: '1px solid var(--border-subtle)' }}>
                             Clean Event
                           </span>
                         )}

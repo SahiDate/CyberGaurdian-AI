@@ -1,0 +1,487 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >>
+endobj
+5 0 obj
+<< /Length 4099 >>
+stream
+0.060 0.090 0.150 rg
+0.00 650.00 612.00 142.00 re
+f
+0.220 0.740 0.970 rg
+0.00 646.00 612.00 4.00 re
+f
+BT
+/F2 20 Tf
+0.220 0.740 0.970 rg
+1 0 0 1 50.00 755.00 Tm
+(CYBERGUARDIAN AI) Tj
+ET
+BT
+/F1 9 Tf
+0.650 0.750 0.850 rg
+1 0 0 1 50.00 738.00 Tm
+(Autonomous Threat Detection, File Analysis & SOC Intelligence) Tj
+ET
+BT
+/F2 13 Tf
+1.000 1.000 1.000 rg
+1 0 0 1 50.00 705.00 Tm
+(SECURITY ASSESSMENT REPORT: AI SECURITY ASSESSMENT) Tj
+ET
+BT
+/F2 11 Tf
+0.900 0.950 1.000 rg
+1 0 0 1 50.00 685.00 Tm
+(Target Asset: portal.example.com) Tj
+ET
+BT
+/F1 8.5 Tf
+0.550 0.650 0.750 rg
+1 0 0 1 50.00 666.00 Tm
+(Report ID: RPT-2026-99C15377    |    Generated: 2026-09-02T16:05:49) Tj
+ET
+0.990 0.940 0.900 rg
+0.950 0.780 0.650 RG
+50.00 568.00 512.00 68.00 re
+B
+BT
+/F2 12 Tf
+0.850 0.400 0.050 rg
+1 0 0 1 65.00 616.00 Tm
+(OVERALL STATUS: HIGH RISK - ACTION RECOMMENDED) Tj
+ET
+BT
+/F1 8.5 Tf
+0.250 0.250 0.250 rg
+1 0 0 1 65.00 597.00 Tm
+(Potential vulnerabilities or threat indicators were detected during scanning. Follow the) Tj
+ET
+BT
+/F1 8.5 Tf
+0.250 0.250 0.250 rg
+1 0 0 1 65.00 583.00 Tm
+(action plan on Page 2 to secure this asset.) Tj
+ET
+0.960 0.980 1.000 rg
+0.800 0.880 0.960 RG
+50.00 504.00 120.00 52.00 re
+B
+BT
+/F2 7.5 Tf
+0.400 0.500 0.600 rg
+1 0 0 1 60.00 540.00 Tm
+(THREAT SCORE) Tj
+ET
+BT
+/F2 16 Tf
+0.850 0.400 0.050 rg
+1 0 0 1 60.00 518.00 Tm
+(78) Tj
+ET
+BT
+/F1 8.5 Tf
+0.500 0.550 0.600 rg
+1 0 0 1 90.00 518.00 Tm
+(/ 100) Tj
+ET
+0.960 0.980 1.000 rg
+0.800 0.880 0.960 RG
+180.00 504.00 120.00 52.00 re
+B
+BT
+/F2 7.5 Tf
+0.400 0.500 0.600 rg
+1 0 0 1 190.00 540.00 Tm
+(SEVERITY LEVEL) Tj
+ET
+BT
+/F2 14 Tf
+0.850 0.400 0.050 rg
+1 0 0 1 190.00 518.00 Tm
+(HIGH) Tj
+ET
+0.960 0.980 1.000 rg
+0.800 0.880 0.960 RG
+310.00 504.00 120.00 52.00 re
+B
+BT
+/F2 7.5 Tf
+0.400 0.500 0.600 rg
+1 0 0 1 320.00 540.00 Tm
+(EVIDENCE CONFIDENCE) Tj
+ET
+BT
+/F2 14 Tf
+0.150 0.450 0.850 rg
+1 0 0 1 320.00 518.00 Tm
+(92%) Tj
+ET
+0.960 0.980 1.000 rg
+0.800 0.880 0.960 RG
+440.00 504.00 122.00 52.00 re
+B
+BT
+/F2 7.5 Tf
+0.400 0.500 0.600 rg
+1 0 0 1 450.00 540.00 Tm
+(THREAT CATEGORY) Tj
+ET
+BT
+/F2 13 Tf
+0.850 0.400 0.050 rg
+1 0 0 1 450.00 518.00 Tm
+(HIGH) Tj
+ET
+BT
+/F2 10.5 Tf
+0.100 0.150 0.250 rg
+1 0 0 1 50.00 478.00 Tm
+(1. EXECUTIVE SUMMARY & BUSINESS IMPACT) Tj
+ET
+0.850 0.880 0.920 RG
+50.00 473.00 m 562.00 473.00 l S
+BT
+/F1 9 Tf
+0.200 0.250 0.300 rg
+1 0 0 1 50.00 460.00 Tm
+(Multiple critical external telemetry findings detected on portal asset.) Tj
+ET
+BT
+/F2 10.5 Tf
+0.100 0.150 0.250 rg
+1 0 0 1 50.00 437.00 Tm
+(2. SECURITY COMPONENTS & TELEMETRY VERIFIED) Tj
+ET
+0.850 0.880 0.920 RG
+50.00 432.00 m 562.00 432.00 l S
+BT
+/F2 8.5 Tf
+0.150 0.200 0.300 rg
+1 0 0 1 60.00 419.00 Tm
+(? Threat Intelligence:) Tj
+ET
+BT
+/F1 8 Tf
+0.300 0.350 0.450 rg
+1 0 0 1 175.00 419.00 Tm
+(NOT_AVAILABLE) Tj
+ET
+BT
+/F2 8.5 Tf
+0.150 0.200 0.300 rg
+1 0 0 1 320.00 419.00 Tm
+(? File Analyzer:) Tj
+ET
+BT
+/F1 8 Tf
+0.300 0.350 0.450 rg
+1 0 0 1 435.00 419.00 Tm
+(NOT_AVAILABLE) Tj
+ET
+BT
+/F2 8.5 Tf
+0.150 0.200 0.300 rg
+1 0 0 1 60.00 405.00 Tm
+(? Ssl Scanner:) Tj
+ET
+BT
+/F1 8 Tf
+0.300 0.350 0.450 rg
+1 0 0 1 175.00 405.00 Tm
+(COMPLETED) Tj
+ET
+BT
+/F2 8.5 Tf
+0.150 0.200 0.300 rg
+1 0 0 1 320.00 405.00 Tm
+(? Whois Lookup:) Tj
+ET
+BT
+/F1 8 Tf
+0.300 0.350 0.450 rg
+1 0 0 1 435.00 405.00 Tm
+(NOT_AVAILABLE) Tj
+ET
+BT
+/F2 8.5 Tf
+0.150 0.200 0.300 rg
+1 0 0 1 60.00 391.00 Tm
+(? Url Scanner:) Tj
+ET
+BT
+/F1 8 Tf
+0.300 0.350 0.450 rg
+1 0 0 1 175.00 391.00 Tm
+(NOT_AVAILABLE) Tj
+ET
+BT
+/F2 8.5 Tf
+0.150 0.200 0.300 rg
+1 0 0 1 320.00 391.00 Tm
+(? Port Scanner:) Tj
+ET
+BT
+/F1 8 Tf
+0.300 0.350 0.450 rg
+1 0 0 1 435.00 391.00 Tm
+(COMPLETED) Tj
+ET
+BT
+/F2 10.5 Tf
+0.100 0.150 0.250 rg
+1 0 0 1 50.00 367.00 Tm
+(3. AUTONOMOUS AI AGENT CORRELATION) Tj
+ET
+0.850 0.880 0.920 RG
+50.00 362.00 m 562.00 362.00 l S
+BT
+/F1 8.5 Tf
+0.250 0.300 0.350 rg
+1 0 0 1 50.00 349.00 Tm
+(AI Agent concluded multi-vector vulnerability profile on portal asset.) Tj
+ET
+0.850 0.880 0.920 RG
+50.00 48.00 m 562.00 48.00 l S
+BT
+/F2 7.5 Tf
+0.550 0.600 0.650 rg
+1 0 0 1 50.00 34.00 Tm
+(CONFIDENTIAL ? STRICTLY FOR AUTHORIZED CYBERGUARDIAN AI USERS) Tj
+ET
+BT
+/F2 7.5 Tf
+0.400 0.450 0.550 rg
+1 0 0 1 480.00 34.00 Tm
+(Page 1 of 2) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 0 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources 4 0 R >>
+endobj
+7 0 obj
+<< /Length 3516 >>
+stream
+BT
+/F2 8 Tf
+0.350 0.450 0.550 rg
+1 0 0 1 50.00 762.00 Tm
+(CYBERGUARDIAN AI ? SECURITY ASSESSMENT REPORT) Tj
+ET
+BT
+/F1 8 Tf
+0.450 0.500 0.600 rg
+1 0 0 1 420.00 762.00 Tm
+(ID: RPT-2026-99C15377 | Page 2 of 2) Tj
+ET
+0.850 0.880 0.920 RG
+50.00 754.00 m 562.00 754.00 l S
+50.00 48.00 m 562.00 48.00 l S
+BT
+/F2 7.5 Tf
+0.550 0.600 0.650 rg
+1 0 0 1 50.00 34.00 Tm
+(CONFIDENTIAL ? STRICTLY FOR AUTHORIZED CYBERGUARDIAN AI USERS) Tj
+ET
+BT
+/F1 7.5 Tf
+0.450 0.500 0.550 rg
+1 0 0 1 480.00 34.00 Tm
+(Target: portal.example.com) Tj
+ET
+BT
+/F2 11 Tf
+0.080 0.120 0.220 rg
+1 0 0 1 50.00 715.00 Tm
+(4. DETAILED SECURITY FINDINGS & EVIDENCE) Tj
+ET
+BT
+/F1 8 Tf
+0.450 0.500 0.550 rg
+1 0 0 1 50.00 702.00 Tm
+(Identified security indicators with both business impact and technical detail.) Tj
+ET
+0.850 0.880 0.920 RG
+50.00 696.00 m 562.00 696.00 l S
+0.990 0.940 0.900 rg
+0.950 0.780 0.650 RG
+50.00 630.00 512.00 50.00 re
+B
+BT
+/F2 9 Tf
+0.850 0.400 0.050 rg
+1 0 0 1 65.00 666.00 Tm
+([HIGH]  Public Database Port 3306 Exposed) Tj
+ET
+BT
+/F1 8 Tf
+0.200 0.250 0.300 rg
+1 0 0 1 65.00 652.00 Tm
+(MySQL port 3306 is open to public internet.) Tj
+ET
+BT
+/F3 7 Tf
+0.450 0.500 0.550 rg
+1 0 0 1 65.00 638.00 Tm
+(Technical Context: Verified via automated CyberGuardian security rule evaluation.) Tj
+ET
+0.990 0.970 0.900 rg
+0.920 0.850 0.650 RG
+50.00 572.00 512.00 50.00 re
+B
+BT
+/F2 9 Tf
+0.800 0.550 0.050 rg
+1 0 0 1 65.00 608.00 Tm
+([MEDIUM]  Expired TLS Certificate) Tj
+ET
+BT
+/F1 8 Tf
+0.200 0.250 0.300 rg
+1 0 0 1 65.00 594.00 Tm
+(Certificate expired 14 days ago.) Tj
+ET
+BT
+/F3 7 Tf
+0.450 0.500 0.550 rg
+1 0 0 1 65.00 580.00 Tm
+(Technical Context: Verified via automated CyberGuardian security rule evaluation.) Tj
+ET
+BT
+/F2 11 Tf
+0.080 0.120 0.220 rg
+1 0 0 1 50.00 556.00 Tm
+(5. RECOMMENDED ACTION PLAN & REMEDIATION PLAYBOOK) Tj
+ET
+BT
+/F1 8 Tf
+0.450 0.500 0.550 rg
+1 0 0 1 50.00 543.00 Tm
+(Clear, prioritized steps to resolve identified vulnerabilities and harden your systems.) Tj
+ET
+0.850 0.880 0.920 RG
+50.00 537.00 m 562.00 537.00 l S
+0.970 0.980 1.000 rg
+0.820 0.880 0.960 RG
+50.00 482.00 512.00 42.00 re
+B
+0.150 0.450 0.850 rg
+60.00 500.00 18.00 16.00 re
+f
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+1 0 0 1 66.00 505.00 Tm
+(1) Tj
+ET
+BT
+/F2 8.5 Tf
+0.150 0.450 0.850 rg
+1 0 0 1 86.00 506.00 Tm
+(Action Step 1:) Tj
+ET
+BT
+/F1 8 Tf
+0.200 0.250 0.300 rg
+1 0 0 1 155.00 506.00 Tm
+(Immediately firewall MySQL port 3306.) Tj
+ET
+BT
+/F1 7.5 Tf
+0.350 0.400 0.450 rg
+1 0 0 1 86.00 492.00 Tm
+(Apply configuration changes and verify security logs.) Tj
+ET
+0.970 0.980 1.000 rg
+0.820 0.880 0.960 RG
+50.00 433.00 512.00 42.00 re
+B
+0.150 0.450 0.850 rg
+60.00 451.00 18.00 16.00 re
+f
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+1 0 0 1 66.00 456.00 Tm
+(2) Tj
+ET
+BT
+/F2 8.5 Tf
+0.150 0.450 0.850 rg
+1 0 0 1 86.00 457.00 Tm
+(Action Step 2:) Tj
+ET
+BT
+/F1 8 Tf
+0.200 0.250 0.300 rg
+1 0 0 1 155.00 457.00 Tm
+(Provision renewed TLS certificate.) Tj
+ET
+BT
+/F1 7.5 Tf
+0.350 0.400 0.450 rg
+1 0 0 1 86.00 443.00 Tm
+(Apply configuration changes and verify security logs.) Tj
+ET
+0.950 0.960 0.980 rg
+0.850 0.880 0.920 RG
+50.00 68.00 512.00 54.00 re
+B
+BT
+/F2 8 Tf
+0.150 0.450 0.850 rg
+1 0 0 1 65.00 106.00 Tm
+(CYBERGUARDIAN AI DEFENSE VERIFIED ? 2-PAGE EXECUTIVE ASSESSMENT) Tj
+ET
+BT
+/F3 7.5 Tf
+0.400 0.450 0.500 rg
+1 0 0 1 65.00 93.00 Tm
+(SHA-256 Validated  |  Report ID: RPT-2026-99C15377  |  Protected by CyberGuardian Engine) Tj
+ET
+BT
+/F1 7.5 Tf
+0.500 0.550 0.600 rg
+1 0 0 1 65.00 81.00 Tm
+(Point-in-time automated security telemetry. For incident assistance, consult your SOC administrator.) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 0 0 R /MediaBox [0 0 612 792] /Contents 7 0 R /Resources 4 0 R >>
+endobj
+9 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R] /Count 2 >>
+endobj
+10 0 obj
+<< /Type /Catalog /Pages 9 0 R >>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000015 00000 n 
+0000000112 00000 n 
+0000000214 00000 n 
+0000000309 00000 n 
+0000000372 00000 n 
+0000004523 00000 n 
+0000004627 00000 n 
+0000008195 00000 n 
+0000008299 00000 n 
+0000008362 00000 n 
+trailer
+<< /Size 11 /Root 10 0 R >>
+startxref
+8412
+%%EOF

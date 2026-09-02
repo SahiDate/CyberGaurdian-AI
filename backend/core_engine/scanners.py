@@ -2,13 +2,15 @@ import requests
 import socket
 import ssl
 from urllib.parse import urlparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def scan_website_headers(url):
-    """Scan for common security headers."""
+    """Scan for common security headers with fast bounded timeout."""
     if not url.startswith('http'):
         url = 'https://' + url
     try:
-        response = requests.get(url, timeout=5)
+        # Fast HEAD or short GET request with 2s timeout
+        response = requests.get(url, timeout=2.0, allow_redirects=True, headers={"User-Agent": "CyberGuardian-Scanner/2.0"})
         headers = response.headers
         security_headers = {
             'Strict-Transport-Security': headers.get('Strict-Transport-Security', 'Missing'),
@@ -21,7 +23,7 @@ def scan_website_headers(url):
         return {"error": str(e)}
 
 def check_ssl_certificate(hostname):
-    """Check SSL validity and details."""
+    """Check SSL validity and details with fast bounded timeout."""
     parsed = urlparse(hostname)
     domain = parsed.netloc if parsed.netloc else parsed.path
     if ':' in domain:
@@ -29,7 +31,7 @@ def check_ssl_certificate(hostname):
     
     context = ssl.create_default_context()
     try:
-        with socket.create_connection((domain, 443), timeout=5) as sock:
+        with socket.create_connection((domain, 443), timeout=2.0) as sock:
             with context.wrap_socket(sock, server_hostname=domain) as ssock:
                 cert = ssock.getpeercert()
                 return {
@@ -41,7 +43,7 @@ def check_ssl_certificate(hostname):
         return {"status": "Invalid or No SSL", "error": str(e)}
 
 def scan_ports(ip_or_domain):
-    """Scan common ports (simplified)."""
+    """Scan common ports concurrently with sub-second bounded timeouts."""
     parsed = urlparse(ip_or_domain)
     domain = parsed.netloc if parsed.netloc else parsed.path
     if ':' in domain:
@@ -49,17 +51,29 @@ def scan_ports(ip_or_domain):
 
     common_ports = [21, 22, 23, 80, 443, 3306, 8080]
     open_ports = []
-    
-    for port in common_ports:
+
+    def _check_port(p):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.5)
+        sock.settimeout(0.25)
         try:
-            result = sock.connect_ex((domain, port))
-            if result == 0:
-                open_ports.append(port)
+            res = sock.connect_ex((domain, p))
+            if res == 0:
+                return p
         except Exception:
             pass
         finally:
             sock.close()
-        
-    return open_ports
+        return None
+
+    with ThreadPoolExecutor(max_workers=len(common_ports)) as executor:
+        futures = [executor.submit(_check_port, p) for p in common_ports]
+        for f in as_completed(futures):
+            try:
+                res = f.result()
+                if res is not None:
+                    open_ports.append(res)
+            except Exception:
+                pass
+
+    return sorted(open_ports)
+

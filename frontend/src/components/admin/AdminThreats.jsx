@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
+import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
 const API = 'http://localhost:8000';
 
@@ -42,10 +43,13 @@ export default function AdminThreats() {
 
   useEffect(() => {
     fetchData();
+    const unsubscribe = subscribeSecurityEvents(() => {
+      fetchData();
+    });
+    return () => unsubscribe();
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
     try {
       const [listRes, statsRes] = await Promise.all([
         fetch(`${API}/api/admin/threat-intelligence/`, {

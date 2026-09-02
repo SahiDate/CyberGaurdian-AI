@@ -116,7 +116,7 @@ export default function PortScanner() {
   });
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0d12', color: '#c9d1d9', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ minHeight: '100vh', color: 'var(--text-main)', fontFamily: 'Inter, sans-serif' }}>
       <Navbar />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
         
@@ -124,11 +124,11 @@ export default function PortScanner() {
         <div style={{ marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
             <span style={{ fontSize: '1.75rem' }}>🔌</span>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#f0f6fc', margin: 0 }}>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
               Defensive TCP Port Scanner
             </h1>
           </div>
-          <p style={{ color: '#8b949e', fontSize: '0.95rem', margin: 0 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0 }}>
             Controlled, non-exploitative TCP connection verification for perimeter exposure assessment, service identification, and risk evaluation.
           </p>
         </div>
@@ -136,10 +136,10 @@ export default function PortScanner() {
         {/* Authorization / Safety Notice */}
         <div style={{
           background: 'rgba(56, 139, 253, 0.1)',
-          border: '1px solid #388bfd',
+          border: '1px solid var(--accent-color)',
           borderRadius: '8px',
           padding: '0.85rem 1.25rem',
-          color: '#79c0ff',
+          color: 'var(--accent-color)',
           fontSize: '0.88rem',
           display: 'flex',
           alignItems: 'center',
@@ -153,12 +153,9 @@ export default function PortScanner() {
         </div>
 
         {/* Input Card */}
-        <div style={{
-          background: 'rgba(22, 27, 34, 0.8)',
-          border: '1px solid rgba(48, 54, 61, 0.8)',
+        <div className="glass-panel" style={{
           borderRadius: '12px',
           padding: '1.5rem',
-          backdropFilter: 'blur(10px)',
           marginBottom: '2rem'
         }}>
           <form onSubmit={handleScan}>
@@ -175,10 +172,10 @@ export default function PortScanner() {
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    background: '#0d1117',
-                    border: '1px solid #30363d',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
-                    color: '#f0f6fc',
+                    color: 'var(--text-main)',
                     fontSize: '0.95rem',
                     outline: 'none',
                     boxSizing: 'border-box'
@@ -187,7 +184,7 @@ export default function PortScanner() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#8b949e', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                   Scan Profile
                 </label>
                 <select
@@ -196,10 +193,10 @@ export default function PortScanner() {
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    background: '#0d1117',
-                    border: '1px solid #30363d',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
-                    color: '#f0f6fc',
+                    color: 'var(--text-main)',
                     fontSize: '0.95rem',
                     outline: 'none'
                   }}

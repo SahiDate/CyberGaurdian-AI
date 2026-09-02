@@ -32,7 +32,8 @@ from .views import (
     AgentAdminListView, AgentAdminDetailView, AgentAdminAnalyticsView,
     UserReportGenerateView, UserReportPDFDownloadView, UserReportJSONDownloadView, UserReportCSVDownloadView,
     AdminReportsAnalyticsView, AdminReportDetailView, AdminReportPDFDownloadView,
-    AdminReportJSONDownloadView, AdminReportCSVDownloadView
+    AdminReportJSONDownloadView, AdminReportCSVDownloadView,
+    FileAnalysisPDFDownloadView, SOCAnalysisPDFDownloadView, QuickScanPDFDownloadView
 )
 
 urlpatterns = [
@@ -59,6 +60,7 @@ urlpatterns = [
     path('api/scans/<int:pk>/', UserScanDetailView.as_view(), name='scan_detail'),
     path('api/user/scans/', UserScansListView.as_view(), name='user_scans'),
     path('api/reports/generate/', UserReportGenerateView.as_view(), name='user_reports_generate'),
+    path('api/reports/quick-pdf/', QuickScanPDFDownloadView.as_view(), name='quick_scan_pdf'),
     path('api/reports/', UserReportsListView.as_view(), name='user_reports'),
     path('api/reports/<int:pk>/', UserReportDetailView.as_view(), name='user_report_detail'),
     path('api/reports/<int:pk>/pdf/', UserReportPDFDownloadView.as_view(), name='user_report_pdf'),
@@ -69,6 +71,7 @@ urlpatterns = [
     path('api/incidents/', UserIncidentsListView.as_view(), name='user_incidents'),
     path('api/file-analysis/', UserFileAnalysisListView.as_view(), name='user_file_analyses'),
     path('api/file-analysis/<int:pk>/', UserFileAnalysisDetailView.as_view(), name='user_file_analysis_detail'),
+    path('api/file-analysis/<int:pk>/pdf/', FileAnalysisPDFDownloadView.as_view(), name='file_analysis_pdf'),
     path('api/ai-activity/', UserAIActivityListView.as_view(), name='user_ai_activity'),
     path('api/notifications/', UserNotificationsListView.as_view(), name='user_notifications'),
     path('api/notifications/<int:pk>/', UserNotificationsListView.as_view(), name='user_notification_detail'),
@@ -108,6 +111,7 @@ urlpatterns = [
     path('api/soc/correlate-target/', SOCCorrelateTargetView.as_view(), name='soc_correlate_target'),
     path('api/soc/history/', SOCUserHistoryView.as_view(), name='soc_history'),
     path('api/soc/<int:pk>/', SOCUserDetailView.as_view(), name='soc_detail'),
+    path('api/soc/<int:pk>/pdf/', SOCAnalysisPDFDownloadView.as_view(), name='soc_analysis_pdf'),
 
     # Phase 9 User Autonomous AI Security Agent Endpoints
     path('api/agent/health/', AgentHealthView.as_view(), name='agent_health'),

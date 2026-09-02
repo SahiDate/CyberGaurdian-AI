@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
+import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
 const API = 'http://localhost:8000';
 
@@ -67,6 +68,11 @@ export default function AdminAIAgent() {
   useEffect(() => {
     fetchSessions();
     fetchAnalytics();
+    const unsubscribe = subscribeSecurityEvents(() => {
+      fetchSessions();
+      fetchAnalytics();
+    });
+    return () => unsubscribe();
   }, [statusFilter, severityFilter]);
 
   const fetchSessions = async () => {

@@ -10,6 +10,10 @@ except ImportError:
     HAS_YARA = False
 
 
+# Singleton cache for compiled rules
+_COMPILED_RULES_CACHE = {}
+
+
 class LocalYaraEngine:
     """
     Defensive YARA rule matching engine for static file inspection.
@@ -22,6 +26,19 @@ class LocalYaraEngine:
             self.rules_dir = os.path.join(base_dir, 'yara_rules')
         else:
             self.rules_dir = rules_dir
+
+    def _get_compiled_rules(self, rule_files: List[str]):
+        if not HAS_YARA or yara is None or not rule_files:
+            return None
+        cache_key = tuple(sorted(rule_files))
+        if cache_key not in _COMPILED_RULES_CACHE:
+            try:
+                _COMPILED_RULES_CACHE[cache_key] = yara.compile(
+                    filepaths={os.path.basename(f): f for f in rule_files}
+                )
+            except Exception:
+                _COMPILED_RULES_CACHE[cache_key] = None
+        return _COMPILED_RULES_CACHE.get(cache_key)
 
     def scan_file(self, file_path: str) -> Dict[str, Any]:
         """
@@ -52,10 +69,10 @@ class LocalYaraEngine:
 
         matches = []
 
-        # If yara library is available, use native compilation
-        if HAS_YARA and yara is not None:
+        # If yara library is available, use cached compiled rules
+        compiled_rules = self._get_compiled_rules(rule_files)
+        if compiled_rules is not None:
             try:
-                compiled_rules = yara.compile(filepaths={os.path.basename(f): f for f in rule_files})
                 yara_matches = compiled_rules.match(filepath=file_path)
 
                 for m in yara_matches:

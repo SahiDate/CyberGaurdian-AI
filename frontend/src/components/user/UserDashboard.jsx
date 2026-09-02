@@ -58,13 +58,13 @@ export default function UserDashboard() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0d12', color: '#fff', paddingBottom: '3rem' }}>
+    <div style={{ minHeight: '100vh', color: 'var(--text-main)', paddingBottom: '3rem' }}>
       <Navbar />
 
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
         {/* Banner Welcome */}
         <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', borderRadius: '12px', borderLeft: '4px solid var(--accent-color)' }}>
-          <h1 style={{ margin: 0, fontSize: '1.8rem', color: '#fff' }}>
+          <h1 style={{ margin: 0, fontSize: '1.8rem', color: 'var(--text-main)' }}>
             Welcome back, <span style={{ color: 'var(--accent-color)' }}>{user ? user.username : 'User'}</span>
           </h1>
           <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 0 0', fontSize: '0.95rem' }}>
@@ -74,7 +74,7 @@ export default function UserDashboard() {
 
         {/* Quick Scan Card Section */}
         <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', borderRadius: '12px' }}>
-          <h2 style={{ fontSize: '1.3rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h2 style={{ fontSize: '1.3rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
             🔍 Quick Website Security Scan
           </h2>
           <form onSubmit={handleQuickScan} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -87,9 +87,9 @@ export default function UserDashboard() {
                 flex: 1,
                 padding: '0.9rem 1.2rem',
                 fontSize: '1.05rem',
-                background: 'rgba(0,0,0,0.4)',
+                background: 'var(--input-bg)',
                 border: '1px solid var(--border-color)',
-                color: '#fff',
+                color: 'var(--text-main)',
                 borderRadius: '8px'
               }}
             />

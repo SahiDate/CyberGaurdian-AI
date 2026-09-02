@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
+import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
 const API = 'http://localhost:8000';
 
@@ -21,7 +22,13 @@ export default function AdminScans() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
-  useEffect(() => { fetchScans(); }, []);
+  useEffect(() => {
+    fetchScans();
+    const unsubscribe = subscribeSecurityEvents(() => {
+      fetchScans();
+    });
+    return () => unsubscribe();
+  }, []);
 
   const fetchScans = async () => {
     try {

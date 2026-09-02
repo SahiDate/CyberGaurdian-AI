@@ -7,6 +7,7 @@ import FluidTabs from './shared/FluidTabs';
 import { useAnimatedCount } from '../hooks/useAnimatedCount';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { emitSecurityEvent } from '../utils/securityEventBus';
 import ThemeToggle from './ThemeToggle';
 import GlassPanel from './three/GlassPanel';
 import ThreatChart3D from './three/ThreatChart3D';
@@ -56,6 +57,34 @@ const AlertTriangleIcon = () => (
   </svg>
 );
 
+const ArrowLeftIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12"></line>
+    <polyline points="12 19 5 12 12 5"></polyline>
+  </svg>
+);
+
+const RefreshCwIcon = ({ spinning }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      animation: spinning ? 'spin 0.8s linear infinite' : 'none',
+      transformOrigin: 'center'
+    }}
+  >
+    <polyline points="23 4 23 10 17 10"></polyline>
+    <polyline points="1 20 1 14 7 14"></polyline>
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+  </svg>
+);
+
 // Static, translucent GlassPanel Stat card component (no hover tilt or movement)
 function StatCard({ title, targetValue, chipText, chipClass, icon }) {
   const animatedVal = useAnimatedCount(targetValue);
@@ -78,7 +107,7 @@ function StatCard({ title, targetValue, chipText, chipClass, icon }) {
 
 export default function Dashboard() {
   const { isDark } = useTheme();
-  const { user, logoutUser } = useContext(AuthContext);
+  const { user, logoutUser, authTokens } = useContext(AuthContext);
 
   const [activeTab, setActiveTab] = useState('scanner');
   const [chartMode, setChartMode] = useState('3d');
@@ -182,29 +211,34 @@ export default function Dashboard() {
     ],
   }), [isDark]);
 
-  const handleAnalyze = async (e) => {
-    e.preventDefault();
-    if (!target) return;
+  const executeAnalysis = async (targetToScan) => {
+    const scanTarget = (targetToScan || target || '').trim();
+    if (!scanTarget) return;
 
     setLoading(true);
-    setResults(null);
     setFeedback(null);
 
     try {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (authTokens?.access) {
+        headers['Authorization'] = `Bearer ${authTokens.access}`;
+      }
+
       const response = await fetch('http://localhost:8000/api/analyze/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ target })
+        headers,
+        body: JSON.stringify({ target: scanTarget })
       });
       
       const resData = await response.json();
       if (response.ok) {
         setResults(resData);
+        emitSecurityEvent('SCAN_COMPLETED', { target: scanTarget });
         setFeedback({
           type: 'success',
-          message: `Threat analysis completed for target "${target}".`
+          message: `Threat analysis completed for target "${scanTarget}".`
         });
       } else {
         setFeedback({
@@ -220,6 +254,22 @@ export default function Dashboard() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAnalyze = (e) => {
+    e.preventDefault();
+    executeAnalysis(target);
+  };
+
+  const handleBackToHome = () => {
+    setResults(null);
+    setFeedback(null);
+  };
+
+  const handleRefresh = () => {
+    if (target.trim()) {
+      executeAnalysis(target);
     }
   };
 
@@ -366,15 +416,25 @@ export default function Dashboard() {
                   : (isDark ? 'rgba(248, 81, 73, 0.12)' : 'rgba(239, 68, 68, 0.12)'),
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
                 gap: '12px'
               }}>
-                {feedback.type === 'success' ? <CheckCircleIcon /> : <AlertTriangleIcon />}
-                <span style={{ fontSize: '0.95rem', fontWeight: '500', color: 'var(--text-main)' }}>{feedback.message}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {feedback.type === 'success' ? <CheckCircleIcon /> : <AlertTriangleIcon />}
+                  <span style={{ fontSize: '0.95rem', fontWeight: '500', color: 'var(--text-main)' }}>{feedback.message}</span>
+                </div>
               </div>
             )}
 
             {results ? (
-              <AnalysisResults results={results} />
+              <AnalysisResults
+                results={results}
+                onBack={handleBackToHome}
+                onRefresh={handleRefresh}
+                loading={loading}
+                target={target}
+              />
             ) : (
               <>
                 {/* Static, Transparent Glass Stat Cards Grid */}

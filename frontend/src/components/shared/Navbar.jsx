@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import ThemeToggle from '../ThemeToggle';
 
 export default function Navbar() {
   const { user, logoutUser } = useContext(AuthContext);
@@ -22,9 +23,9 @@ export default function Navbar() {
       zIndex: 100
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', width: '100%', justifyContent: 'space-between' }}>
-        <Link to="/dashboard" style={{ textDecoration: 'none', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <Link to="/dashboard" style={{ textDecoration: 'none', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <h2 style={{ margin: 0, color: 'var(--accent-color)', fontSize: 'clamp(1.1rem, 3.5vw, 1.4rem)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            🛡️ CyberGuardian <span style={{ fontSize: '0.72rem', color: '#fff', opacity: 0.8, fontWeight: 400, letterSpacing: '0.5px' }}>USER PORTAL</span>
+            🛡️ CyberGuardian <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px' }}>USER PORTAL</span>
           </h2>
         </Link>
 
@@ -152,7 +153,9 @@ export default function Navbar() {
         </nav>
 
         {/* Desktop Controls */}
-        <div className="desktop-only-nav" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+        <div className="desktop-only-nav" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <ThemeToggle />
+
           <Link to="/profile" style={{
             textDecoration: 'none',
             color: isActive('/profile') ? 'var(--accent-color)' : 'var(--text-main)',
@@ -186,25 +189,30 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Hamburger Toggle Button */}
-        <button
-          className="mobile-hamburger-btn"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle Navigation Menu"
-          style={{
-            display: 'none',
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            color: '#fff',
-            fontSize: '1.4rem',
-            padding: '0.4rem 0.75rem',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            minHeight: '44px',
-            minWidth: '44px'
-          }}
-        >
-          {mobileOpen ? '✕' : '☰'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="mobile-only-control">
+            <ThemeToggle />
+          </div>
+          <button
+            className="mobile-hamburger-btn"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle Navigation Menu"
+            style={{
+              display: 'none',
+              background: 'var(--panel-bg)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-main)',
+              fontSize: '1.4rem',
+              padding: '0.4rem 0.75rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              minHeight: '44px',
+              minWidth: '44px'
+            }}
+          >
+            {mobileOpen ? '✕' : '☰'}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Navigation Drawer */}

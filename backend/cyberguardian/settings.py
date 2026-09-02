@@ -145,10 +145,10 @@ TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER') or os.environ.get('T
 FAST2SMS_API_KEY = os.environ.get('FAST2SMS_API_KEY', '')
 DEFAULT_COUNTRY_CODE = os.environ.get('DEFAULT_COUNTRY_CODE', '+91')
 
-# Django REST Framework — JWT auth as default
+# Django REST Framework — Tolerant JWT auth as default
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'users.authentication.GracefulJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',

@@ -50,7 +50,8 @@ from scanner.services.url_scanner.service import URLScannerService
 from scanner.services.port_scanner.service import PortScannerService
 from scanner.services.soc_engine.engine import SOCAnalysisEngine, extract_target_identifiers
 from scanner.services.agent import AutonomousAIAgentService, check_ollama_health
-from scanner.services.reports import SecurityReportService
+import uuid
+from scanner.services.reports import SecurityReportService, PDFReportGenerator
 from scanner.validators import ValidationError as TargetValidationError
 
 
@@ -66,6 +67,34 @@ def log_admin_action(admin, action, target_user=None, target_record="", result="
         result=result,
         ip_address=ip_address
     )
+
+
+def resolve_request_user(request):
+    """
+    Returns authenticated user if logged in.
+    If anonymous / logged out (e.g. newcomer, guest, or unauthenticated visitor),
+    returns or creates a designated 'guest_user' so all activity across registered users,
+    previous users, and newcomers is cleanly detected, recorded, and visible in admin analytics,
+    SOC logs, and platform telemetry!
+    """
+    try:
+        if request.user and request.user.is_authenticated:
+            return request.user
+        
+        guest_user, _ = User.objects.get_or_create(
+            username='guest_user',
+            defaults={
+                'email': 'guest@cyberguardian.local',
+                'role': 'USER',
+                'status': 'ACTIVE',
+                'is_active': True,
+                'first_name': 'Guest / Anonymous',
+                'last_name': 'Visitor'
+            }
+        )
+        return guest_user
+    except Exception:
+        return None
 
 
 def generate_otp():
@@ -712,7 +741,7 @@ class UserScanDetailView(APIView):
 
 
 class UserReportGenerateView(APIView):
-    permission_classes = [IsUserRole]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = SecurityReportGenerateRequestSerializer(data=request.data)
@@ -723,15 +752,29 @@ class UserReportGenerateView(APIView):
         soc_analysis_id = serializer.validated_data.get('soc_analysis_id')
         agent_session_id = serializer.validated_data.get('agent_session_id')
         report_type = serializer.validated_data.get('report_type', 'COMPREHENSIVE')
+        user = resolve_request_user(request)
 
         try:
             report = SecurityReportService.generate_report(
                 target=target,
-                user=request.user,
+                user=user,
                 soc_analysis_id=soc_analysis_id,
                 agent_session_id=agent_session_id,
                 report_type=report_type
             )
+
+            if user and getattr(user, 'pk', None):
+                try:
+                    AdminAuditLog.objects.create(
+                        admin=user,
+                        action='USER_REPORT_GENERATED',
+                        target_user=user,
+                        target_record=f"Report #{report.id} ({report.target})",
+                        ip_address=request.META.get('REMOTE_ADDR', '')
+                    )
+                except Exception:
+                    pass
+
             return Response(SecurityReportDetailSerializer(report).data, status=status.HTTP_201_CREATED)
         except ValueError as ve:
             return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
@@ -1427,9 +1470,9 @@ class ThreatIntelScanView(APIView):
     """
     User Portal Threat Intelligence Scan Endpoint.
     POST /api/threat-intelligence/scan/
-    Strictly binds request.user to record ownership.
+    Supports authenticated users, previous users, and guest/newcomer visitors.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = ThreatIntelScanRequestSerializer(data=request.data)
@@ -1438,10 +1481,24 @@ class ThreatIntelScanView(APIView):
 
         target = serializer.validated_data.get('target')
         target_type = serializer.validated_data.get('target_type')
+        user = resolve_request_user(request)
 
         try:
             service = ThreatIntelligenceService()
-            result_record = service.execute_scan(target=target, target_type=target_type, user=request.user)
+            result_record = service.execute_scan(target=target, target_type=target_type, user=user)
+
+            if user and getattr(user, 'pk', None):
+                try:
+                    AdminAuditLog.objects.create(
+                        admin=user,
+                        action='USER_THREAT_SCAN',
+                        target_user=user,
+                        target_record=f"Threat Intel: {target} [{result_record.severity}]",
+                        ip_address=request.META.get('REMOTE_ADDR', '')
+                    )
+                except Exception:
+                    pass
+
             out_serializer = ThreatIntelResultSerializer(result_record)
             return Response(out_serializer.data, status=status.HTTP_200_OK)
         except TargetValidationError as ve:
@@ -1454,12 +1511,12 @@ class ThreatIntelUserHistoryView(APIView):
     """
     User Portal Threat Intelligence History Endpoint.
     GET /api/threat-intelligence/history/
-    Strictly user-isolated (ThreatIntelResult.objects.filter(user=request.user)).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        queryset = ThreatIntelResult.objects.filter(user=request.user)
+        user = resolve_request_user(request)
+        queryset = ThreatIntelResult.objects.filter(user=user)
 
         target_type = request.query_params.get('target_type')
         severity = request.query_params.get('severity')
@@ -1599,19 +1656,33 @@ class FileAnalysisUploadView(APIView):
     """
     User Portal File Upload & Static Security Analysis.
     POST /api/file-analysis/analyze/
-    Binds strictly to request.user (ignores user_id).
+    Supports authenticated users, previous users, and guest/newcomer visitors.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         if 'file' not in request.FILES:
             return Response({"error": "No file uploaded. 'file' parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         file_obj = request.FILES['file']
+        user = resolve_request_user(request)
         
         try:
             service = FileAnalyzerService()
-            record = service.analyze_uploaded_file(file_obj, request.user)
+            record = service.analyze_uploaded_file(file_obj, user)
+
+            if user and getattr(user, 'pk', None):
+                try:
+                    AdminAuditLog.objects.create(
+                        admin=user,
+                        action='USER_FILE_ANALYZED',
+                        target_user=user,
+                        target_record=f"File: {record.original_filename} [{record.severity}]",
+                        ip_address=request.META.get('REMOTE_ADDR', '')
+                    )
+                except Exception:
+                    pass
+
             serializer = FileAnalysisSerializer(record)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except ValueError as ve:
@@ -1626,12 +1697,12 @@ class FileAnalysisUserHistoryView(APIView):
     """
     User Portal File Analysis History.
     GET /api/file-analysis/history/
-    Strictly isolated: returns FileAnalysis.objects.filter(user=request.user)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        queryset = FileAnalysis.objects.filter(user=request.user)
+        user = resolve_request_user(request)
+        queryset = FileAnalysis.objects.filter(user=user)
 
         detected_type = request.query_params.get('detected_type')
         if detected_type and detected_type != 'ALL':
@@ -1783,9 +1854,9 @@ class SSLScanCreateView(APIView):
     User Portal SSL Scan Execution Endpoint.
     POST /api/ssl-scanner/scan/
     Accepts: { "target": "example.com", "port": 443 }
-    Strictly forces ownership to request.user.
+    Supports authenticated users, previous users, and guest/newcomer visitors.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = SSLScanRequestSerializer(data=request.data)
@@ -1794,6 +1865,7 @@ class SSLScanCreateView(APIView):
 
         target = serializer.validated_data['target']
         port = serializer.validated_data.get('port', 443)
+        user = resolve_request_user(request)
 
         service = SSLScannerService(timeout=10)
         scan_output = service.scan_target(target, custom_port=port)
@@ -1812,9 +1884,9 @@ class SSLScanCreateView(APIView):
             except Exception:
                 pass
 
-        # Save record with strict request.user binding
+        # Save record with resolved user
         record = SSLScanResult.objects.create(
-            user=request.user,
+            user=user,
             target=scan_output["target"],
             domain=scan_output["domain"],
             port=scan_output["port"],
@@ -1838,6 +1910,18 @@ class SSLScanCreateView(APIView):
             structured_evidence=scan_output.get("structured_evidence", {})
         )
 
+        if user and getattr(user, 'pk', None):
+            try:
+                AdminAuditLog.objects.create(
+                    admin=user,
+                    action='USER_SSL_SCAN',
+                    target_user=user,
+                    target_record=f"SSL: {record.domain}:{record.port} [{record.severity}]",
+                    ip_address=request.META.get('REMOTE_ADDR', '')
+                )
+            except Exception:
+                pass
+
         response_serializer = SSLScanSerializer(record)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
@@ -1846,12 +1930,12 @@ class SSLScanUserHistoryView(APIView):
     """
     User Portal SSL Scan History Endpoint.
     GET /api/ssl-scanner/history/
-    Strictly isolated: returns SSLScanResult.objects.filter(user=request.user)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        queryset = SSLScanResult.objects.filter(user=request.user).order_by('-created_at')
+        user = resolve_request_user(request)
+        queryset = SSLScanResult.objects.filter(user=user).order_by('-created_at')
 
         domain_query = request.query_params.get('domain', '').strip()
         if domain_query:
@@ -1988,9 +2072,9 @@ class WhoisLookupCreateView(APIView):
     User Portal WHOIS Lookup Execution Endpoint.
     POST /api/whois/lookup/
     Accepts: { "domain": "example.com" }
-    Strictly forces ownership to request.user.
+    Supports authenticated users, previous users, and guest/newcomer visitors.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = WhoisRequestSerializer(data=request.data)
@@ -1998,6 +2082,7 @@ class WhoisLookupCreateView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         domain_input = serializer.validated_data['domain']
+        user = resolve_request_user(request)
 
         service = WhoisService(timeout=10)
         output = service.lookup_domain(domain_input)
@@ -2022,9 +2107,9 @@ class WhoisLookupCreateView(APIView):
             except Exception:
                 pass
 
-        # Save record with strict request.user binding
+        # Save record with resolved user
         record = WhoisLookupResult.objects.create(
-            user=request.user,
+            user=user,
             domain=output["domain"],
             registrar=output.get("registrar", "NOT_AVAILABLE"),
             registry_domain_id=output.get("registry_domain_id", "NOT_AVAILABLE"),
@@ -2049,6 +2134,18 @@ class WhoisLookupCreateView(APIView):
             structured_evidence=output.get("structured_evidence", {})
         )
 
+        if user and getattr(user, 'pk', None):
+            try:
+                AdminAuditLog.objects.create(
+                    admin=user,
+                    action='USER_WHOIS_LOOKUP',
+                    target_user=user,
+                    target_record=f"WHOIS: {record.domain} [{record.severity}]",
+                    ip_address=request.META.get('REMOTE_ADDR', '')
+                )
+            except Exception:
+                pass
+
         response_serializer = WhoisLookupSerializer(record)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
@@ -2057,12 +2154,12 @@ class WhoisUserHistoryView(APIView):
     """
     User Portal WHOIS Lookup History Endpoint.
     GET /api/whois/history/
-    Strictly isolated: returns WhoisLookupResult.objects.filter(user=request.user)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        queryset = WhoisLookupResult.objects.filter(user=request.user).order_by('-created_at')
+        user = resolve_request_user(request)
+        queryset = WhoisLookupResult.objects.filter(user=user).order_by('-created_at')
 
         domain_query = request.query_params.get('domain', '').strip()
         if domain_query:
@@ -2190,9 +2287,9 @@ class URLScanCreateView(APIView):
     User Portal URL Scan Execution Endpoint.
     POST /api/url-scanner/scan/
     Accepts: { "url": "https://example.com/login" }
-    Strictly forces ownership to request.user.
+    Supports authenticated users, previous users, and guest/newcomer visitors.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = URLScanRequestSerializer(data=request.data)
@@ -2200,13 +2297,14 @@ class URLScanCreateView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         raw_url = serializer.validated_data['url']
+        user = resolve_request_user(request)
 
         service = URLScannerService(timeout=10)
-        output = service.scan_url(raw_url, user=request.user)
+        output = service.scan_url(raw_url, user=user)
 
-        # Save record with strict request.user binding
+        # Save record with resolved user
         record = URLScanResult.objects.create(
-            user=request.user,
+            user=user,
             original_url=output.get("original_url", raw_url),
             normalized_url=output.get("normalized_url", raw_url),
             final_url=output.get("final_url", ""),
@@ -2233,6 +2331,18 @@ class URLScanCreateView(APIView):
             structured_evidence=output.get("structured_evidence", {})
         )
 
+        if user and getattr(user, 'pk', None):
+            try:
+                AdminAuditLog.objects.create(
+                    admin=user,
+                    action='USER_URL_SCAN',
+                    target_user=user,
+                    target_record=f"URL: {record.hostname} [{record.severity}]",
+                    ip_address=request.META.get('REMOTE_ADDR', '')
+                )
+            except Exception:
+                pass
+
         response_serializer = URLScanSerializer(record)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
@@ -2241,12 +2351,12 @@ class URLScanUserHistoryView(APIView):
     """
     User Portal URL Scan History Endpoint.
     GET /api/url-scanner/history/
-    Strictly isolated: returns URLScanResult.objects.filter(user=request.user)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        queryset = URLScanResult.objects.filter(user=request.user).order_by('-created_at')
+        user = resolve_request_user(request)
+        queryset = URLScanResult.objects.filter(user=user).order_by('-created_at')
 
         query = request.query_params.get('search', '').strip() or request.query_params.get('domain', '').strip()
         if query:
@@ -2388,9 +2498,9 @@ class PortScanCreateView(APIView):
     User Portal Port Scan Execution Endpoint.
     POST /api/port-scanner/scan/
     Accepts: { "target": "example.com", "profile": "COMMON", "ports": [80, 443] }
-    Strictly forces ownership to request.user.
+    Supports authenticated users, previous users, and guest/newcomer visitors.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = PortScanRequestSerializer(data=request.data)
@@ -2400,18 +2510,19 @@ class PortScanCreateView(APIView):
         target = serializer.validated_data['target']
         profile = serializer.validated_data.get('profile', 'COMMON')
         custom_ports = serializer.validated_data.get('ports', [])
+        user = resolve_request_user(request)
 
         service = PortScannerService(timeout=1.5, max_workers=10)
         output = service.scan_target(
             target=target,
             profile=profile,
             custom_ports=custom_ports,
-            user=request.user
+            user=user
         )
 
-        # Save record with strict request.user binding
+        # Save record with resolved user
         record = PortScanResult.objects.create(
-            user=request.user,
+            user=user,
             target=output.get("target", target),
             target_type=output.get("target_type", "HOSTNAME"),
             resolved_ips=output.get("resolved_ips", []),
@@ -2433,6 +2544,18 @@ class PortScanCreateView(APIView):
             scan_duration=output.get("scan_duration", 0.0)
         )
 
+        if user and getattr(user, 'pk', None):
+            try:
+                AdminAuditLog.objects.create(
+                    admin=user,
+                    action='USER_PORT_SCAN',
+                    target_user=user,
+                    target_record=f"PortScan: {record.target} ({len(record.open_ports)} open) [{record.severity}]",
+                    ip_address=request.META.get('REMOTE_ADDR', '')
+                )
+            except Exception:
+                pass
+
         response_serializer = PortScanSerializer(record)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
@@ -2441,12 +2564,12 @@ class PortScanUserHistoryView(APIView):
     """
     User Portal Port Scan History Endpoint.
     GET /api/port-scanner/history/
-    Strictly isolated: returns PortScanResult.objects.filter(user=request.user)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        queryset = PortScanResult.objects.filter(user=request.user).order_by('-created_at')
+        user = resolve_request_user(request)
+        queryset = PortScanResult.objects.filter(user=user).order_by('-created_at')
 
         query = request.query_params.get('search', '').strip() or request.query_params.get('target', '').strip()
         if query:
@@ -2584,8 +2707,9 @@ class SOCAnalyzeView(APIView):
     """
     Executes deterministic SOC security correlation and risk analysis.
     POST /api/soc/analyze/
+    Supports authenticated users, previous users, and guest/newcomer visitors.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = SOCAnalysisRequestSerializer(data=request.data)
@@ -2595,6 +2719,7 @@ class SOCAnalyzeView(APIView):
         target = serializer.validated_data['target'].strip()
         source_scan_ids = serializer.validated_data.get('source_scan_ids', {})
         auto_correlate = serializer.validated_data.get('auto_correlate', True)
+        user = resolve_request_user(request)
 
         identifiers = extract_target_identifiers(target)
         target_domain = identifiers.get('domain', '')
@@ -2610,48 +2735,48 @@ class SOCAnalyzeView(APIView):
         port_scan = None
         website_scan = None
 
-        # 1. Resolve explicitly provided scan IDs (Strict User Ownership Validation)
+        # 1. Resolve explicitly provided scan IDs
         if 'threat_intelligence' in source_scan_ids:
             try:
-                threat_intel = ThreatIntelResult.objects.get(id=source_scan_ids['threat_intelligence'], user=request.user)
+                threat_intel = ThreatIntelResult.objects.get(id=source_scan_ids['threat_intelligence'], user=user)
             except ThreatIntelResult.DoesNotExist:
-                return Response({"error": "Specified Threat Intelligence record does not exist or does not belong to you."}, status=status.HTTP_400_BAD_REQUEST)
+                pass
 
         if 'file_analysis' in source_scan_ids:
             try:
-                file_analysis = FileAnalysis.objects.get(id=source_scan_ids['file_analysis'], user=request.user)
+                file_analysis = FileAnalysis.objects.get(id=source_scan_ids['file_analysis'], user=user)
             except FileAnalysis.DoesNotExist:
-                return Response({"error": "Specified File Analysis record does not exist or does not belong to you."}, status=status.HTTP_400_BAD_REQUEST)
+                pass
 
         if 'ssl_scan' in source_scan_ids:
             try:
-                ssl_scan = SSLScanResult.objects.get(id=source_scan_ids['ssl_scan'], user=request.user)
+                ssl_scan = SSLScanResult.objects.get(id=source_scan_ids['ssl_scan'], user=user)
             except SSLScanResult.DoesNotExist:
-                return Response({"error": "Specified SSL scan record does not exist or does not belong to you."}, status=status.HTTP_400_BAD_REQUEST)
+                pass
 
         if 'whois_scan' in source_scan_ids:
             try:
-                whois_lookup = WhoisLookupResult.objects.get(id=source_scan_ids['whois_scan'], user=request.user)
+                whois_lookup = WhoisLookupResult.objects.get(id=source_scan_ids['whois_scan'], user=user)
             except WhoisLookupResult.DoesNotExist:
-                return Response({"error": "Specified WHOIS record does not exist or does not belong to you."}, status=status.HTTP_400_BAD_REQUEST)
+                pass
 
         if 'url_scan' in source_scan_ids:
             try:
-                url_scan = URLScanResult.objects.get(id=source_scan_ids['url_scan'], user=request.user)
+                url_scan = URLScanResult.objects.get(id=source_scan_ids['url_scan'], user=user)
             except URLScanResult.DoesNotExist:
-                return Response({"error": "Specified URL scan record does not exist or does not belong to you."}, status=status.HTTP_400_BAD_REQUEST)
+                pass
 
         if 'port_scan' in source_scan_ids:
             try:
-                port_scan = PortScanResult.objects.get(id=source_scan_ids['port_scan'], user=request.user)
+                port_scan = PortScanResult.objects.get(id=source_scan_ids['port_scan'], user=user)
             except PortScanResult.DoesNotExist:
-                return Response({"error": "Specified Port scan record does not exist or does not belong to you."}, status=status.HTTP_400_BAD_REQUEST)
+                pass
 
-        # 2. Auto-Correlate user's recent scan records if requested and not explicitly bound
+        # 2. Auto-Correlate user's recent scan records if requested
         if auto_correlate:
             # Threat Intel Auto-Match
             if not threat_intel:
-                q = Q(user=request.user)
+                q = Q(user=user)
                 if target_domain:
                     q &= (Q(target__icontains=target_domain) | Q(target__icontains=target_hostname))
                 elif target_ip:
@@ -2662,36 +2787,36 @@ class SOCAnalyzeView(APIView):
 
             # File Analysis Auto-Match
             if not file_analysis and target_hash:
-                file_analysis = FileAnalysis.objects.filter(user=request.user, sha256__iexact=target_hash).first()
+                file_analysis = FileAnalysis.objects.filter(user=user, sha256__iexact=target_hash).first()
 
             # SSL Scan Auto-Match
             if not ssl_scan and (target_domain or target_hostname):
                 ssl_scan = SSLScanResult.objects.filter(
-                    Q(user=request.user) & (Q(domain__iexact=target_domain) | Q(target__icontains=target_hostname))
+                    Q(user=user) & (Q(domain__iexact=target_domain) | Q(target__icontains=target_hostname))
                 ).first()
 
             # WHOIS Auto-Match
             if not whois_lookup and target_domain:
                 whois_lookup = WhoisLookupResult.objects.filter(
-                    user=request.user, domain__iexact=target_domain
+                    user=user, domain__iexact=target_domain
                 ).first()
 
             # URL Scan Auto-Match
             if not url_scan and (target_domain or target_hostname):
                 url_scan = URLScanResult.objects.filter(
-                    Q(user=request.user) & (Q(domain__iexact=target_domain) | Q(hostname__iexact=target_hostname) | Q(normalized_url__icontains=target))
+                    Q(user=user) & (Q(domain__iexact=target_domain) | Q(hostname__iexact=target_hostname) | Q(normalized_url__icontains=target))
                 ).first()
 
             # Port Scan Auto-Match
             if not port_scan and (target_hostname or target_ip):
                 port_scan = PortScanResult.objects.filter(
-                    Q(user=request.user) & (Q(target__icontains=target_hostname) | Q(primary_ip=target_ip if target_ip else 'none'))
+                    Q(user=user) & (Q(target__icontains=target_hostname) | Q(primary_ip=target_ip if target_ip else 'none'))
                 ).first()
 
             # Website Scan Auto-Match
             if not website_scan and (target_domain or target_hostname):
                 website_scan = ScanResult.objects.filter(
-                    Q(user=request.user) & (Q(domain__icontains=target_domain) | Q(url__icontains=target_hostname))
+                    Q(user=user) & (Q(domain__icontains=target_domain) | Q(url__icontains=target_hostname))
                 ).first()
 
         # 3. Execute Deterministic SOC Engine Correlation
@@ -2707,9 +2832,9 @@ class SOCAnalyzeView(APIView):
             website_scan=website_scan
         )
 
-        # 4. Persist SOCAnalysis Record strictly bound to request.user
+        # 4. Persist SOCAnalysis Record
         soc_record = SOCAnalysis.objects.create(
-            user=request.user,
+            user=user,
             target=target,
             analysis_type=analysis_data['analysis_type'],
             target_identifiers=analysis_data['target_identifiers'],
@@ -2727,6 +2852,18 @@ class SOCAnalyzeView(APIView):
             analysis_duration=analysis_data['analysis_duration']
         )
 
+        if user and getattr(user, 'pk', None):
+            try:
+                AdminAuditLog.objects.create(
+                    admin=user,
+                    action='USER_SOC_ANALYSIS',
+                    target_user=user,
+                    target_record=f"SOC Analysis: {soc_record.target} [{soc_record.severity}]",
+                    ip_address=request.META.get('REMOTE_ADDR', '')
+                )
+            except Exception:
+                pass
+
         serializer = SOCAnalysisSerializer(soc_record)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -2736,13 +2873,14 @@ class SOCCorrelateTargetView(APIView):
     Discovers existing user scan records matching a target string for pre-analysis selection.
     GET /api/soc/correlate-target/?target=example.com
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         target = request.query_params.get('target', '').strip()
         if not target:
             return Response({"error": "Target query parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        user = resolve_request_user(request)
         identifiers = extract_target_identifiers(target)
         target_domain = identifiers.get('domain', '')
         target_hostname = identifiers.get('hostname', '')
@@ -2751,30 +2889,30 @@ class SOCCorrelateTargetView(APIView):
 
         # Match scans
         ti_qs = ThreatIntelResult.objects.filter(
-            Q(user=request.user) & (
+            Q(user=user) & (
                 Q(target__icontains=target_domain) |
                 (Q(target__iexact=target_hash) if target_hash else Q(id=0))
             )
         )[:3]
 
         file_qs = FileAnalysis.objects.filter(
-            user=request.user, sha256__iexact=target_hash
+            user=user, sha256__iexact=target_hash
         )[:3] if target_hash else FileAnalysis.objects.none()
 
         ssl_qs = SSLScanResult.objects.filter(
-            Q(user=request.user) & (Q(domain__iexact=target_domain) | Q(target__icontains=target_hostname))
+            Q(user=user) & (Q(domain__iexact=target_domain) | Q(target__icontains=target_hostname))
         )[:3] if target_domain or target_hostname else SSLScanResult.objects.none()
 
         whois_qs = WhoisLookupResult.objects.filter(
-            user=request.user, domain__iexact=target_domain
+            user=user, domain__iexact=target_domain
         )[:3] if target_domain else WhoisLookupResult.objects.none()
 
         url_qs = URLScanResult.objects.filter(
-            Q(user=request.user) & (Q(domain__iexact=target_domain) | Q(hostname__iexact=target_hostname))
+            Q(user=user) & (Q(domain__iexact=target_domain) | Q(hostname__iexact=target_hostname))
         )[:3] if target_domain or target_hostname else URLScanResult.objects.none()
 
         port_qs = PortScanResult.objects.filter(
-            Q(user=request.user) & (Q(target__icontains=target_hostname) | Q(primary_ip=target_ip if target_ip else 'none'))
+            Q(user=user) & (Q(target__icontains=target_hostname) | Q(primary_ip=target_ip if target_ip else 'none'))
         )[:3] if target_hostname or target_ip else PortScanResult.objects.none()
 
         return Response({
@@ -2796,10 +2934,11 @@ class SOCUserHistoryView(APIView):
     User Portal SOC Analysis History Endpoint.
     GET /api/soc/history/
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        queryset = SOCAnalysis.objects.filter(user=request.user)
+        user = resolve_request_user(request)
+        queryset = SOCAnalysis.objects.filter(user=user)
 
         q = request.query_params.get('q', '').strip()
         if q:
@@ -2822,11 +2961,12 @@ class SOCUserDetailView(APIView):
     User Portal SOC Analysis Detail Endpoint.
     GET /api/soc/<pk>/
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request, pk):
+        user = resolve_request_user(request)
         try:
-            record = SOCAnalysis.objects.get(pk=pk, user=request.user)
+            record = SOCAnalysis.objects.get(pk=pk, user=user)
             serializer = SOCAnalysisSerializer(record)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except SOCAnalysis.DoesNotExist:
@@ -2936,7 +3076,7 @@ class AgentHealthView(APIView):
     Checks Ollama local LLM runtime status and configured Qwen model health.
     GET /api/agent/health/
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         status_data = check_ollama_health()
@@ -2947,8 +3087,9 @@ class AgentAnalyzeView(APIView):
     """
     Executes controlled Autonomous AI Security Agent analysis for given target.
     POST /api/agent/analyze/
+    Supports authenticated users, previous users, and guest/newcomer visitors.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = AgentAnalyzeRequestSerializer(data=request.data)
@@ -2958,14 +3099,27 @@ class AgentAnalyzeView(APIView):
         target = serializer.validated_data['target'].strip()
         analysis_mode = serializer.validated_data.get('analysis_mode', 'SECURITY_ASSESSMENT')
         max_steps = serializer.validated_data.get('max_steps', 5)
+        user = resolve_request_user(request)
 
         agent_service = AutonomousAIAgentService()
         session = agent_service.run_session(
             target=target,
-            user=request.user,
+            user=user,
             max_steps=max_steps,
             analysis_mode=analysis_mode
         )
+
+        if user and getattr(user, 'pk', None):
+            try:
+                AdminAuditLog.objects.create(
+                    admin=user,
+                    action='USER_AGENT_ANALYSIS',
+                    target_user=user,
+                    target_record=f"AI Agent: {session.target} [{session.status}]",
+                    ip_address=request.META.get('REMOTE_ADDR', '')
+                )
+            except Exception:
+                pass
 
         response_serializer = AgentSessionDetailSerializer(session)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
@@ -2975,12 +3129,12 @@ class AgentUserHistoryView(APIView):
     """
     User Portal AI Agent Session History Endpoint.
     GET /api/agent/history/
-    Strictly isolated: returns AgentSession.objects.filter(user=request.user)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        queryset = AgentSession.objects.filter(user=request.user).order_by('-created_at')
+        user = resolve_request_user(request)
+        queryset = AgentSession.objects.filter(user=user).order_by('-created_at')
 
         target_query = request.query_params.get('search', '').strip() or request.query_params.get('target', '').strip()
         if target_query:
@@ -3288,6 +3442,197 @@ class AdminReportCSVDownloadView(APIView):
             return response
         except SecurityReport.DoesNotExist:
             return Response({"error": "Security report not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class FileAnalysisPDFDownloadView(APIView):
+    """
+    Direct PDF Download for File Analysis result.
+    GET /api/file-analysis/<int:pk>/pdf/
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        user = resolve_request_user(request)
+        record = FileAnalysis.objects.filter(pk=pk).first()
+        if not record:
+            return Response({"error": "File analysis record not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Build comprehensive PDF payload
+        entropy_val = getattr(record, 'entropy', 0.0) or 0.0
+        file_sz = getattr(record, 'file_size', 0) or 0
+        norm_ev = getattr(record, 'normalized_evidence', {}) or {}
+        indicators = norm_ev.get('indicators') or []
+        recs = norm_ev.get('recommendations') or [
+            "Quarantine and isolate this file if source is unverified.",
+            "Execute within a sandboxed dynamic analysis environment before internal distribution.",
+            "Update endpoint detection rules if custom indicators were flagged."
+        ]
+        vt_detections = getattr(record, 'virustotal_detections', {}) or {}
+        vt_malicious = vt_detections.get('malicious', 0) if isinstance(vt_detections, dict) else 0
+
+        payload = {
+            "target": record.original_filename or record.filename or "Uploaded File",
+            "report_id": f"FILE-{record.id}-{record.sha256[:8].upper() if record.sha256 else 'SCAN'}",
+            "report_type": "FILE_SECURITY_ASSESSMENT",
+            "created_at": record.created_at.isoformat() if hasattr(record, 'created_at') and record.created_at else timezone.now().isoformat(),
+            "risk": {
+                "score": record.threat_score,
+                "severity": record.severity,
+                "confidence": record.confidence,
+                "threat_level": record.severity
+            },
+            "executive_summary": f"Comprehensive static and heuristic security analysis of uploaded file '{record.original_filename or record.filename}'. Detected Type: {record.detected_type or record.file_type or 'Binary'} ({file_sz} bytes). Entropy: {entropy_val:.2f}/8.0. SHA256: {record.sha256 or 'N/A'}.",
+            "module_summary": {
+                "FILE_TYPE_PARSER": f"{record.detected_type or record.file_type or 'GENERIC'} (VALIDATED)",
+                "SHANNON_ENTROPY": f"{entropy_val:.2f}/8.0 ({'SUSPICIOUS' if entropy_val > 7.2 else 'NORMAL'})",
+                "YARA_SIGNATURE_SCAN": "MATCH DETECTED" if record.yara_matches else "CLEAN (NO MATCHES)",
+                "VIRUSTOTAL_REPUTATION": f"{vt_malicious} POSITIVES" if vt_malicious > 0 else (record.virustotal_status or "CLEAN / BENIGN"),
+                "HEURISTIC_RULES": f"{len(indicators)} INDICATORS FLAGGED"
+            },
+            "findings": [{"title": str(ind), "severity": record.severity, "description": str(ind)} for ind in indicators] or [{"title": "Baseline Binary Validation", "severity": "LOW", "description": "No immediate malware signatures detected."}],
+            "ai_assessment": {
+                "summary": f"File '{record.original_filename or record.filename}' scored {record.threat_score}/100 ({record.severity} severity). Analysis completed with {record.confidence}% detection confidence.",
+                "tools_used": ["yara_engine", "entropy_calculator", "pe_doc_parser", "threat_intel_hash_matcher"],
+                "recommendations": recs
+            }
+        }
+        try:
+            pdf_bytes = PDFReportGenerator.generate_pdf(payload)
+            safe_fname = record.original_filename.replace(' ', '_').replace('"', '')
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="FileAnalysis_{safe_fname}.pdf"'
+            return response
+        except Exception as e:
+            return Response({"error": f"Failed to generate PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SOCAnalysisPDFDownloadView(APIView):
+    """
+    Direct PDF Download for SOC Analysis result.
+    GET /api/soc/<int:pk>/pdf/
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        user = resolve_request_user(request)
+        record = SOCAnalysis.objects.filter(pk=pk).first()
+        if not record:
+            return Response({"error": "SOC analysis record not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        evidence_sources = record.evidence_sources or ['NETWORK_TELEMETRY', 'SECURITY_FINDINGS']
+        payload = {
+            "target": record.target,
+            "report_id": f"SOC-{record.id}",
+            "report_type": "SOC_CORRELATION_ASSESSMENT",
+            "created_at": record.created_at.isoformat() if hasattr(record, 'created_at') and record.created_at else timezone.now().isoformat(),
+            "risk": {
+                "score": record.risk_score,
+                "severity": record.severity,
+                "confidence": record.confidence,
+                "threat_level": record.threat_level
+            },
+            "executive_summary": record.summary or f"Multi-vector SOC correlation analysis completed for target {record.target}.",
+            "module_summary": {str(k).upper(): "CORRELATED" for k in evidence_sources},
+            "findings": record.findings or [],
+            "ai_assessment": {
+                "summary": record.summary or "Deterministic & AI telemetry synthesized across multiple telemetry sources.",
+                "tools_used": evidence_sources,
+                "recommendations": record.recommendations or [
+                    "Harden perimeter firewall and restrict exposed services.",
+                    "Enforce strict TLS 1.3 encryption across all public web assets.",
+                    "Review incident response playbooks for flagged high-severity indicators."
+                ]
+            }
+        }
+        try:
+            pdf_bytes = PDFReportGenerator.generate_pdf(payload)
+            safe_target = record.target.replace('://', '_').replace('/', '_').replace(' ', '_').replace('"', '')
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="SOC_Analysis_{safe_target}.pdf"'
+            return response
+        except Exception as e:
+            return Response({"error": f"Failed to generate PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class QuickScanPDFDownloadView(APIView):
+    """
+    On-demand PDF generation for any active scan / analysis result payload.
+    POST /api/reports/quick-pdf/
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        data = request.data or {}
+        target = data.get("target") or data.get("domain") or "Target"
+        ai_analysis = data.get("ai_analysis") or {}
+        severity = ai_analysis.get("severity") or data.get("severity") or "LOW"
+        score = data.get("score") or data.get("threat_score") or (75 if str(severity).upper() in ['HIGH', 'CRITICAL'] else (40 if str(severity).upper() == 'MEDIUM' else 10))
+
+        # Build findings from security headers, ssl, open ports, etc.
+        findings = []
+        headers = data.get("security_headers") or {}
+        if isinstance(headers, dict) and headers.get("missing_headers"):
+            for h in headers["missing_headers"]:
+                findings.append({
+                    "title": f"Missing Security Header: {h}",
+                    "severity": "MEDIUM",
+                    "description": f"The HTTP response does not include the recommended '{h}' security header."
+                })
+
+        ssl_info = data.get("ssl") or {}
+        if isinstance(ssl_info, dict) and ssl_info.get("status") in ["EXPIRED", "SELF_SIGNED", "INVALID"]:
+            findings.append({
+                "title": f"SSL Certificate Issue: {ssl_info.get('status')}",
+                "severity": "HIGH",
+                "description": ssl_info.get("error_message") or "SSL certificate validation failed."
+            })
+
+        ports = data.get("open_ports") or []
+        if isinstance(ports, list) and ports:
+            findings.append({
+                "title": f"Exposed Network Ports: {', '.join(str(p) for p in ports)}",
+                "severity": "HIGH" if any(p in [21, 22, 23, 3389, 3306] for p in ports) else "MEDIUM",
+                "description": f"Target has {len(ports)} open network ports accessible from external perimeters."
+            })
+
+        payload = {
+            "target": target,
+            "report_id": f"SCAN-{uuid.uuid4().hex[:8].upper()}",
+            "report_type": "SECURITY_SCAN_ASSESSMENT",
+            "created_at": timezone.now().isoformat(),
+            "risk": {
+                "score": score,
+                "severity": str(severity).upper(),
+                "confidence": 85,
+                "threat_level": str(severity).upper()
+            },
+            "executive_summary": ai_analysis.get("summary") or f"Automated vulnerability and threat analysis completed for target {target}.",
+            "module_summary": {
+                "SECURITY_HEADERS": f"{len(headers.get('present_headers', []))} PRESENT / {len(headers.get('missing_headers', []))} MISSING" if isinstance(headers, dict) else "SCANNED",
+                "SSL_TLS_INSPECTION": str(ssl_info.get("status", "SCANNED")) if isinstance(ssl_info, dict) else "SCANNED",
+                "PORT_SCANNER": f"{len(ports)} OPEN PORTS" if isinstance(ports, list) else "SCANNED",
+                "THREAT_INTELLIGENCE": "COMPLETED"
+            },
+            "findings": findings or [{"title": "Baseline Perimeter Security", "severity": "LOW", "description": "No critical vulnerabilities immediately detected."}],
+            "ai_assessment": {
+                "summary": ai_analysis.get("summary") or f"Target {target} exhibits {severity} risk profile.",
+                "tools_used": ["header_scanner", "ssl_inspector", "port_scanner", "threat_intel"],
+                "recommendations": ai_analysis.get("recommendations") or [
+                    "Implement missing HTTP security headers (HSTS, CSP, X-Frame-Options).",
+                    "Ensure TLS 1.3 is enabled with modern cryptographic cipher suites.",
+                    "Close or restrict unneeded public-facing ports with firewall rules."
+                ]
+            }
+        }
+        try:
+            pdf_bytes = PDFReportGenerator.generate_pdf(payload)
+            safe_target = str(target).replace('://', '_').replace('/', '_').replace(' ', '_').replace('"', '')
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Security_Scan_{safe_target}.pdf"'
+            return response
+        except Exception as e:
+            return Response({"error": f"Failed to generate PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 

@@ -1,7 +1,8 @@
 import os
 import uuid
 import hashlib
-from typing import Dict, Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, Any, List, Optional
 from django.conf import settings
 from django.utils import timezone
 
@@ -23,15 +24,23 @@ class FileAnalyzerService:
     """
     Production Orchestrator Service for Static File Security Analysis.
     Analyzes uploaded files without executing them.
+    Features:
+    - Level 1: Fast SHA-256 Hash Caching & Signature Matching
+    - Level 2: Deep Static YARA, Shannon Entropy, & Type Analysis
+    - Level 3: External Threat Intel Lookup
+    - Concurrent Batch File Processing
     """
+
+    CACHE_WINDOW_HOURS = 24
 
     def __init__(self, vt_provider: VirusTotalProvider = None):
         self.vt_provider = vt_provider or VirusTotalProvider()
         self.yara_engine = LocalYaraEngine()
 
-    def analyze_uploaded_file(self, file_obj, user) -> FileAnalysis:
+    def analyze_uploaded_file(self, file_obj, user, bypass_cache: bool = False) -> FileAnalysis:
         """
         Validate, safely store, statically analyze, score, and persist a file analysis record.
+        Includes Level 1 intelligent SHA-256 caching.
         """
         max_size = getattr(settings, 'MAX_FILE_ANALYSIS_SIZE', 25 * 1024 * 1024)
         if file_obj.size > max_size:
@@ -46,7 +55,7 @@ class FileAnalyzerService:
         os.makedirs(secure_dir, exist_ok=True)
         file_path = os.path.join(secure_dir, stored_name)
 
-        # 1. Save file to non-public secure storage & calculate hashes
+        # 1. Save file to non-public secure storage & calculate hashes in single streaming pass
         sha256_hash = hashlib.sha256()
         sha1_hash = hashlib.sha1()
         md5_hash = hashlib.md5()
@@ -64,13 +73,68 @@ class FileAnalyzerService:
         sha1_val = sha1_hash.hexdigest()
         md5_val = md5_hash.hexdigest()
 
+        # Level 1: Check SHA-256 Hash Cache to skip redundant heavy static scans
+        if not bypass_cache:
+            cached_record = FileAnalysis.objects.filter(
+                sha256=sha256_val,
+                analysis_status="COMPLETED"
+            ).order_by('-created_at').first()
+
+            if cached_record:
+                # If cached record is already owned by this user and filename matches, return it directly
+                if cached_record.user == user and cached_record.original_filename == raw_name:
+                    return cached_record
+
+                # Otherwise, reuse the static analysis evidence and create a user-scoped record instantly
+                reused_evidence = cached_record.normalized_evidence or {}
+                if isinstance(reused_evidence, dict) and "file" in reused_evidence:
+                    reused_evidence["file"]["original_filename"] = raw_name
+                    reused_evidence["file"]["stored_filename"] = stored_name
+
+                record = FileAnalysis.objects.create(
+                    user=user,
+                    original_filename=raw_name,
+                    stored_filename=stored_name,
+                    file_size=file_size,
+                    detected_type=cached_record.detected_type,
+                    mime_type=cached_record.mime_type,
+                    extension=ext,
+                    sha256=sha256_val,
+                    sha1=sha1_val,
+                    md5=md5_val,
+                    entropy=cached_record.entropy,
+                    entropy_category=cached_record.entropy_category,
+                    signature_status=cached_record.signature_status,
+                    yara_status=cached_record.yara_status,
+                    yara_matches=cached_record.yara_matches,
+                    virustotal_status=cached_record.virustotal_status,
+                    virustotal_detections=cached_record.virustotal_detections,
+                    threat_score=cached_record.threat_score,
+                    severity=cached_record.severity,
+                    confidence=cached_record.confidence,
+                    analysis_status="COMPLETED",
+                    metadata=cached_record.metadata,
+                    normalized_evidence=reused_evidence
+                )
+
+                if user and getattr(user, 'pk', None):
+                    try:
+                        AdminAuditLog.objects.create(
+                            admin=user,
+                            action='FILE_ANALYSIS_COMPLETED',
+                            target_record=f"{raw_name} ({sha256_val[:12]}...) [CACHED_HIT]"
+                        )
+                    except Exception:
+                        pass
+                return record
+
         # 2. File Type Detection & Signature Inspection
         type_info = detect_file_type(file_path, raw_name)
 
         # 3. Shannon Entropy Analysis
         entropy_info = calculate_entropy(file_path)
 
-        # 4. YARA Static Pattern Analysis
+        # 4. YARA Static Pattern Analysis (uses cached rules)
         yara_info = self.yara_engine.scan_file(file_path)
 
         # 5. Type-Specific Static Analysis
@@ -173,10 +237,41 @@ class FileAnalyzerService:
         )
 
         # Audit Logging
-        AdminAuditLog.objects.create(
-            admin=user,
-            action='FILE_ANALYSIS_COMPLETED',
-            target_record=f"{raw_name} ({sha256_val[:12]}...)"
-        )
+        if user and getattr(user, 'pk', None):
+            try:
+                AdminAuditLog.objects.create(
+                    admin=user,
+                    action='FILE_ANALYSIS_COMPLETED',
+                    target_record=f"{raw_name} ({sha256_val[:12]}...)"
+                )
+            except Exception:
+                pass
 
         return record
+
+    def analyze_multiple_files(self, file_objs: List[Any], user: Any, max_workers: int = 4) -> List[FileAnalysis]:
+        """
+        Concurrently analyze multiple uploaded files using bounded thread pool.
+        """
+        results = []
+        worker_count = min(max(1, max_workers), len(file_objs) or 1)
+
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            future_to_file = {
+                executor.submit(self.analyze_uploaded_file, f, user): f
+                for f in file_objs
+            }
+            for future in as_completed(future_to_file):
+                try:
+                    res = future.result()
+                    results.append(res)
+                except Exception as e:
+                    file_name = getattr(future_to_file[future], 'name', 'unknown')
+                    results.append({
+                        "error": str(e),
+                        "filename": file_name,
+                        "status": "FAILED"
+                    })
+
+        return results
+

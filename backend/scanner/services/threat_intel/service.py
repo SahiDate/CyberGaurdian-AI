@@ -61,14 +61,16 @@ class ThreatIntelligenceService:
             if cached_result:
                 return cached_result
 
-        # 3. Query Providers
+        # 3. Query Providers concurrently
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
         provider_responses = []
-        for provider in self.providers:
+
+        def _query_provider(provider):
             try:
-                res = provider.scan(norm_target, final_target_type)
-                provider_responses.append(res)
+                return provider.scan(norm_target, final_target_type)
             except Exception as e:
-                provider_responses.append({
+                return {
                     "provider": getattr(provider, "name", "UnknownProvider"),
                     "status": "ERROR",
                     "malicious": 0,
@@ -77,7 +79,25 @@ class ThreatIntelligenceService:
                     "undetected": 0,
                     "raw_summary": {},
                     "error_message": f"Unhandled provider exception: {str(e)}"
-                })
+                }
+
+        with ThreadPoolExecutor(max_workers=len(self.providers) or 1) as executor:
+            futures = [executor.submit(_query_provider, p) for p in self.providers]
+            for f in as_completed(futures):
+                try:
+                    res = f.result()
+                    provider_responses.append(res)
+                except Exception as e:
+                    provider_responses.append({
+                        "provider": "UnknownProvider",
+                        "status": "ERROR",
+                        "malicious": 0,
+                        "suspicious": 0,
+                        "harmless": 0,
+                        "undetected": 0,
+                        "raw_summary": {},
+                        "error_message": f"Execution error: {str(e)}"
+                    })
 
         # 4. Evidence Correlation & Threat Scoring
         threat_score, severity, confidence, evidence_summary = calculate_threat_score_and_severity(provider_responses)

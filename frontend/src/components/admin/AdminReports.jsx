@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
+import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
 const API = 'http://localhost:8000';
 
@@ -61,6 +62,11 @@ export default function AdminReports() {
   useEffect(() => {
     fetchReports();
     fetchAnalytics();
+    const unsubscribe = subscribeSecurityEvents(() => {
+      fetchReports();
+      fetchAnalytics();
+    });
+    return () => unsubscribe();
   }, [statusFilter, severityFilter]);
 
   const fetchReports = async () => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
   BarElement, ArcElement, Title, Tooltip, Legend,
@@ -55,7 +56,13 @@ export default function AdminAnalytics() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchAnalytics(); }, []);
+  useEffect(() => {
+    fetchAnalytics();
+    const unsubscribe = subscribeSecurityEvents(() => {
+      fetchAnalytics();
+    });
+    return () => unsubscribe();
+  }, []);
 
   const fetchAnalytics = async () => {
     try {
