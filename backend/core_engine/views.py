@@ -80,7 +80,7 @@ class AnalyzeTargetView(APIView):
                 )
 
                 # 4. Create SOCAnalysis record so it updates Admin SOC & Threat analytics
-                SOCAnalysis.objects.create(
+                soc_record = SOCAnalysis.objects.create(
                     user=user,
                     target=domain,
                     analysis_type="DOMAIN_SCAN",
@@ -93,6 +93,19 @@ class AnalyzeTargetView(APIView):
                     status="COMPLETED",
                     source_records=results
                 )
+
+                # 4b. Automatically generate platform SecurityReport for Admin Report Section
+                try:
+                    from scanner.services.reports.service import SecurityReportService
+                    SecurityReportService.generate_report(
+                        target=domain,
+                        user=user,
+                        soc_analysis_id=soc_record.id,
+                        report_type="COMPREHENSIVE"
+                    )
+                except Exception:
+                    pass
+
 
                 # 5. Create AIActivity
                 AIActivity.objects.create(
@@ -213,7 +226,7 @@ class LogAnalysisView(APIView):
                 )
 
                 # 2. Create SOCAnalysis record so it updates Admin SOC & Threat analytics
-                SOCAnalysis.objects.create(
+                soc_record = SOCAnalysis.objects.create(
                     user=user,
                     target=filename,
                     analysis_type="LOG_FILE",
@@ -230,6 +243,19 @@ class LogAnalysisView(APIView):
                         "unique_ips_count": parsed_data.get("unique_ips_count", 0)
                     }
                 )
+
+                # 2b. Automatically generate platform SecurityReport for Admin Report Section
+                try:
+                    from scanner.services.reports.service import SecurityReportService
+                    SecurityReportService.generate_report(
+                        target=filename,
+                        user=user,
+                        soc_analysis_id=soc_record.id,
+                        report_type="LOG_ANALYSIS"
+                    )
+                except Exception:
+                    pass
+
 
                 # 3. Create Incident if threats detected
                 if ai_severity in ['high', 'critical'] or parsed_data.get("brute_force_ips") or parsed_data.get("directory_scans"):

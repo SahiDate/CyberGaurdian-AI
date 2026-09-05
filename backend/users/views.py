@@ -11,6 +11,7 @@ from .serializers import (
     NotificationSerializer, AdminAuditLogSerializer
 )
 from .permissions import IsUserRole, IsAdminRole
+from .authentication import GracefulJWTAuthentication
 from django.core.mail import EmailMultiAlternatives
 from django.utils import timezone
 from datetime import timedelta, date, datetime
@@ -720,20 +721,163 @@ class UserSettingsView(APIView):
 # USER ISOLATED VIEWS (Strict request.user filtering)
 # ==========================================
 
-class UserScansListView(APIView):
+class UserDashboardKPIView(APIView):
     permission_classes = [IsUserRole]
 
     def get(self, request):
-        scans = ScanResult.objects.filter(user=request.user).order_by('-scanned_at')
+        user = request.user
+        today = timezone.now().date()
+
+        # 1. Analyzed URLs & Scans
+        website_scans_count = ScanResult.objects.filter(user=user).count()
+        url_scans_count = URLScanResult.objects.filter(user=user).count()
+        analyzed_urls = website_scans_count + url_scans_count
+        scans_today = (
+            ScanResult.objects.filter(user=user, scanned_at__date=today).count() +
+            URLScanResult.objects.filter(user=user, created_at__date=today).count()
+        )
+
+        # 2. High Security Risk (Strict user-isolated aggregation)
+        high_risk_scans = ScanResult.objects.filter(user=user, risk_level='high').count()
+        high_risk_urls = URLScanResult.objects.filter(user=user, severity__in=['HIGH', 'CRITICAL']).count()
+        high_risk_threats = ThreatIntelResult.objects.filter(user=user, severity__in=['HIGH', 'CRITICAL']).count()
+        high_risk_files = FileAnalysis.objects.filter(user=user, severity__in=['HIGH', 'CRITICAL']).count()
+        high_risk_ssl = SSLScanResult.objects.filter(user=user, severity__in=['HIGH', 'CRITICAL']).count()
+        high_risk_ports = PortScanResult.objects.filter(user=user, severity__in=['HIGH', 'CRITICAL']).count()
+        high_risk_soc = SOCAnalysis.objects.filter(user=user, severity__in=['HIGH', 'CRITICAL']).count()
+
+        total_high_risks = (
+            high_risk_scans + high_risk_urls + high_risk_threats +
+            high_risk_files + high_risk_ssl + high_risk_ports + high_risk_soc
+        )
+
+        # Medium and Low counts for complete risk posture
+        medium_risk_scans = ScanResult.objects.filter(user=user, risk_level='medium').count()
+        medium_risk_urls = URLScanResult.objects.filter(user=user, severity='MEDIUM').count()
+        medium_risk_threats = ThreatIntelResult.objects.filter(user=user, severity='MEDIUM').count()
+        medium_risk_files = FileAnalysis.objects.filter(user=user, severity='MEDIUM').count()
+        medium_risk_ssl = SSLScanResult.objects.filter(user=user, severity='MEDIUM').count()
+        medium_risk_ports = PortScanResult.objects.filter(user=user, severity='MEDIUM').count()
+        total_medium_risks = (
+            medium_risk_scans + medium_risk_urls + medium_risk_threats +
+            medium_risk_files + medium_risk_ssl + medium_risk_ports
+        )
+
+        low_risk_scans = ScanResult.objects.filter(user=user, risk_level__in=['good', 'excellent']).count()
+        low_risk_urls = URLScanResult.objects.filter(user=user, severity='LOW').count()
+        low_risk_threats = ThreatIntelResult.objects.filter(user=user, severity='LOW').count()
+        low_risk_files = FileAnalysis.objects.filter(user=user, severity='LOW').count()
+        total_low_clean = low_risk_scans + low_risk_urls + low_risk_threats + low_risk_files
+
+        # 3. Active Modules Available to User
+        modules = [
+            {"id": "web_scan", "name": "Website Security Scanner", "path": "/", "status": "ACTIVE", "description": "SSL, Headers, DNS, WHOIS & Tech Analysis"},
+            {"id": "url_scan", "name": "URL & Threat Scanner", "path": "/url-scanner", "status": "ACTIVE", "description": "HTTP deep inspection & redirect tracing"},
+            {"id": "file_analyzer", "name": "Static File Analyzer", "path": "/file-analyzer", "status": "ACTIVE", "description": "YARA, Entropy, PE & VirusTotal engine"},
+            {"id": "threat_intel", "name": "Threat Intelligence", "path": "/threat-intel", "status": "ACTIVE", "description": "VirusTotal, AbuseIPDB & urlscan.io lookups"},
+            {"id": "ssl_scanner", "name": "SSL/TLS Inspector", "path": "/ssl-scanner", "status": "ACTIVE", "description": "Cipher suites, certificate validity & expiry"},
+            {"id": "port_scanner", "name": "Port & Service Scanner", "path": "/port-scanner", "status": "ACTIVE", "description": "TCP banner grabbing & service detection"},
+            {"id": "whois_lookup", "name": "WHOIS Domain Lookup", "path": "/whois", "status": "ACTIVE", "description": "Registration, nameservers & domain aging"},
+            {"id": "soc_agent", "name": "SOC & Autonomous AI", "path": "/reports", "status": "ACTIVE", "description": "Automated incident correlation & reports"}
+        ]
+        active_modules_count = len(modules)
+
+        # 4. Total Reports
+        reports_count = SecurityReport.objects.filter(user=user).count() + Report.objects.filter(user=user).count()
+        recent_scans = ScanResultListSerializer(
+            ScanResult.objects.filter(user=user).order_by('-scanned_at')[:5],
+            many=True
+        ).data
+
+        # Combined recent activity feed
+        activity_items = []
+        for s in ScanResult.objects.filter(user=user).order_by('-scanned_at')[:4]:
+            activity_items.append({
+                "type": "SCAN",
+                "title": f"Web Scan: {s.domain}",
+                "detail": f"{s.risk_level.title()} risk • Score {s.security_score}/100",
+                "risk_level": s.risk_level,
+                "timestamp": s.scanned_at.isoformat()
+            })
+        for u in URLScanResult.objects.filter(user=user).order_by('-created_at')[:3]:
+            activity_items.append({
+                "type": "URL",
+                "title": f"URL Scan: {u.hostname or u.domain}",
+                "detail": f"{u.severity} severity • HTTP {u.http_status or 200}",
+                "risk_level": u.severity.lower(),
+                "timestamp": u.created_at.isoformat()
+            })
+        for f in FileAnalysis.objects.filter(user=user).order_by('-created_at')[:3]:
+            activity_items.append({
+                "type": "FILE",
+                "title": f"File Analysis: {f.original_filename or f.filename or 'File'}",
+                "detail": f"{f.severity} severity • {f.detected_type}",
+                "risk_level": f.severity.lower(),
+                "timestamp": f.created_at.isoformat()
+            })
+
+        activity_items.sort(key=lambda x: x["timestamp"], reverse=True)
+        activity_items = activity_items[:6]
+
+        # Average security score (defaults to 100 if user has no scans yet)
+        user_scans = ScanResult.objects.filter(user=user)
+        if user_scans.exists():
+            avg_score = round(sum(s.security_score for s in user_scans) / user_scans.count())
+        else:
+            avg_score = 100
+
+        return Response({
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+            },
+            "metrics": {
+                "analyzed_urls": analyzed_urls,
+                "website_scans": website_scans_count,
+                "url_scans": url_scans_count,
+                "scans_today": scans_today,
+                "high_security_risks": total_high_risks,
+                "medium_risks": total_medium_risks,
+                "low_clean_risks": total_low_clean,
+                "active_modules_count": active_modules_count,
+                "total_reports": reports_count,
+                "average_security_score": avg_score
+            },
+            "threat_breakdown": {
+                "critical_high": total_high_risks,
+                "medium": total_medium_risks,
+                "low": total_low_clean
+            },
+            "active_modules": modules,
+            "recent_scans": recent_scans,
+            "recent_activity": activity_items
+        }, status=status.HTTP_200_OK)
+
+
+class UserScansListView(APIView):
+    authentication_classes = [GracefulJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        user = resolve_request_user(request)
+        if not user:
+            return Response([], status=status.HTTP_200_OK)
+        scans = ScanResult.objects.filter(user=user).order_by('-scanned_at')
         serializer = ScanResultListSerializer(scans, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserScanDetailView(APIView):
-    permission_classes = [IsUserRole]
+    authentication_classes = [GracefulJWTAuthentication]
+    permission_classes = [AllowAny]
 
     def get(self, request, pk):
-        scan = ScanResult.objects.filter(user=request.user, pk=pk).first()
+        user = resolve_request_user(request)
+        if not user:
+            return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+        scan = ScanResult.objects.filter(user=user, pk=pk).first()
         if not scan:
             return Response({"error": "Scan record not found."}, status=status.HTTP_404_NOT_FOUND)
         serializer = ScanResultSerializer(scan)
@@ -1127,9 +1271,9 @@ class AdminAuditLogsView(APIView):
     permission_classes = [IsAdminRole]
 
     def get(self, request):
-        logs = AdminAuditLog.objects.all().order_by('-timestamp')[:50]
+        logs = AdminAuditLog.objects.all().order_by('-timestamp')[:100]
         serializer = AdminAuditLogSerializer(logs, many=True)
-        return Response({"logs": serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class AdminSettingsView(APIView):
@@ -1184,6 +1328,26 @@ class AdminAllIncidentsListView(APIView):
         incidents = Incident.objects.all().order_by('-created_at')
         serializer = IncidentSerializer(incidents, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        title = request.data.get('title', '').strip()
+        if not title:
+            return Response({"error": "Incident title is required."}, status=status.HTTP_400_BAD_REQUEST)
+        severity = request.data.get('severity', 'HIGH').upper()
+        status_val = request.data.get('status', 'OPEN').upper()
+        description = request.data.get('description', '').strip()
+
+        incident = Incident.objects.create(
+            user=request.user,
+            title=title,
+            description=description,
+            severity=severity,
+            status=status_val,
+            assigned_to=request.user
+        )
+        log_admin_action(request.user, "CREATE_INCIDENT", target_record=f"Incident #{incident.id}: {incident.title}", request=request)
+        serializer = IncidentSerializer(incident)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class AdminAllFileAnalysesListView(APIView):
@@ -2852,6 +3016,18 @@ class SOCAnalyzeView(APIView):
             analysis_duration=analysis_data['analysis_duration']
         )
 
+        # 4b. Automatically generate platform SecurityReport for Admin Report Section
+        try:
+            from scanner.services.reports.service import SecurityReportService
+            SecurityReportService.generate_report(
+                target=target,
+                user=user,
+                soc_analysis_id=soc_record.id,
+                report_type="SOC_ANALYSIS"
+            )
+        except Exception:
+            pass
+
         if user and getattr(user, 'pk', None):
             try:
                 AdminAuditLog.objects.create(
@@ -2934,11 +3110,14 @@ class SOCUserHistoryView(APIView):
     User Portal SOC Analysis History Endpoint.
     GET /api/soc/history/
     """
+    authentication_classes = [GracefulJWTAuthentication]
     permission_classes = [AllowAny]
 
     def get(self, request):
         user = resolve_request_user(request)
-        queryset = SOCAnalysis.objects.filter(user=user)
+        if not user:
+            return Response([], status=status.HTTP_200_OK)
+        queryset = SOCAnalysis.objects.filter(user=user).order_by('-created_at')
 
         q = request.query_params.get('q', '').strip()
         if q:
@@ -3282,6 +3461,16 @@ class AdminAllReportsListView(APIView):
     permission_classes = [IsAdminRole]
 
     def get(self, request):
+        # Auto-sync any unsynced SOCAnalysis records to ensure all user scans appear
+        try:
+            unsynced = SOCAnalysis.objects.filter(generated_reports__isnull=True)
+            if unsynced.exists():
+                from scanner.services.reports.service import SecurityReportService
+                for s in unsynced[:25]:
+                    SecurityReportService.generate_report(target=s.target, user=s.user, soc_analysis_id=s.id)
+        except Exception:
+            pass
+
         queryset = SecurityReport.objects.select_related('user').all().order_by('-created_at')
 
         search = request.query_params.get('search', '').strip()
@@ -3317,6 +3506,16 @@ class AdminReportsAnalyticsView(APIView):
     permission_classes = [IsAdminRole]
 
     def get(self, request):
+        # Auto-sync any unsynced SOCAnalysis records to ensure analytics always reflect latest scans
+        try:
+            unsynced = SOCAnalysis.objects.filter(generated_reports__isnull=True)
+            if unsynced.exists():
+                from scanner.services.reports.service import SecurityReportService
+                for s in unsynced[:25]:
+                    SecurityReportService.generate_report(target=s.target, user=s.user, soc_analysis_id=s.id)
+        except Exception:
+            pass
+
         total_reports = SecurityReport.objects.count()
         today = timezone.now().date()
         reports_today = SecurityReport.objects.filter(created_at__date=today).count()
@@ -3331,7 +3530,10 @@ class AdminReportsAnalyticsView(APIView):
         low_count = SecurityReport.objects.filter(severity__iexact='LOW').count()
 
         from django.db.models import Avg
-        avg_risk = SecurityReport.objects.aggregate(avg=Avg('risk_score'))['avg'] or 0
+        avg_risk = SecurityReport.objects.aggregate(avg=Avg('risk_score'))['avg']
+        if avg_risk is None:
+            avg_risk = SOCAnalysis.objects.aggregate(avg=Avg('risk_score'))['avg'] or 0
+
         avg_conf = SecurityReport.objects.aggregate(avg=Avg('confidence'))['avg'] or 0
 
         return Response({
@@ -3351,6 +3553,7 @@ class AdminReportsAnalyticsView(APIView):
             "avg_risk_score": round(avg_risk, 1),
             "avg_confidence": round(avg_conf, 1)
         }, status=status.HTTP_200_OK)
+
 
 
 class AdminReportDetailView(APIView):
@@ -3442,6 +3645,22 @@ class AdminReportCSVDownloadView(APIView):
             return response
         except SecurityReport.DoesNotExist:
             return Response({"error": "Security report not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class AdminReportDownloadView(APIView):
+    """
+    SOC Admin Portal Multi-format Report Download Endpoint.
+    GET /api/admin/reports/<pk>/download/?format=(pdf|json|csv)
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, pk):
+        fmt = request.query_params.get('format', 'pdf').lower()
+        if fmt == 'json':
+            return AdminReportJSONDownloadView().get(request, pk)
+        elif fmt == 'csv':
+            return AdminReportCSVDownloadView().get(request, pk)
+        return AdminReportPDFDownloadView().get(request, pk)
 
 
 class FileAnalysisPDFDownloadView(APIView):

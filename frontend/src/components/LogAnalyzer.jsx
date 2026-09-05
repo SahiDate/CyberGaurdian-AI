@@ -1,7 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useAnimatedCount } from '../hooks/useAnimatedCount';
 import { AuthContext } from '../context/AuthContext';
 import { emitSecurityEvent } from '../utils/securityEventBus';
+import AnimatedHistoryCard from './shared/AnimatedHistoryCard';
 
 // Inline Icon Helpers
 const AlertTriangleIcon = () => (
@@ -67,8 +68,53 @@ export default function LogAnalyzer() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [socHistory, setSocHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const fetchSocHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const headers = {};
+      if (authTokens?.access) {
+        headers['Authorization'] = `Bearer ${authTokens.access}`;
+      }
+      const res = await fetch('http://localhost:8000/api/soc/history/', { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setSocHistory(data);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch SOC history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSocHistory();
+  }, [authTokens?.access]);
+
+  const handleSelectHistoryItem = (item) => {
+    if (item) {
+      const detailInfo = [
+        `# Historical SOC Record: ${item._displayTarget || item.target || 'Server Incident'}`,
+        `# Severity: ${item.severity || 'N/A'} | Threat Level: ${item.threat_level || 'N/A'}`,
+        `# Risk Score: ${item.risk_score || 'N/A'}/100`,
+        `# Summary: ${item.summary || 'Historical security event record'}`,
+        item.findings && Array.isArray(item.findings) && item.findings.length > 0
+          ? `# Findings:\n# - ${item.findings.map(f => typeof f === 'string' ? f : (f.title || f.description || JSON.stringify(f))).join('\n# - ')}`
+          : '',
+        `\n# [Sample replay entry for re-scanning]`,
+        `192.168.1.100 - - [04/Sep/2026:12:00:00 +0000] "POST /api/v1/auth/login HTTP/1.1" 401 128`
+      ].filter(Boolean).join('\n');
+
+      setLogText(detailInfo);
+      window.scrollTo({ top: 220, behavior: 'smooth' });
+    }
+  };
 
   const handleDownloadPdf = async () => {
     if (!results) return;
@@ -142,6 +188,7 @@ export default function LogAnalyzer() {
       if (response.status === 200) {
         setResults(data);
         emitSecurityEvent('SOC_LOG_ANALYZED', data);
+        fetchSocHistory();
       } else {
         alert(data.error || "Failed to analyze logs.");
       }
@@ -302,6 +349,16 @@ export default function LogAnalyzer() {
           </button>
         </form>
       </div>
+
+      {/* 1-by-1 Animated SOC Analysis History Card (Expandable to Current, Past, All) */}
+      <AnimatedHistoryCard
+        title="SOC & Log Analysis Stream"
+        type="soc"
+        items={socHistory}
+        loading={historyLoading}
+        onSelectItem={handleSelectHistoryItem}
+        emptyMessage="No SOC log analyses recorded yet. Submit logs above to initiate analysis."
+      />
 
       {loading && (
         <div className="glass-panel" style={{ padding: 'var(--space-32)', textAlign: 'center' }}>

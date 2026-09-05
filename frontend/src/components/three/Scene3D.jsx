@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import ParticleField from './ParticleField';
@@ -17,6 +18,7 @@ function SceneContent() {
 }
 
 export default function Scene3D() {
+  const location = useLocation();
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -32,8 +34,14 @@ export default function Scene3D() {
     }
   }, []);
 
+  // Completely remove 3D canvas from background of all admin dashboard pages
+  if (location.pathname.toLowerCase().startsWith('/admin')) {
+    return null;
+  }
+
   return (
     <div
+      className="scene3d-background-canvas"
       style={{
         position: 'fixed',
         inset: 0,

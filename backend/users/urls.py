@@ -6,7 +6,7 @@ from rest_framework_simplejwt.views import (
 from .views import (
     RegisterView, VerifyRegistrationView, LoginInitiateView, VerifyLoginView,
     AdminLoginInitiateView, AdminVerifyLoginView, ForgotPasswordView, ResetPasswordView,
-    UserProfileView, UserSettingsView, UserScansListView, UserScanDetailView,
+    UserProfileView, UserSettingsView, UserDashboardKPIView, UserScansListView, UserScanDetailView,
     UserReportsListView, UserReportDetailView, UserThreatsListView, UserIncidentsListView,
     UserFileAnalysisListView, UserFileAnalysisDetailView, UserAIActivityListView, UserNotificationsListView,
     AdminUserListView, AdminUserDetailView, AdminSystemHealthView, AdminApiHealthView,
@@ -32,7 +32,7 @@ from .views import (
     AgentAdminListView, AgentAdminDetailView, AgentAdminAnalyticsView,
     UserReportGenerateView, UserReportPDFDownloadView, UserReportJSONDownloadView, UserReportCSVDownloadView,
     AdminReportsAnalyticsView, AdminReportDetailView, AdminReportPDFDownloadView,
-    AdminReportJSONDownloadView, AdminReportCSVDownloadView,
+    AdminReportJSONDownloadView, AdminReportCSVDownloadView, AdminReportDownloadView,
     FileAnalysisPDFDownloadView, SOCAnalysisPDFDownloadView, QuickScanPDFDownloadView
 )
 
@@ -56,6 +56,7 @@ urlpatterns = [
     # User Isolated Endpoints
     path('api/profile/', UserProfileView.as_view(), name='user_profile'),
     path('api/settings/', UserSettingsView.as_view(), name='user_settings'),
+    path('api/user/dashboard/', UserDashboardKPIView.as_view(), name='user_dashboard_kpi'),
     path('api/scans/', UserScansListView.as_view(), name='scans_list'),
     path('api/scans/<int:pk>/', UserScanDetailView.as_view(), name='scan_detail'),
     path('api/user/scans/', UserScansListView.as_view(), name='user_scans'),
@@ -124,13 +125,18 @@ urlpatterns = [
     path('api/admin/users/<int:pk>/', AdminUserDetailView.as_view(), name='admin_user_detail'),
     path('api/admin/system-health/', AdminSystemHealthView.as_view(), name='admin_system_health'),
     path('api/admin/api-health/', AdminApiHealthView.as_view(), name='admin_api_health'),
-    path('api/admin/threats/', AdminThreatAnalyticsView.as_view(), name='admin_threats'),
+    path('api/admin/threats/', ThreatIntelAdminListView.as_view(), name='admin_threats'),
+    path('api/admin/threats/analytics/', ThreatIntelAdminAnalyticsView.as_view(), name='admin_threats_analytics'),
+    path('api/admin/threats/<int:pk>/', ThreatIntelAdminDetailView.as_view(), name='admin_threats_detail'),
+    path('api/admin/threat-analytics/', AdminThreatAnalyticsView.as_view(), name='admin_threat_analytics_legacy'),
     path('api/admin/logs/', AdminAuditLogsView.as_view(), name='admin_logs'),
+    path('api/admin/audit-logs/', AdminAuditLogsView.as_view(), name='admin_audit_logs'),
     path('api/admin/settings/', AdminSettingsView.as_view(), name='admin_settings'),
     path('api/admin/scans/', AdminAllScansListView.as_view(), name='admin_scans'),
     path('api/admin/reports/', AdminAllReportsListView.as_view(), name='admin_all_reports'),
     path('api/admin/reports/analytics/', AdminReportsAnalyticsView.as_view(), name='admin_reports_analytics'),
     path('api/admin/reports/<int:pk>/', AdminReportDetailView.as_view(), name='admin_report_detail'),
+    path('api/admin/reports/<int:pk>/download/', AdminReportDownloadView.as_view(), name='admin_report_download'),
     path('api/admin/reports/<int:pk>/pdf/', AdminReportPDFDownloadView.as_view(), name='admin_report_pdf'),
     path('api/admin/reports/<int:pk>/json/', AdminReportJSONDownloadView.as_view(), name='admin_report_json'),
     path('api/admin/reports/<int:pk>/csv/', AdminReportCSVDownloadView.as_view(), name='admin_report_csv'),
@@ -165,6 +171,9 @@ urlpatterns = [
     path('api/admin/soc/', SOCAdminListView.as_view(), name='admin_soc_list'),
     path('api/admin/soc/analytics/', SOCAdminAnalyticsView.as_view(), name='admin_soc_analytics'),
     path('api/admin/soc/<int:pk>/', SOCAdminDetailView.as_view(), name='admin_soc_detail'),
+    path('api/admin/soc-analysis/', SOCAdminListView.as_view(), name='admin_soc_analysis_list'),
+    path('api/admin/soc-analysis/analytics/', SOCAdminAnalyticsView.as_view(), name='admin_soc_analysis_analytics'),
+    path('api/admin/soc-analysis/<int:pk>/', SOCAdminDetailView.as_view(), name='admin_soc_analysis_detail'),
 
     # Admin Aggregated & Analytics Endpoints
     path('api/admin/dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
@@ -180,6 +189,9 @@ urlpatterns = [
     path('api/admin/agent/', AgentAdminListView.as_view(), name='admin_agent_list'),
     path('api/admin/agent/analytics/', AgentAdminAnalyticsView.as_view(), name='admin_agent_analytics'),
     path('api/admin/agent/<int:pk>/', AgentAdminDetailView.as_view(), name='admin_agent_detail'),
+    path('api/admin/ai-agent/', AgentAdminListView.as_view(), name='admin_ai_agent_list'),
+    path('api/admin/ai-agent/analytics/', AgentAdminAnalyticsView.as_view(), name='admin_ai_agent_analytics'),
+    path('api/admin/ai-agent/<int:pk>/', AgentAdminDetailView.as_view(), name='admin_ai_agent_detail'),
 ]
 
 

@@ -231,11 +231,17 @@ class PDFReportGenerator:
             find_y -= 54
         else:
             for f in findings[:3]:
-                f_title = f.get("title") or f.get("type") or "Security Observation"
-                f_sev = str(f.get("severity", "LOW")).upper()
-                f_desc = f.get("description") or f.get("summary") or "Indicator detected during telemetry scan."
+                if isinstance(f, dict):
+                    f_title = f.get("title") or f.get("type") or "Security Observation"
+                    f_sev = str(f.get("severity", "LOW")).upper()
+                    f_desc = f.get("description") or f.get("summary") or "Indicator detected during telemetry scan."
+                else:
+                    f_title = f"Security Observation: Port {f}"
+                    f_sev = "LOW"
+                    f_desc = f"Open service or port detected on target: {f}"
                 
                 f_color, f_bg, f_border, _ = sev_palette.get(f_sev, sev_palette["LOW"])
+
 
                 # Finding Card Box
                 card_box_h = 50

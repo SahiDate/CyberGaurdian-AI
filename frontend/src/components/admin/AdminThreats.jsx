@@ -1,37 +1,19 @@
 import React, { useState, useEffect, useContext } from 'react';
 import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
-import { subscribeSecurityEvents } from '../../utils/securityEventBus';
-
-const API = 'http://localhost:8000';
+import { useTheme } from '../../context/ThemeContext';
+import { ShieldAlert, RotateCw, Search, ChevronDown, ChevronUp, AlertCircle, ExternalLink } from 'lucide-react';
 
 const SEV_CONFIG = {
-  CRITICAL: { color: '#f85149', bg: 'rgba(248,81,73,0.12)', border: '#f85149' },
-  HIGH: { color: '#e3b341', bg: 'rgba(227,179,65,0.12)', border: '#e3b341' },
-  MEDIUM: { color: '#388bfd', bg: 'rgba(56,139,253,0.12)', border: '#388bfd' },
-  LOW: { color: '#39d353', bg: 'rgba(57,211,83,0.12)', border: '#39d353' },
-  UNKNOWN: { color: '#8b949e', bg: 'rgba(139,148,158,0.12)', border: '#8b949e' },
-};
-
-const SevBadge = ({ severity }) => {
-  const cfg = SEV_CONFIG[severity?.toUpperCase()] || SEV_CONFIG.UNKNOWN;
-  return (
-    <span style={{
-      color: cfg.color,
-      background: cfg.bg,
-      border: `1px solid ${cfg.border || 'transparent'}`,
-      padding: '0.15rem 0.5rem',
-      borderRadius: '4px',
-      fontSize: '0.72rem',
-      fontWeight: 700
-    }}>
-      {severity || 'UNKNOWN'}
-    </span>
-  );
+  CRITICAL: { color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
+  HIGH:     { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
+  MEDIUM:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+  LOW:      { color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
 };
 
 export default function AdminThreats() {
   const { authTokens } = useContext(AuthContext);
+  const { isDark } = useTheme();
   const [threats, setThreats] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,274 +25,311 @@ export default function AdminThreats() {
 
   useEffect(() => {
     fetchData();
-    const unsubscribe = subscribeSecurityEvents(() => {
-      fetchData();
-    });
-    return () => unsubscribe();
   }, []);
 
   const fetchData = async () => {
     try {
-      const [listRes, statsRes] = await Promise.all([
-        fetch(`${API}/api/admin/threat-intelligence/`, {
-          headers: { Authorization: `Bearer ${authTokens?.access}` },
-        }),
-        fetch(`${API}/api/admin/threat-intelligence/analytics/`, {
-          headers: { Authorization: `Bearer ${authTokens?.access}` },
-        })
+      const h = { Authorization: `Bearer ${authTokens?.access}` };
+      const [tRes, aRes] = await Promise.all([
+        fetch('http://localhost:8000/api/admin/threats/', { headers: h }),
+        fetch('http://localhost:8000/api/admin/threats/analytics/', { headers: h }),
       ]);
-
-      if (listRes.ok) {
-        setThreats(await listRes.json());
+      if (tRes.ok) {
+        const tData = await tRes.json();
+        setThreats(Array.isArray(tData) ? tData : (tData.results || []));
       }
-      if (statsRes.ok) {
-        setAnalytics(await statsRes.json());
-      }
+      if (aRes.ok) setAnalytics(await aRes.json());
     } catch (e) {
-      console.error("Error fetching admin threat data:", e);
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
-  const filtered = threats.filter(t => {
-    const matchSev = sevFilter === 'ALL' || (t.severity?.toUpperCase() === sevFilter);
-    const matchType = typeFilter === 'ALL' || (t.target_type?.toUpperCase() === typeFilter);
-    const matchProv = providerFilter === 'ALL' || (t.provider?.toLowerCase().includes(providerFilter.toLowerCase()));
-    const matchSearch = !search ||
+  const threatsList = Array.isArray(threats) ? threats : [];
+  const filtered = threatsList.filter(t => {
+    const matchSearch =
       t.target?.toLowerCase().includes(search.toLowerCase()) ||
       t.username?.toLowerCase().includes(search.toLowerCase()) ||
-      t.provider?.toLowerCase().includes(search.toLowerCase());
-    return matchSev && matchType && matchProv && matchSearch;
+      t.data_source?.toLowerCase().includes(search.toLowerCase());
+    const matchSev = sevFilter === 'ALL' || t.severity === sevFilter;
+    const matchType = typeFilter === 'ALL' || t.target_type === typeFilter;
+    const matchProv = providerFilter === 'ALL' || (t.data_source && t.data_source.toLowerCase().includes(providerFilter.toLowerCase()));
+    return matchSearch && matchSev && matchType && matchProv;
   });
 
   const TABS = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 
   return (
     <AdminSidebar>
-      <div style={{ maxWidth: '1300px', fontFamily: "'Inter', sans-serif" }}>
-
+      <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          marginBottom: '1.75rem'
+        }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)' }}>🚨 Threat Intelligence SOC Monitor</h1>
-            <p style={{ color: 'var(--text-muted)', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
+            <h1 style={{
+              margin: 0,
+              fontSize: '1.75rem',
+              fontWeight: 700,
+              color: 'var(--admin-text-main, #0f172a)',
+              letterSpacing: '-0.02em'
+            }}>
+              Threat Intelligence
+            </h1>
+            <p style={{
+              margin: '0.25rem 0 0',
+              fontSize: '0.875rem',
+              color: 'var(--admin-text-muted, #64748b)'
+            }}>
               Platform-wide threat intelligence detections across all users and modules.
             </p>
           </div>
 
-          <button
-            onClick={fetchData}
-            className="glass-panel"
-            style={{
-              padding: '0.55rem 1.1rem',
-              background: 'rgba(56,139,253,0.15)',
-              border: '1px solid var(--accent-color)',
-              color: 'var(--accent-color)',
-              borderRadius: '8px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontSize: '0.82rem'
-            }}
-          >
-            🔄 Refresh Feeds
+          <button onClick={fetchData} className="admin-btn-secondary">
+            <RotateCw size={16} />
+            <span>Refresh Feeds</span>
           </button>
         </div>
 
-        {/* Real DB Aggregation Analytics Metric Strip */}
+        {/* Analytics Summary Cards (Metis Style) */}
         {analytics && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
-            <div className="glass-panel" style={{ borderRadius: '12px', padding: '1.25rem' }}>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Checks</div>
-              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.2rem' }}>{analytics.total_checks}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--accent-color)', marginTop: '0.3rem', fontWeight: 600 }}>+{analytics.scans_today} today</div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1.25rem',
+            marginBottom: '1.5rem'
+          }}>
+            <div className="admin-card" style={{ padding: '1.25rem 1.5rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--admin-text-muted, #64748b)' }}>
+                Total Threat Checks
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--admin-text-main, #0f172a)', margin: '0.2rem 0' }}>
+                {analytics.total_checks}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 600 }}>
+                +{analytics.scans_today} today
+              </div>
             </div>
 
-            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--danger-color)', borderRadius: '12px', padding: '1.25rem' }}>
-              <div style={{ color: 'var(--danger-color)', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Critical Detections</div>
-              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--danger-color)', marginTop: '0.2rem' }}>
+            <div className="admin-card" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #ef4444' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#ef4444' }}>
+                Critical Detections
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#ef4444', margin: '0.2rem 0' }}>
                 {analytics.severity_breakdown?.critical || 0}
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>Threat score ≥ 75</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted, #64748b)' }}>
+                Threat score ≥ 75
+              </div>
             </div>
 
-            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--warning-color)', borderRadius: '12px', padding: '1.25rem' }}>
-              <div style={{ color: 'var(--warning-color)', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>High Detections</div>
-              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--warning-color)', marginTop: '0.2rem' }}>
+            <div className="admin-card" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #f97316' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f97316' }}>
+                High Detections
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#f97316', margin: '0.2rem 0' }}>
                 {analytics.severity_breakdown?.high || 0}
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>Threat score 50–74</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted, #64748b)' }}>
+                Threat score 50–74
+              </div>
             </div>
 
-            <div className="glass-panel" style={{ borderLeft: '3.5px solid var(--success-color)', borderRadius: '12px', padding: '1.25rem' }}>
-              <div style={{ color: 'var(--success-color)', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Low / Clean</div>
-              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--success-color)', marginTop: '0.2rem' }}>
+            <div className="admin-card" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #10b981' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#10b981' }}>
+                Low / Clean
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#10b981', margin: '0.2rem 0' }}>
                 {analytics.severity_breakdown?.low || 0}
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>Threat score &lt; 25</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted, #64748b)' }}>
+                Threat score &lt; 25
+              </div>
             </div>
           </div>
         )}
 
-        {/* Severity Tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-          {TABS.map(tab => {
-            const cfg = SEV_CONFIG[tab] || { color: 'var(--text-main)', bg: 'var(--panel-bg)' };
-            const active = sevFilter === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setSevFilter(tab)}
-                className="glass-panel"
-                style={{
-                  padding: '0.45rem 1rem',
-                  borderRadius: '20px',
-                  border: active ? `2px solid ${cfg.color}` : '1px solid var(--border-subtle)',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  letterSpacing: '0.5px',
-                  background: active ? `${cfg.color}25` : 'var(--panel-bg)',
-                  color: active ? cfg.color : 'var(--text-muted)',
-                  transition: 'all 0.15s',
-                }}
+        {/* Card Container for Table & Filters */}
+        <div className="admin-card" style={{ padding: '1.5rem' }}>
+          {/* Severity Filter Tabs & Filter Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            marginBottom: '1.25rem'
+          }}>
+            <div className="admin-pill-group">
+              {TABS.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setSevFilter(tab)}
+                  className={`admin-pill-btn ${sevFilter === tab ? 'active' : ''}`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ position: 'relative', minWidth: '220px' }}>
+                <input
+                  type="text"
+                  placeholder="Search target or user..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 0.85rem 0.45rem 2.2rem',
+                    fontSize: '0.82rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+              </div>
+
+              <select
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.82rem' }}
               >
-                {tab}
-              </button>
-            );
-          })}
-        </div>
+                <option value="ALL">All Target Types</option>
+                <option value="DOMAIN">Domain</option>
+                <option value="URL">URL</option>
+                <option value="IP">IP Address</option>
+                <option value="FILE_HASH">File Hash</option>
+              </select>
 
-        {/* Multi-Filter Bar */}
-        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            placeholder="Search by target, user, or provider..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="glass-panel"
-            style={{ flex: '1 1 280px', padding: '0.65rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '8px', fontSize: '0.85rem', outline: 'none' }}
-          />
+              <select
+                value={providerFilter}
+                onChange={e => setProviderFilter(e.target.value)}
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.82rem' }}
+              >
+                <option value="ALL">All Providers</option>
+                <option value="VirusTotal">VirusTotal</option>
+                <option value="AbuseIPDB">AbuseIPDB</option>
+                <option value="urlscan">urlscan.io</option>
+              </select>
+            </div>
+          </div>
 
-          <select
-            value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
-            className="glass-panel"
-            style={{ padding: '0.65rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '8px', fontSize: '0.85rem' }}
-          >
-            <option value="ALL">All Target Types</option>
-            <option value="DOMAIN">Domain</option>
-            <option value="URL">URL</option>
-            <option value="IP">IP Address</option>
-            <option value="FILE_HASH">File Hash</option>
-          </select>
-
-          <select
-            value={providerFilter}
-            onChange={e => setProviderFilter(e.target.value)}
-            className="glass-panel"
-            style={{ padding: '0.65rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '8px', fontSize: '0.85rem' }}
-          >
-            <option value="ALL">All Providers</option>
-            <option value="VirusTotal">VirusTotal</option>
-            <option value="AbuseIPDB">AbuseIPDB</option>
-            <option value="urlscan">urlscan.io</option>
-          </select>
-        </div>
-
-        {/* Platform Table */}
-        <div className="glass-panel" style={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
           {loading ? (
-            <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading platform threat intelligence records...</div>
+            <div style={{ padding: '3.5rem', textAlign: 'center', color: '#64748b' }}>
+              Loading platform threat intelligence records...
+            </div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>No threat intelligence records found matching filters.</div>
+            <div style={{ padding: '3.5rem', textAlign: 'center', color: '#64748b' }}>
+              No threat intelligence records found matching filters.
+            </div>
           ) : (
             <div className="table-responsive-container" style={{ margin: 0 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '850px' }}>
+              <table>
                 <thead>
-                  <tr style={{ background: 'var(--panel-bg)', borderBottom: '1px solid var(--border-subtle)' }}>
-                    {['ID', 'User', 'Target', 'Type', 'Providers', 'Score', 'Severity', 'Status', 'Detected At', ''].map(h => (
-                      <th key={h} style={{ padding: '0.85rem 1rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>{h}</th>
-                    ))}
+                  <tr>
+                    <th>ID</th>
+                    <th>USER</th>
+                    <th>TARGET</th>
+                    <th>TYPE</th>
+                    <th>PROVIDERS</th>
+                    <th>SCORE</th>
+                    <th>SEVERITY</th>
+                    <th>STATUS</th>
+                    <th>DETECTED AT</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(t => (
-                    <React.Fragment key={t.id}>
-                      <tr
-                        style={{ borderTop: '1px solid var(--border-subtle)', cursor: 'pointer', background: expanded === t.id ? 'rgba(56,139,253,0.08)' : 'transparent', transition: 'background-color 0.15s ease' }}
-                        onClick={() => setExpanded(expanded === t.id ? null : t.id)}
-                        onMouseEnter={e => { if (expanded !== t.id) e.currentTarget.style.backgroundColor = 'rgba(88,166,255,0.05)'; }}
-                        onMouseLeave={e => { if (expanded !== t.id) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                      >
-                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>#{t.id}</td>
-                        <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--accent-color)' }}>{t.username || 'System'}</td>
-                        <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-main)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.target}</td>
-                        <td style={{ padding: '0.85rem 1rem' }}>
-                          <span style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'var(--panel-bg)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)', fontWeight: 600 }}>
-                            {t.target_type}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 500 }}>{t.provider}</td>
-                        <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: SEV_CONFIG[t.severity?.toUpperCase()]?.color || 'var(--text-main)' }}>
-                          {t.threat_score}/100
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem' }}><SevBadge severity={t.severity} /></td>
-                        <td style={{ padding: '0.85rem 1rem', color: t.status === 'SUCCESS' ? 'var(--success-color)' : 'var(--warning-color)', fontSize: '0.75rem', fontWeight: 700 }}>{t.status}</td>
-                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(t.detected_at).toLocaleString()}</td>
-                        <td style={{ padding: '0.85rem 1rem', color: 'var(--accent-color)', fontSize: '0.9rem' }}>{expanded === t.id ? '▲' : '▼'}</td>
-                      </tr>
-
-                      {expanded === t.id && (
-                        <tr>
-                          <td colSpan={10} style={{ padding: '1.25rem 1.5rem', background: 'rgba(56,139,253,0.04)', borderTop: '1px solid var(--border-subtle)' }}>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.6 }}>
-                              <div style={{ display: 'flex', gap: '2rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                                <div>
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>RECORD OWNER</span>
-                                  <div style={{ fontWeight: 700, color: 'var(--accent-color)' }}>{t.username} (ID: {t.user_id})</div>
-                                </div>
-                                <div>
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>EVIDENCE CONFIDENCE</span>
-                                  <div style={{ fontWeight: 700 }}>{t.confidence}%</div>
-                                </div>
-                                <div>
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>INDICATORS</span>
-                                  <div style={{ fontWeight: 700, color: 'var(--danger-color)' }}>
-                                    {t.malicious_count || 0} Malicious / {t.suspicious_count || 0} Suspicious / {t.harmless_count || 0} Clean
-                                  </div>
-                                </div>
-                              </div>
-
-                              {t.error_message && (
-                                <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(248,81,73,0.1)', color: 'var(--danger-color)', marginBottom: '1rem', fontSize: '0.8rem', border: '1px solid rgba(248,81,73,0.3)' }}>
-                                  <strong>Provider Warning / Error:</strong> {t.error_message}
-                                </div>
-                              )}
-
-                              {t.detection_summary?.signals?.length > 0 && (
-                                <div>
-                                  <strong style={{ color: 'var(--accent-color)' }}>Correlated Evidence Signals:</strong>
-                                  <ul style={{ margin: '0.4rem 0 0 0', paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.82rem' }}>
-                                    {t.detection_summary.signals.map((sig, idx) => (
-                                      <li key={idx}>{sig}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
+                  {filtered.map(t => {
+                    const sev = SEV_CONFIG[t.severity] || { color: '#64748b', bg: '#f1f5f9' };
+                    return (
+                      <React.Fragment key={t.id}>
+                        <tr
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setExpanded(expanded === t.id ? null : t.id)}
+                        >
+                          <td style={{ fontWeight: 600, color: 'var(--admin-text-muted, #64748b)' }}>#{t.id}</td>
+                          <td style={{ fontWeight: 600, color: '#6366f1' }}>{t.username || 'System'}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--admin-text-main, #0f172a)', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {t.target}
+                          </td>
+                          <td>
+                            <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#f1f5f9', color: 'var(--admin-text-muted, #64748b)', fontWeight: 600 }}>
+                              {t.target_type}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted, #64748b)' }}>
+                            {t.data_source || 'Internal Engine'}
+                          </td>
+                          <td style={{ fontWeight: 700, color: t.threat_score >= 70 ? '#ef4444' : t.threat_score >= 40 ? '#f59e0b' : '#10b981' }}>
+                            {t.threat_score}/100
+                          </td>
+                          <td>
+                            <span style={{
+                              padding: '2px 9px',
+                              borderRadius: '9999px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              backgroundColor: `${sev.color}15`,
+                              color: sev.color,
+                              border: `1px solid ${sev.color}35`,
+                              display: 'inline-block'
+                            }}>
+                              {t.severity}
+                            </span>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--admin-text-muted, #64748b)' }}>
+                              {t.status || 'ACTIVE'}
+                            </span>
+                          </td>
+                          <td style={{ color: 'var(--admin-text-muted, #64748b)', whiteSpace: 'nowrap' }}>
+                            {new Date(t.created_at || t.timestamp).toLocaleDateString()}
+                          </td>
+                          <td style={{ color: '#94a3b8' }}>
+                            {expanded === t.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
+
+                        {expanded === t.id && (
+                          <tr>
+                            <td colSpan={10} style={{ padding: '1.25rem', backgroundColor: isDark ? '#0f172a' : '#f8fafc', borderTop: `1px solid ${isDark ? '#334155' : '#e2e8f0'}` }}>
+                              <div style={{ fontSize: '0.85rem', color: 'var(--admin-text-main, #0f172a)' }}>
+                                <div style={{ fontWeight: 700, marginBottom: '0.4rem', color: '#6366f1' }}>Threat Evaluation Summary</div>
+                                <div style={{ color: 'var(--admin-text-muted, #64748b)', lineHeight: 1.6 }}>
+                                  Target: {t.target} | Target Type: {t.target_type} | Engine Score: {t.threat_score} | Severity: {t.severity}
+                                </div>
+                                {t.details && (
+                                  <pre style={{
+                                    marginTop: '0.5rem',
+                                    padding: '0.75rem',
+                                    backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                                    border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                                    borderRadius: '6px',
+                                    fontSize: '0.78rem',
+                                    overflowX: 'auto',
+                                    color: 'var(--admin-text-main, #0f172a)'
+                                  }}>
+                                    {typeof t.details === 'object' ? JSON.stringify(t.details, null, 2) : t.details}
+                                  </pre>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
-
-        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          Showing {filtered.length} of {threats.length} platform threat records
         </div>
       </div>
     </AdminSidebar>

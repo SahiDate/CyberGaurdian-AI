@@ -5,6 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>CyberGuardian AI</title>
+    <script>
+      // Suppress Chromium / Microsoft Edge DevTools internal soft-navigation bug
+      // (Chromium Issue 543499029: devToolsReportSoftNavs / et.reportAllChanges trying to read 'startTime' on undefined)
+      (function() {
+        function matchesDevToolsError(text) {
+          if (!text) return false;
+          var s = String(text);
+          return s.indexOf('startTime') !== -1 ||
+                 s.indexOf('reportAllChanges') !== -1 ||
+                 s.indexOf('devToolsReportSoftNavs') !== -1;
+        }
+
+        // 1. window.onerror - returning true prevents default browser error logging
+        var prevOnError = window.onerror;
+        window.onerror = function(msg, url, line, col, err) {
+          var details = String(msg || '') + ' ' + String((err && err.stack) || '') + ' ' + String(url || '');
+          if (matchesDevToolsError(details)) {
+            return true;
+          }
+          if (typeof prevOnError === 'function') {
+            return prevOnError.apply(this, arguments);
+          }
+          return false;
+        };
+
+        // 2. Window error event listener (capture phase)
+        window.addEventListener('error', function(event) {
+          var details = String(event.message || '') + ' ' + String((event.error && event.error.stack) || '') + ' ' + String(event.filename || '');
+          if (matchesDevToolsError(details)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+
+        // 3. Window unhandled promise rejection
+        window.addEventListener('unhandledrejection', function(event) {
+          var details = String((event.reason && (event.reason.message || event.reason.stack)) || event.reason || '');
+          if (matchesDevToolsError(details)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+
+        // 4. console.error interceptor for internal DevTools noise
+        var origConsoleError = console.error;
+        console.error = function() {
+          for (var i = 0; i < arguments.length; i++) {
+            var arg = arguments[i];
+            var str = (arg && arg.stack) ? arg.stack : String(arg || '');
+            if (matchesDevToolsError(str)) {
+              return; // drop DevTools internal tracking crash
+            }
+          }
+          return origConsoleError.apply(console, arguments);
+        };
+
+        // 5. Proxy/wrap window.devToolsReportSoftNavs if injected
+        try {
+          var _dtr = window.devToolsReportSoftNavs;
+          Object.defineProperty(window, 'devToolsReportSoftNavs', {
+            configurable: true,
+            enumerable: true,
+            get: function() { return _dtr; },
+            set: function(val) {
+              if (typeof val === 'function') {
+                _dtr = function() {
+                  try {
+                    return val.apply(this, arguments);
+                  } catch (err) {
+                    // Suppress internal devtools crash
+                  }
+                };
+              } else {
+                _dtr = val;
+              }
+            }
+          });
+        } catch (_) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

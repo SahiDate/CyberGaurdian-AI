@@ -135,7 +135,8 @@ a {
 }
 
 /* Ultra Frosted Glass Panel in Dark & Light Modes */
-.glass-panel, .admin-card {
+/* Ultra Frosted Glass Panel for User Portal */
+.glass-panel {
   background: var(--panel-bg);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -147,8 +148,8 @@ a {
   transition: background-color 300ms ease, border-color 300ms ease, box-shadow 300ms ease, color 300ms ease;
 }
 
-/* Hyper-glassy Light Mode Frosted Effect */
-html.light .glass-panel, html.light .admin-card {
+/* Hyper-glassy Light Mode Frosted Effect for User Portal */
+html.light .glass-panel {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(28px) saturate(190%) brightness(102%);
   -webkit-backdrop-filter: blur(28px) saturate(190%) brightness(102%);
@@ -162,7 +163,7 @@ html.light .glass-panel, html.light .admin-card {
   color: #0f172a;
 }
 
-html.dark .glass-panel, html.dark .admin-card {
+html.dark .glass-panel {
   background: rgba(22, 27, 34, 0.78);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -172,6 +173,410 @@ html.dark .glass-panel, html.dark .admin-card {
     0 12px 32px 0 rgba(0, 0, 0, 0.5),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
   color: #f0f6fc;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   METIS ADMIN DASHBOARD DESIGN SYSTEM (SOLID, CRISP, ENTERPRISE-GRADE)
+   Strictly NO blur, NO frosted glass, NO transparency in Admin Portal
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.admin-portal,
+.admin-layout,
+.admin-card,
+.admin-portal .glass-panel,
+.admin-layout .glass-panel,
+.admin-portal aside,
+.admin-layout aside,
+.admin-portal header,
+.admin-layout header {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Ensure Chart.js and graphical report canvases render crisp and visible */
+.admin-card canvas,
+.admin-portal .admin-card canvas,
+.admin-layout .admin-card canvas {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  max-width: 100% !important;
+}
+
+/* 100% Remove ONLY the 3D scene background canvas from Admin Portal */
+.scene3d-background-canvas,
+.scene3d-background-canvas canvas,
+body:has(.admin-portal) .scene3d-background-canvas,
+body:has(.admin-layout) .scene3d-background-canvas {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+
+/* Enforce pure solid backgrounds for admin and user dashboard layouts without any ambient gradients */
+body:has(.admin-portal),
+body:has(.admin-layout),
+body:has(.user-dashboard),
+html.light body:has(.admin-portal),
+html.light body:has(.admin-layout),
+html.light body:has(.user-dashboard) {
+  background: #f4f6f9 !important;
+  background-image: none !important;
+}
+
+html.dark body:has(.admin-portal),
+html.dark body:has(.admin-layout),
+html.dark body:has(.user-dashboard) {
+  background: #0f172a !important;
+  background-image: none !important;
+}
+
+
+/* Light Theme Admin & User Dashboard Variables & Overrides */
+html.light,
+html.light body,
+html.light .admin-layout,
+html.light .admin-portal,
+html.light .user-dashboard {
+  --admin-bg: #f4f6f9;
+  --admin-card-bg: #ffffff;
+  --admin-sidebar-bg: #ffffff;
+  --admin-header-bg: #ffffff;
+  --admin-border: #e2e8f0;
+  --admin-border-subtle: #edf2f7;
+  --admin-text-main: #0f172a;
+  --admin-text-muted: #64748b;
+  --admin-primary: #4f46e5;
+  --admin-primary-light: #eef2ff;
+  --admin-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* Dark Theme Admin & User Dashboard Variables & Overrides */
+html.dark,
+html.dark body,
+html.dark .admin-layout,
+html.dark .admin-portal,
+html.dark .user-dashboard {
+  --admin-bg: #0f172a;
+  --admin-card-bg: #1e293b;
+  --admin-sidebar-bg: #1e293b;
+  --admin-header-bg: #1e293b;
+  --admin-border: #334155;
+  --admin-border-subtle: #243044;
+  --admin-text-main: #f8fafc;
+  --admin-text-muted: #94a3b8;
+  --admin-primary: #6366f1;
+  --admin-primary-light: rgba(99, 102, 241, 0.15);
+  --admin-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Solid Admin & User Cards */
+.admin-card,
+.admin-layout .glass-panel,
+.admin-portal .glass-panel,
+.user-dashboard .glass-panel {
+  background-color: var(--admin-card-bg, #ffffff) !important;
+  border: 1px solid var(--admin-border, #e2e8f0) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--admin-shadow) !important;
+  color: var(--admin-text-main, #0f172a) !important;
+}
+
+html.light .admin-card,
+html.light .admin-layout .glass-panel,
+html.light .user-dashboard .glass-panel {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+html.dark .admin-card,
+html.dark .admin-layout .glass-panel,
+html.dark .user-dashboard .glass-panel {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25) !important;
+  color: #f8fafc !important;
+}
+
+/* Metis Admin Buttons */
+.admin-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #4f46e5;
+  color: #ffffff !important;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  box-shadow: 0 1px 2px 0 rgba(79, 70, 229, 0.25);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.admin-btn-primary:hover {
+  background-color: #4338ca;
+  box-shadow: 0 2px 4px 0 rgba(79, 70, 229, 0.35);
+}
+
+.admin-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background-color: #ffffff;
+  color: #475569 !important;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.admin-btn-secondary:hover {
+  background-color: #f8fafc;
+  color: #0f172a !important;
+  border-color: #cbd5e1;
+}
+
+html.dark .admin-btn-secondary {
+  background-color: #1e293b;
+  color: #cbd5e1 !important;
+  border-color: #334155;
+}
+
+html.dark .admin-btn-secondary:hover {
+  background-color: #334155;
+  color: #ffffff !important;
+  border-color: #475569;
+}
+
+/* Metis Admin Filter Pill Groups */
+.admin-pill-group {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  gap: 2px;
+}
+
+html.dark .admin-pill-group {
+  background-color: #0f172a;
+  border-color: #334155;
+}
+
+.admin-pill-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-pill-btn:hover {
+  color: #0f172a;
+}
+
+html.dark .admin-pill-btn:hover {
+  color: #ffffff;
+}
+
+.admin-pill-btn.active {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Metis Admin Status Badges */
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.admin-badge-success {
+  background-color: #10b981;
+  color: #ffffff !important;
+}
+
+.admin-badge-danger {
+  background-color: #ef4444;
+  color: #ffffff !important;
+}
+
+.admin-badge-warning {
+  background-color: #f59e0b;
+  color: #ffffff !important;
+}
+
+.admin-badge-info {
+  background-color: #0ea5e9;
+  color: #ffffff !important;
+}
+
+.admin-badge-primary {
+  background-color: #6366f1;
+  color: #ffffff !important;
+}
+
+/* Subtle Pill Badges */
+.admin-badge-subtle-success {
+  background-color: #ecfdf5;
+  color: #059669 !important;
+  border: 1px solid #a7f3d0;
+}
+
+.admin-badge-subtle-danger {
+  background-color: #fef2f2;
+  color: #dc2626 !important;
+  border: 1px solid #fecaca;
+}
+
+.admin-badge-subtle-warning {
+  background-color: #fffbeb;
+  color: #d97706 !important;
+  border: 1px solid #fde68a;
+}
+
+.admin-badge-subtle-primary {
+  background-color: #eef2ff;
+  color: #4f46e5 !important;
+  border: 1px solid #c7d2fe;
+}
+
+html.dark .admin-badge-subtle-success {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+html.dark .admin-badge-subtle-danger {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+html.dark .admin-badge-subtle-warning {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+html.dark .admin-badge-subtle-primary {
+  background-color: rgba(99, 102, 241, 0.15);
+  color: #818cf8 !important;
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* Metis Tables in Admin */
+.admin-layout table,
+.admin-portal table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-layout table th,
+.admin-portal table th {
+  padding: 0.75rem 1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  background-color: transparent;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+html.dark .admin-layout table th,
+html.dark .admin-portal table th {
+  color: #94a3b8;
+  border-bottom: 1px solid #334155;
+}
+
+.admin-layout table td,
+.admin-portal table td {
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
+}
+
+html.dark .admin-layout table td,
+html.dark .admin-portal table td {
+  border-bottom: 1px solid #243044;
+  color: #f8fafc;
+}
+
+.admin-layout table tbody tr:hover,
+.admin-portal table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+html.dark .admin-layout table tbody tr:hover,
+html.dark .admin-portal table tbody tr:hover {
+  background-color: #27354a;
+}
+
+/* Admin Form Elements */
+.admin-layout input,
+.admin-layout select,
+.admin-layout textarea,
+.admin-portal input,
+.admin-portal select,
+.admin-portal textarea {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  border-radius: 8px !important;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.875rem;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.dark .admin-layout input,
+html.dark .admin-layout select,
+html.dark .admin-layout textarea,
+html.dark .admin-portal input,
+html.dark .admin-portal select,
+html.dark .admin-portal textarea {
+  background-color: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #f8fafc !important;
+}
+
+.admin-layout input:focus,
+.admin-layout select:focus,
+.admin-layout textarea:focus,
+.admin-portal input:focus,
+.admin-portal select:focus,
+.admin-portal textarea:focus {
+  border-color: #6366f1 !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
 }
 
 /* Fluid Button Press Feedback */

@@ -32,27 +32,33 @@ export default function FluidTabs({ tabs, activeTab, onChange }) {
   }, [activeTab]);
 
   return (
-    <div
-      ref={containerRef}
-      className="fluid-tab-container table-responsive-container"
-      style={{
-        position: 'relative',
-        display: 'inline-flex',
-        alignItems: 'center',
-        background: 'var(--panel-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '12px',
-        padding: '4px',
-        gap: '4px',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        marginBottom: '24px',
-        maxWidth: '100%',
-        overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        transition: 'background-color 300ms ease, border-color 300ms ease'
-      }}
-    >
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100%',
+      marginBottom: '24px'
+    }}>
+      <div
+        ref={containerRef}
+        className="fluid-tab-container"
+        style={{
+          position: 'relative',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--admin-card-bg, var(--panel-bg, #ffffff))',
+          border: '1px solid var(--admin-border, var(--border-color, #e2e8f0))',
+          borderRadius: '12px',
+          padding: '4px',
+          gap: '4px',
+          boxShadow: 'var(--admin-shadow, 0 1px 3px rgba(0, 0, 0, 0.06))',
+          maxWidth: '100%',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          transition: 'background-color 300ms ease, border-color 300ms ease'
+        }}
+      >
       {/* Sliding spring background pill */}
       <div
         className="fluid-tab-indicator"
@@ -113,6 +119,7 @@ export default function FluidTabs({ tabs, activeTab, onChange }) {
           </button>
         );
       })}
+      </div>
     </div>
   );
 }

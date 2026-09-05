@@ -118,17 +118,27 @@ class ReportDataBuilder:
             "LOW": []
         }
 
-        # Match findings with priorities
+        # Match findings with priorities safely
         for finding in findings:
-            f_sev = (finding.get("severity") or "LOW").upper()
-            title = finding.get("title") or finding.get("type") or "Security Finding"
-            desc = finding.get("description") or finding.get("summary") or ""
+            if isinstance(finding, dict):
+                f_sev = (finding.get("severity") or "LOW").upper()
+                title = finding.get("title") or finding.get("type") or "Security Finding"
+                desc = finding.get("description") or finding.get("summary") or ""
+                fid = finding.get("id", f"FND-{len(priorities.get(f_sev, []))+1}")
+                sources = finding.get("evidence_sources", [])
+            else:
+                f_sev = "LOW"
+                title = f"Security Finding / Port: {finding}"
+                desc = f"Detected indicator or open port: {finding}"
+                fid = f"FND-{len(priorities['LOW'])+1}"
+                sources = []
+
             if f_sev in priorities:
                 priorities[f_sev].append({
-                    "id": finding.get("id", f"FND-{len(priorities[f_sev])+1}"),
+                    "id": fid,
                     "title": title,
                     "description": desc,
-                    "sources": finding.get("evidence_sources", [])
+                    "sources": sources
                 })
 
         # 5. Security Module Summary Normalization

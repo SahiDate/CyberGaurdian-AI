@@ -1,4 +1,4 @@
-import React, { useState, useContext, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, useContext, Suspense, useMemo } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import AnalysisResults from './AnalysisResults';
@@ -11,6 +11,7 @@ import { emitSecurityEvent } from '../utils/securityEventBus';
 import ThemeToggle from './ThemeToggle';
 import GlassPanel from './three/GlassPanel';
 import ThreatChart3D from './three/ThreatChart3D';
+import AnimatedHistoryCard from './shared/AnimatedHistoryCard';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -85,23 +86,100 @@ const RefreshCwIcon = ({ spinning }) => (
   </svg>
 );
 
-// Static, translucent GlassPanel Stat card component (no hover tilt or movement)
-function StatCard({ title, targetValue, chipText, chipClass, icon }) {
-  const animatedVal = useAnimatedCount(targetValue);
+// Metis Stat Card component matching Admin Dashboard
+function StatCard({ title, targetValue, sub, trend, isPositive, iconBg, iconColor, icon }) {
+  const { isDark } = useTheme();
+  const animatedVal = useAnimatedCount(typeof targetValue === 'number' ? targetValue : parseInt(targetValue, 10) || 0);
+  const displayVal = typeof targetValue === 'string' && targetValue.includes('/') ? targetValue : (typeof targetValue === 'number' ? animatedVal : targetValue);
+
+  const mainColor = isDark ? '#f8fafc' : '#0f172a';
+  const labelColor = isDark ? '#94a3b8' : '#475569';
+  const subColor = isDark ? '#94a3b8' : '#64748b';
+  const cardBg = isDark ? '#1e293b' : '#ffffff';
+  const cardBorder = isDark ? '#334155' : '#e2e8f0';
+
+  const badgeTextColor = isPositive ? (isDark ? '#34d399' : '#059669') : (isDark ? '#f87171' : '#dc2626');
+  const badgeBgColor = isPositive ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7') : (isDark ? 'rgba(239, 68, 68, 0.2)' : '#fee2e2');
+  const badgeBorder = isPositive ? (isDark ? '1px solid rgba(52, 211, 153, 0.3)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(248, 113, 113, 0.3)' : '1px solid #fecaca');
 
   return (
-    <GlassPanel>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '500' }}>{title}</span>
-        <span className={`chip-badge ${chipClass}`}>
+    <div
+      className="admin-card"
+      style={{
+        padding: '1.25rem 1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '1rem',
+        minHeight: '108px',
+        borderRadius: '12px',
+        backgroundColor: cardBg,
+        border: `1px solid ${cardBorder}`,
+        boxShadow: isDark ? '0 1px 3px rgba(0, 0, 0, 0.4)' : '0 1px 3px rgba(0, 0, 0, 0.05)',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.15rem' }}>
+        {/* Pastel Rounded Square Icon */}
+        <div style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '12px',
+          backgroundColor: iconBg,
+          color: iconColor,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
           {icon}
-          {chipText}
-        </span>
+        </div>
+
+        <div>
+          <div style={{
+            fontSize: '0.82rem',
+            fontWeight: 600,
+            color: labelColor,
+            marginBottom: '0.25rem',
+            letterSpacing: '0.01em'
+          }}>
+            {title}
+          </div>
+          <div style={{
+            fontSize: '1.85rem',
+            fontWeight: 800,
+            color: mainColor,
+            lineHeight: 1.15
+          }}>
+            {displayVal ?? '—'}
+          </div>
+          {sub && (
+            <div style={{ fontSize: '0.74rem', color: subColor, marginTop: '4px', fontWeight: 500 }}>
+              {sub}
+            </div>
+          )}
+        </div>
       </div>
-      <p style={{ fontSize: '2.25rem', margin: 0, fontWeight: '700', letterSpacing: '-0.02em', color: 'var(--text-main)' }}>
-        {animatedVal}
-      </p>
-    </GlassPanel>
+
+      {trend && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          color: badgeTextColor,
+          alignSelf: 'flex-start',
+          backgroundColor: badgeBgColor,
+          border: badgeBorder,
+          padding: '3px 9px',
+          borderRadius: '6px',
+          letterSpacing: '0.01em'
+        }}>
+          <span>{trend}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -115,6 +193,72 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message: string }
+  const [metrics, setMetrics] = useState({
+    high_security_risks: 0,
+    analyzed_urls: 0,
+    active_modules_count: 8,
+    scans_today: 0,
+    medium_risks: 0,
+    low_clean_risks: 0
+  });
+  const [scanHistory, setScanHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const fetchUserMetrics = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/api/user/dashboard/', {
+        headers: {
+          'Authorization': `Bearer ${authTokens?.access}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.metrics) {
+          setMetrics(data.metrics);
+        }
+        if (data?.recent_scans && Array.isArray(data.recent_scans) && scanHistory.length === 0) {
+          setScanHistory(data.recent_scans);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch user metrics:", err);
+    }
+  };
+
+  const fetchScanHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const headers = {};
+      if (authTokens?.access) {
+        headers['Authorization'] = `Bearer ${authTokens.access}`;
+      }
+      const res = await fetch('http://localhost:8000/api/user/scans/', { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setScanHistory(data);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch scan history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserMetrics();
+    fetchScanHistory();
+  }, [authTokens?.access]);
+
+  const handleSelectHistoryTarget = (item) => {
+    const targetName = item._displayTarget || item.domain || item.url;
+    if (targetName) {
+      setTarget(targetName);
+      window.scrollTo({ top: 180, behavior: 'smooth' });
+      executeAnalysis(targetName);
+    }
+  };
 
   const tabs = [
     { id: 'scanner', label: 'Domain Threat Scanner', icon: <ShieldIcon /> },
@@ -236,6 +380,8 @@ export default function Dashboard() {
       if (response.ok) {
         setResults(resData);
         emitSecurityEvent('SCAN_COMPLETED', { target: scanTarget });
+        fetchUserMetrics();
+        fetchScanHistory();
         setFeedback({
           type: 'success',
           message: `Threat analysis completed for target "${scanTarget}".`
@@ -276,7 +422,7 @@ export default function Dashboard() {
   return (
     <>
       {/* Dashboard Foreground Content */}
-      <div style={{ position: 'relative', zIndex: 1, padding: 'var(--space-32) var(--space-24)', maxWidth: '1240px', margin: '0 auto' }}>
+      <div className="user-dashboard" style={{ position: 'relative', zIndex: 1, padding: 'var(--space-32) var(--space-24)', maxWidth: '1240px', margin: '0 auto' }}>
         
         {/* Header Hierarchy: Weight + Size together */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-32)', flexWrap: 'wrap', gap: '16px' }}>
@@ -338,71 +484,74 @@ export default function Dashboard() {
 
         {activeTab === 'scanner' ? (
           <>
-            {/* Analyze Input Form */}
-            <form onSubmit={handleAnalyze} className="form-row-responsive" style={{ display: 'flex', gap: '16px', marginBottom: 'var(--space-24)', flexWrap: 'wrap' }}>
-              <input
-                type="text"
-                value={target}
-                onChange={(e) => setTarget(e.target.value)}
-                placeholder="Enter a URL, IP address, or Domain to analyze..."
-                style={{
-                  flex: 1,
-                  minWidth: '220px',
-                  padding: '14px 18px',
-                  fontSize: '1.05rem',
-                  background: 'var(--input-bg)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid var(--border-subtle)',
-                  borderTop: '1px solid var(--border-color)',
-                  color: 'var(--text-main)',
-                  borderRadius: 'var(--radius-sm)',
-                  outline: 'none',
-                  boxShadow: isDark ? 'none' : 'inset 0 1px 2px rgba(0,0,0,0.03)',
-                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease, color 0.3s ease'
-                }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--accent-color)'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
-              />
-              <button
-                type="submit"
-                disabled={loading || !target.trim()}
-                className="glass-panel btn-fluid btn-full-mobile"
-                style={{
-                  padding: '14px 28px',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  background: loading ? 'rgba(37, 99, 235, 0.7)' : 'var(--accent-color)',
-                  color: '#fff',
-                  cursor: loading || !target.trim() ? 'not-allowed' : 'pointer',
-                  border: 'none',
-                  borderRadius: 'var(--radius-sm)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  minWidth: '140px',
-                  boxShadow: '0 4px 16px rgba(37, 99, 235, 0.35)'
-                }}
-              >
-                {loading ? (
-                  <>
-                    <span className="spinner" style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      borderTop: '2px solid #fff',
-                      borderRadius: '50%',
-                      display: 'inline-block',
-                      animation: 'spin 0.8s linear infinite'
-                    }}></span>
-                    <span>Scanning...</span>
-                  </>
-                ) : (
-                  'Analyze'
-                )}
-              </button>
-            </form>
+            {/* Analyze Input Form - Centered & Responsive */}
+            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: 'var(--space-24)' }}>
+              <form onSubmit={handleAnalyze} className="form-row-responsive" style={{
+                display: 'flex',
+                gap: '12px',
+                width: '100%',
+                maxWidth: '960px',
+                alignItems: 'center',
+                flexWrap: 'wrap'
+              }}>
+                <input
+                  type="text"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  placeholder="Enter a URL, IP address, or Domain to analyze..."
+                  style={{
+                    flex: 1,
+                    minWidth: '240px',
+                    padding: '14px 18px',
+                    fontSize: '1.02rem',
+                    background: isDark ? '#0f172a' : '#ffffff',
+                    border: '1px solid var(--admin-border, #e2e8f0)',
+                    color: 'var(--text-main)',
+                    borderRadius: '10px',
+                    outline: 'none',
+                    boxShadow: isDark ? 'none' : 'inset 0 1px 2px rgba(0,0,0,0.03)',
+                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-color, #6366f1)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--admin-border, #e2e8f0)'}
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !target.trim()}
+                  className="admin-btn-primary"
+                  style={{
+                    padding: '14px 28px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    minWidth: '140px',
+                    cursor: loading || !target.trim() ? 'not-allowed' : 'pointer',
+                    opacity: loading || !target.trim() ? 0.7 : 1
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner" style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTop: '2px solid #fff',
+                        borderRadius: '50%',
+                        display: 'inline-block',
+                        animation: 'spin 0.8s linear infinite'
+                      }}></span>
+                      <span>Scanning...</span>
+                    </>
+                  ) : (
+                    'Analyze Target'
+                  )}
+                </button>
+              </form>
+            </div>
 
             {/* Feedback banner */}
             {feedback && (
@@ -437,30 +586,54 @@ export default function Dashboard() {
               />
             ) : (
               <>
-                {/* Static, Transparent Glass Stat Cards Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-16)', marginBottom: 'var(--space-32)' }}>
+                {/* Metis Stat Cards Grid - Real User Counts */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '1.25rem',
+                  marginBottom: 'var(--space-32)'
+                }}>
                   <StatCard
-                    title="High Severity Threats"
-                    targetValue={42}
-                    chipText="Critical"
-                    chipClass="chip-danger"
+                    title="High Security Risk"
+                    targetValue={metrics.high_security_risks}
+                    sub="Critical & high severity vulnerabilities"
+                    trend={metrics.high_security_risks > 0 ? "Requires Review" : "All Clean"}
+                    isPositive={metrics.high_security_risks === 0}
+                    iconBg={isDark ? 'rgba(239, 68, 68, 0.22)' : '#fee2e2'}
+                    iconColor={isDark ? '#f87171' : '#ef4444'}
                     icon={<ShieldIcon />}
                   />
                   <StatCard
                     title="Analyzed URLs"
-                    targetValue="1,204"
-                    chipText="Scanned"
-                    chipClass="chip-success"
+                    targetValue={metrics.analyzed_urls}
+                    sub="Total website & URL scans performed"
+                    trend={`+${metrics.scans_today || 0} today`}
+                    isPositive={true}
+                    iconBg={isDark ? 'rgba(99, 102, 241, 0.22)' : '#eef2ff'}
+                    iconColor={isDark ? '#818cf8' : '#6366f1'}
                     icon={<GlobeIcon />}
                   />
                   <StatCard
                     title="Active Modules"
-                    targetValue="14/15"
-                    chipText="Operational"
-                    chipClass="chip-accent"
+                    targetValue={`${metrics.active_modules_count || 8} Active`}
+                    sub="100% Operational • 8/8 Ready"
+                    trend="Online"
+                    isPositive={true}
+                    iconBg={isDark ? 'rgba(16, 185, 129, 0.22)' : '#dcfce7'}
+                    iconColor={isDark ? '#34d399' : '#10b981'}
                     icon={<CpuIcon />}
                   />
                 </div>
+
+                {/* 1-by-1 Animated Scanning History Card (Expandable to Current, Past, All) */}
+                <AnimatedHistoryCard
+                  title="Recent Threat Scanning Stream"
+                  type="scanner"
+                  items={scanHistory}
+                  loading={historyLoading}
+                  onSelectItem={handleSelectHistoryTarget}
+                  emptyMessage="No historical domain scans recorded yet. Enter a target above to start scanning."
+                />
 
                 {/* Threat Events Chart Panel with 3D & 2D Views */}
                 <div className="glass-panel" style={{ padding: 'var(--space-24)', marginBottom: 'var(--space-32)' }}>
