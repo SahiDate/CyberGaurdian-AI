@@ -682,7 +682,7 @@ class SecurityReportSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'report_id', 'user_id', 'username', 'created_at', 'updated_at']
 
     def get_pdf_url(self, obj):
-        if obj.pdf_file:
+        if obj.id:
             return f"/api/reports/{obj.id}/pdf/"
         return None
 

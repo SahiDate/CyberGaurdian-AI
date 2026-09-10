@@ -70,16 +70,15 @@ class SecurityReportService:
         threat_level = risk.get("threat_level", "LOW")
         summary = structured_payload.get("executive_summary", "")
 
-        # 2. Generate PDF document bytes
+        # 2. Verify PDF document generation (rendered purely in-memory)
         status_val = "COMPLETED"
-        pdf_bytes = None
         try:
-            pdf_bytes = PDFReportGenerator.generate_pdf(structured_payload)
-        except Exception as e:
+            PDFReportGenerator.generate_pdf(structured_payload)
+        except Exception:
             # If PDF rendering hits an edge case, set status to PARTIAL so structured report is not lost
             status_val = "PARTIAL"
 
-        # 3. Create SecurityReport model record in database
+        # 3. Create SecurityReport model record in database (PDF is not stored on disk)
         with transaction.atomic():
             report = SecurityReport.objects.create(
                 report_id=report_id,
@@ -98,28 +97,19 @@ class SecurityReportService:
                 structured_data=structured_payload
             )
 
-            # Save PDF file if generated
-            if pdf_bytes:
-                filename = f"{report_id}_{target.replace('://', '_').replace('/', '_')}.pdf"
-                report.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
-
         return report
 
     @classmethod
     def get_report_pdf(cls, report: SecurityReport, requesting_user: Any, is_admin: bool = False) -> Tuple[bytes, str]:
-        """Validates permission and returns (pdf_bytes, filename)."""
+        """Validates permission and returns (pdf_bytes, filename) generated on-the-fly in memory."""
         if not is_admin and report.user_id != requesting_user.id:
             raise PermissionDenied("Access denied to report.")
 
-        filename = f"{report.report_id}_{report.target}.pdf"
+        clean_target = str(report.target).replace('://', '_').replace('/', '_').replace(' ', '_').replace('"', '')
+        filename = f"{report.report_id}_{clean_target}.pdf"
 
-        # Return existing file content if saved
-        if report.pdf_file and os.path.exists(report.pdf_file.path):
-            with open(report.pdf_file.path, 'rb') as f:
-                return f.read(), filename
-
-        # Fallback: Regenerate PDF on-the-fly from structured_data
-        pdf_bytes = PDFReportGenerator.generate_pdf(report.structured_data)
+        # Generate PDF dynamically on-the-fly from structured_data
+        pdf_bytes = PDFReportGenerator.generate_pdf(report.structured_data or {})
         return pdf_bytes, filename
 
     @classmethod
