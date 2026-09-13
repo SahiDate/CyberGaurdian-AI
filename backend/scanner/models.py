@@ -936,6 +936,214 @@ class SecurityReport(models.Model):
         return f"Report {self.report_id} — {self.target} ({self.severity} {self.risk_score}/100) [{self.status}]"
 
 
+# ==============================================================================
+# Phase 11 — Cybersecurity Analysis Completion Certificate Subsystem
+# ==============================================================================
+
+class Certificate(models.Model):
+    STATUS_CHOICES = [
+        ('VALID', 'Valid'),
+        ('REVOKED', 'Revoked'),
+        ('EXPIRED', 'Expired'),
+    ]
+
+    CERTIFICATE_TYPES = [
+        ('CYBERSECURITY_ANALYSIS_COMPLETION', 'Cybersecurity Analysis Completion Certificate'),
+    ]
+
+    certificate_id = models.CharField(max_length=64, unique=True, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='certificates'
+    )
+    target = models.CharField(max_length=512, db_index=True)
+    recipient_name = models.CharField(max_length=255)
+    certificate_type = models.CharField(
+        max_length=64,
+        choices=CERTIFICATE_TYPES,
+        default='CYBERSECURITY_ANALYSIS_COMPLETION'
+    )
+    title = models.CharField(
+        max_length=255,
+        default='CyberGuardian AI Cybersecurity Analysis Completion Certificate'
+    )
+    # Assessment Classification & Result Status
+    assessment_type = models.CharField(max_length=64, default='SECURITY_ASSESSMENT', db_index=True)
+    assessment_id = models.CharField(max_length=128, blank=True, default='', db_index=True)
+    result_status = models.CharField(max_length=50, default='SAFE', db_index=True)
+    risk_level = models.CharField(max_length=50, default='NO_RISK', db_index=True)
+    risk_score = models.IntegerField(null=True, blank=True)
+
+    # Linked core entities
+    scan_result = models.ForeignKey(
+        ScanResult,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates'
+    )
+    url_scan = models.ForeignKey(
+        'URLScanResult',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates'
+    )
+    ssl_scan = models.ForeignKey(
+        'SSLScanResult',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates'
+    )
+    port_scan = models.ForeignKey(
+        'PortScanResult',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates'
+    )
+    whois_lookup = models.ForeignKey(
+        'WhoisLookupResult',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates'
+    )
+    threat_intel = models.ForeignKey(
+        ThreatIntelResult,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates'
+    )
+    file_analysis = models.ForeignKey(
+        FileAnalysis,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates'
+    )
+    soc_analysis = models.ForeignKey(
+        SOCAnalysis,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates'
+    )
+    report = models.ForeignKey(
+        SecurityReport,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates'
+    )
+
+    issue_date = models.DateField(auto_now_add=True, db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='VALID', db_index=True)
+
+    # Cryptographically secure verification token & public URL
+    verification_token = models.CharField(max_length=128, unique=True, db_index=True)
+    verification_url = models.CharField(max_length=512, blank=True)
+
+    # Assessment snapshot metadata
+    metadata = models.JSONField(default=dict, blank=True)
+
+    # Optional stored PDF file
+    pdf_file = models.FileField(upload_to='certificates/pdf/', null=True, blank=True)
+
+    generated_at = models.DateTimeField(auto_now_add=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revocation_reason = models.TextField(blank=True, default='')
+    revoked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='revoked_certificates'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['certificate_id']),
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['status']),
+            models.Index(fields=['verification_token']),
+            models.Index(fields=['issue_date']),
+            models.Index(fields=['target']),
+            models.Index(fields=['assessment_type']),
+            models.Index(fields=['assessment_id']),
+        ]
+
+    def __str__(self):
+        return f"Certificate {self.certificate_id} — {self.recipient_name} ({self.status})"
+
+
+class CertificateAuditLog(models.Model):
+    EVENT_TYPES = [
+        ('CERTIFICATE_ELIGIBILITY_CHECKED', 'Certificate Eligibility Checked'),
+        ('CERTIFICATE_GENERATION_STARTED', 'Certificate Generation Started'),
+        ('CERTIFICATE_GENERATED', 'Certificate Generated'),
+        ('CERTIFICATE_GENERATION_FAILED', 'Certificate Generation Failed'),
+        ('CERTIFICATE_VIEWED', 'Certificate Viewed'),
+        ('CERTIFICATE_DOWNLOADED', 'Certificate Downloaded'),
+        ('CERTIFICATE_VERIFIED', 'Certificate Verified'),
+        ('CERTIFICATE_REVOKED', 'Certificate Revoked'),
+    ]
+
+    ACTOR_TYPES = [
+        ('USER', 'User'),
+        ('ADMIN', 'Admin'),
+        ('PUBLIC', 'Public Visitor'),
+        ('SYSTEM', 'System Process'),
+    ]
+
+    certificate = models.ForeignKey(
+        Certificate,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs'
+    )
+    cert_id = models.CharField(max_length=64, db_index=True)
+    assessment_id = models.CharField(max_length=128, blank=True, default='')
+    event_type = models.CharField(max_length=50, choices=EVENT_TYPES, db_index=True)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificate_audit_logs'
+    )
+    actor_username = models.CharField(max_length=150, blank=True, default='')
+    actor_type = models.CharField(max_length=20, choices=ACTOR_TYPES, default='USER')
+    status = models.CharField(max_length=30, default='SUCCESS')
+    ip_address = models.CharField(max_length=45, null=True, blank=True)
+    endpoint = models.CharField(max_length=255, blank=True, default='')
+    request_id = models.CharField(max_length=64, blank=True, default='')
+    failure_reason = models.TextField(blank=True, default='')
+    details = models.JSONField(default=dict, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['cert_id', '-timestamp']),
+            models.Index(fields=['event_type', '-timestamp']),
+            models.Index(fields=['actor', '-timestamp']),
+            models.Index(fields=['timestamp']),
+        ]
+
+    def __str__(self):
+        return f"[{self.timestamp}] {self.event_type} on {self.cert_id} by {self.actor_username or self.actor_type} ({self.status})"
+
+
+
 
 
 

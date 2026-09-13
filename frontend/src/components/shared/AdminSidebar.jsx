@@ -8,7 +8,7 @@ import {
   Globe, Link2, Cpu, Flame, Bot, Activity, FileCheck, Server,
   Settings, LogOut, Search, Sun, Moon, Maximize, Minimize,
   Bell, ChevronDown, ChevronRight, Menu, X, Radio, History, Shield,
-  ArrowRight
+  ArrowRight, Award
 } from 'lucide-react';
 
 
@@ -202,6 +202,7 @@ export default function AdminSidebar({ children }) {
       items: [
         { path: '/admin/users', label: 'User Management', icon: Users },
         { path: '/admin/reports', label: 'Reports', icon: FileCheck },
+        { path: '/admin/certificates', label: 'Certificates', icon: Award },
       ]
     },
     {
@@ -226,6 +227,15 @@ export default function AdminSidebar({ children }) {
       category: 'Overview',
       description: 'Main security dashboard, KPI summary, system state & recent activity',
       keywords: 'home dashboard kpi overview summary metrics performance statistics security admin'
+    },
+    {
+      type: 'Page',
+      label: 'Certificates Management',
+      path: '/admin/certificates',
+      icon: Award,
+      category: 'Management',
+      description: 'Audit, verify, and manage cybersecurity completion certificates and revocations',
+      keywords: 'certificates verify revocation audit ledger completion security awards credentials admin'
     },
     {
       type: 'Page',

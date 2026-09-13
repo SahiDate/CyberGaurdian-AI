@@ -18,6 +18,9 @@ import URLScanner from './components/user/URLScanner';
 import PortScanner from './components/user/PortScanner';
 import SOCAnalysis from './components/user/SOCAnalysis';
 import AIAgent from './components/user/AIAgent';
+import UserCertificates from './components/user/UserCertificates';
+import UserReports from './components/user/UserReports';
+import CertificateVerification from './components/public/CertificateVerification';
 
 // Admin Portal
 import AdminLogin from './components/admin/AdminLogin';
@@ -33,6 +36,7 @@ import AdminSOCAnalysis from './components/admin/AdminSOCAnalysis';
 import AdminIncidents from './components/admin/AdminIncidents';
 import AdminScans from './components/admin/AdminScans';
 import AdminReports from './components/admin/AdminReports';
+import AdminCertificates from './components/admin/AdminCertificates';
 import AdminAIAgent from './components/admin/AdminAIAgent';
 import AdminAnalytics from './components/admin/AdminAnalytics';
 import AdminSystemHealth from './components/admin/AdminSystemHealth';
@@ -79,6 +83,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/verify/certificate/:certificateId" element={<CertificateVerification />} />
 
             {/* ── Protected User Portal ──────────────────────── */}
             <Route path="/dashboard" element={
@@ -107,6 +112,12 @@ function App() {
             } />
             <Route path="/ai-agent" element={
               <ProtectedRoute><AIAgent /></ProtectedRoute>
+            } />
+            <Route path="/certificates" element={
+              <ProtectedRoute><UserCertificates /></ProtectedRoute>
+            } />
+            <Route path="/reports" element={
+              <ProtectedRoute><UserReports /></ProtectedRoute>
             } />
 
             {/* ── Admin Portal Public ────────────────────────── */}
@@ -148,6 +159,9 @@ function App() {
             } />
             <Route path="/admin/reports" element={
               <AdminProtectedRoute><AdminReports /></AdminProtectedRoute>
+            } />
+            <Route path="/admin/certificates" element={
+              <AdminProtectedRoute><AdminCertificates /></AdminProtectedRoute>
             } />
             <Route path="/admin/ai-agent" element={
               <AdminProtectedRoute><AdminAIAgent /></AdminProtectedRoute>

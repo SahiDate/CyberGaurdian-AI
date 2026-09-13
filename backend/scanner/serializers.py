@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import (
     ScanResult, Report, ThreatIntelResult, FileAnalysis, Incident, AIActivity,
     SSLScanResult, WhoisLookupResult, URLScanResult, PortScanResult, SOCAnalysis,
-    AgentSession, AgentStep, AgentToolExecution, SecurityReport
+    AgentSession, AgentStep, AgentToolExecution, SecurityReport,
+    Certificate, CertificateAuditLog
 )
 
 
@@ -657,6 +658,9 @@ class SecurityReportSerializer(serializers.ModelSerializer):
     agent_session_id = serializers.ReadOnlyField(source='agent_session.id')
     pdf_url = serializers.SerializerMethodField()
 
+    certificate_id = serializers.SerializerMethodField()
+    certificate_status = serializers.SerializerMethodField()
+
     class Meta:
         model = SecurityReport
         fields = [
@@ -676,6 +680,8 @@ class SecurityReportSerializer(serializers.ModelSerializer):
             'soc_analysis_id',
             'agent_session_id',
             'pdf_url',
+            'certificate_id',
+            'certificate_status',
             'created_at',
             'updated_at',
         ]
@@ -686,10 +692,135 @@ class SecurityReportSerializer(serializers.ModelSerializer):
             return f"/api/reports/{obj.id}/pdf/"
         return None
 
+    def get_certificate_id(self, obj):
+        try:
+            cert = obj.certificates.filter(status='VALID').first()
+            return cert.certificate_id if cert else None
+        except Exception:
+            return None
+
+    def get_certificate_status(self, obj):
+        try:
+            cert = obj.certificates.filter(status='VALID').first()
+            return cert.status if cert else None
+        except Exception:
+            return None
+
 
 class SecurityReportDetailSerializer(SecurityReportSerializer):
     class Meta(SecurityReportSerializer.Meta):
         fields = SecurityReportSerializer.Meta.fields + ['structured_data']
+
+
+# ==============================================================================
+# Certificate Serializers
+# ==============================================================================
+
+class CertificateSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source='user.id')
+    username = serializers.ReadOnlyField(source='user.username')
+    download_url = serializers.SerializerMethodField()
+    verify_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Certificate
+        fields = [
+            'id',
+            'certificate_id',
+            'user_id',
+            'username',
+            'target',
+            'recipient_name',
+            'certificate_type',
+            'title',
+            'assessment_type',
+            'assessment_id',
+            'result_status',
+            'risk_level',
+            'risk_score',
+            'issue_date',
+            'status',
+            'verification_url',
+            'download_url',
+            'verify_url',
+            'soc_analysis_id',
+            'report_id',
+            'generated_at',
+            'revoked_at',
+            'revocation_reason',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = [
+            'id', 'certificate_id', 'user_id', 'username',
+            'created_at', 'updated_at', 'generated_at'
+        ]
+
+    def get_download_url(self, obj):
+        return f"/api/certificates/{obj.certificate_id}/download/"
+
+    def get_verify_url(self, obj):
+        return f"/api/certificates/{obj.certificate_id}/verify/"
+
+
+class CertificateDetailSerializer(CertificateSerializer):
+    class Meta(CertificateSerializer.Meta):
+        fields = CertificateSerializer.Meta.fields + ['metadata', 'verification_token']
+
+
+class PublicCertificateVerificationSerializer(serializers.ModelSerializer):
+    """
+    Public safe serializer — never leaks sensitive tokens, internal database IDs, passwords, or scan secrets.
+    """
+    class Meta:
+        model = Certificate
+        fields = [
+            'certificate_id',
+            'status',
+            'recipient_name',
+            'target',
+            'certificate_type',
+            'title',
+            'assessment_type',
+            'assessment_id',
+            'result_status',
+            'risk_level',
+            'issue_date',
+            'generated_at',
+            'revoked_at',
+            'revocation_reason',
+        ]
+        read_only_fields = fields
+
+
+class CertificateRevocationSerializer(serializers.Serializer):
+    revocation_reason = serializers.CharField(
+        min_length=5,
+        max_length=1000,
+        required=True,
+        help_text="Mandatory audit justification for revoking the certificate."
+    )
+
+
+class CertificateAuditLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CertificateAuditLog
+        fields = [
+            'id',
+            'cert_id',
+            'assessment_id',
+            'event_type',
+            'actor_username',
+            'actor_type',
+            'status',
+            'ip_address',
+            'endpoint',
+            'failure_reason',
+            'details',
+            'timestamp',
+        ]
+        read_only_fields = fields
+
 
 
 

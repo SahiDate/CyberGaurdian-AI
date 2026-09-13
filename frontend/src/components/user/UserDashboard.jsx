@@ -7,7 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import {
   Globe, ShieldAlert, Cpu, Plus, RotateCw, History, ExternalLink,
   ShieldCheck, Activity, Search, AlertTriangle, ArrowUpRight,
-  CheckCircle2, FileText, Lock, Radio, Shield, Terminal, Clock
+  CheckCircle2, FileText, Lock, Radio, Shield, Terminal, Clock, Award
 } from 'lucide-react';
 
 const API = 'http://localhost:8000';
@@ -374,6 +374,79 @@ export default function UserDashboard() {
             isPositive={(metrics.average_security_score ?? 100) >= 80}
             onClick={() => navigate('/reports')}
           />
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            CYBERGUARDIAN AI CERTIFICATE PROMOTION BANNER
+            ═══════════════════════════════════════════════════════════════ */}
+        <div style={{
+          background: isDark
+            ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(14, 165, 233, 0.08) 100%)'
+            : 'linear-gradient(135deg, #eef2ff 0%, #f0f9ff 100%)',
+          border: `1px solid ${isDark ? 'rgba(99, 102, 241, 0.3)' : '#c7d2fe'}`,
+          borderRadius: '12px',
+          padding: '1.25rem 1.75rem',
+          marginBottom: '1.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.2)' : '0 2px 6px rgba(99,102,241,0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.15rem' }}>
+            <div style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 4px 10px rgba(99, 102, 241, 0.35)'
+            }}>
+              <Award size={24} />
+            </div>
+            <div>
+              <div style={{
+                fontSize: '1rem',
+                fontWeight: 700,
+                color: 'var(--admin-text-main, #0f172a)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <span>Official Cybersecurity Analysis Completion Certificates</span>
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: 'rgba(99, 102, 241, 0.18)',
+                  color: '#6366f1',
+                  border: '1px solid rgba(99, 102, 241, 0.3)'
+                }}>
+                  NEW
+                </span>
+              </div>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.84rem', color: 'var(--admin-text-muted, #64748b)' }}>
+                Complete full-scope perimeter assessments and SOC analyses to earn verifiable, tamper-proof vector certificates with cryptographic QR validation.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.6rem' }}>
+            <button
+              onClick={() => navigate('/certificates')}
+              className="admin-btn-primary"
+              style={{ padding: '0.55rem 1.15rem', fontSize: '0.84rem' }}
+            >
+              <Award size={15} />
+              <span>View My Certificates</span>
+            </button>
+          </div>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════

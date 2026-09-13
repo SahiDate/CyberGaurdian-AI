@@ -150,6 +150,16 @@ export default function Navbar() {
             fontWeight: '600',
             fontSize: '0.875rem'
           }}>Reports</Link>
+
+          <Link to="/certificates" style={{
+            padding: '0.5rem 0.9rem',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            color: isActive('/certificates') ? '#fff' : 'var(--text-muted)',
+            background: isActive('/certificates') ? 'var(--accent-color)' : 'transparent',
+            fontWeight: '600',
+            fontSize: '0.875rem'
+          }}>Certificates</Link>
         </nav>
 
         {/* Desktop Controls */}
@@ -259,6 +269,7 @@ export default function Navbar() {
               ['/scan', '🔍 Quick Scan'],
               ['/history', '📜 My History'],
               ['/reports', '📑 Reports'],
+              ['/certificates', '🏅 Certificates'],
               ['/profile', `👤 Profile (${user ? user.username : 'User'})`],
               ['/settings', '⚙️ Settings'],
             ].map(([path, label]) => (

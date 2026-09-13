@@ -33,7 +33,11 @@ from .views import (
     UserReportGenerateView, UserReportPDFDownloadView, UserReportJSONDownloadView, UserReportCSVDownloadView,
     AdminReportsAnalyticsView, AdminReportDetailView, AdminReportPDFDownloadView,
     AdminReportJSONDownloadView, AdminReportCSVDownloadView, AdminReportDownloadView,
-    FileAnalysisPDFDownloadView, SOCAnalysisPDFDownloadView, QuickScanPDFDownloadView
+    FileAnalysisPDFDownloadView, SOCAnalysisPDFDownloadView, QuickScanPDFDownloadView,
+    CertificateListView, CertificateDetailView, CertificateEligibilityCheckView,
+    CertificateGenerateView, CertificateDownloadPDFView, CertificatePreviewView,
+    PublicCertificateVerifyView, AdminCertificateRevokeView, AdminCertificateAnalyticsView,
+    AdminCertificateAuditView, UserEligibleAssessmentsView
 )
 
 urlpatterns = [
@@ -192,6 +196,27 @@ urlpatterns = [
     path('api/admin/ai-agent/', AgentAdminListView.as_view(), name='admin_ai_agent_list'),
     path('api/admin/ai-agent/analytics/', AgentAdminAnalyticsView.as_view(), name='admin_ai_agent_analytics'),
     path('api/admin/ai-agent/<int:pk>/', AgentAdminDetailView.as_view(), name='admin_ai_agent_detail'),
+
+    # Phase 11 Certificates Endpoints
+    path('api/certificates/', CertificateListView.as_view(), name='certificates_list'),
+    path('api/certificates/<str:certificate_id>/', CertificateDetailView.as_view(), name='certificate_detail'),
+    path('api/certificates/<str:certificate_id>/download/', CertificateDownloadPDFView.as_view(), name='certificate_download'),
+    path('api/certificates/<str:certificate_id>/preview/', CertificatePreviewView.as_view(), name='certificate_preview'),
+    path('api/certificates/<str:certificate_id>/verify/', PublicCertificateVerifyView.as_view(), name='certificate_verify_direct'),
+    path('api/certificates/<str:certificate_id>/revoke/', AdminCertificateRevokeView.as_view(), name='admin_certificate_revoke'),
+    path('api/assessments/<str:assessment_id>/certificate/check/', CertificateEligibilityCheckView.as_view(), name='certificate_check'),
+    path('api/assessments/<str:assessment_id>/certificate/generate/', CertificateGenerateView.as_view(), name='certificate_generate'),
+    path('api/user/eligible-assessments/', UserEligibleAssessmentsView.as_view(), name='user_eligible_assessments'),
+
+    # Public Verification
+    path('api/public/certificates/<str:certificate_id>/verify/', PublicCertificateVerifyView.as_view(), name='public_certificate_verify'),
+
+    # Admin Certificate Endpoints
+    path('api/admin/certificates/', CertificateListView.as_view(), name='admin_certificates_list'),
+    path('api/admin/certificates/analytics/', AdminCertificateAnalyticsView.as_view(), name='admin_certificates_analytics'),
+    path('api/admin/certificates/<str:certificate_id>/', CertificateDetailView.as_view(), name='admin_certificate_detail'),
+    path('api/admin/certificates/<str:certificate_id>/audit/', AdminCertificateAuditView.as_view(), name='admin_certificate_audit'),
 ]
+
 
 

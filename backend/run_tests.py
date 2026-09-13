@@ -14,6 +14,7 @@ from django.conf import settings
 TestRunner = get_runner(settings)
 test_runner = TestRunner(verbosity=2, interactive=False)
 failures = test_runner.run_tests([
+    'scanner.tests.test_certificates',
     'scanner.tests.test_report_generator',
     'scanner.tests.test_ai_agent',
     'scanner.tests.test_soc_engine',

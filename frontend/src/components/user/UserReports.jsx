@@ -70,6 +70,37 @@ export default function UserReports() {
   // Selected Detail Modal State
   const [selectedReport, setSelectedReport] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [certActionLoading, setCertActionLoading] = useState(false);
+
+  const handleCertificateForReport = async (reportId) => {
+    setCertActionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/assessments/${reportId}/certificate/generate/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authTokens?.access}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (selectedReport) {
+          setSelectedReport({
+            ...selectedReport,
+            certificate_id: data.certificate_id,
+            certificate_status: data.status
+          });
+        }
+        fetchReports();
+      } else {
+        alert(data.error || 'Failed to process certificate.');
+      }
+    } catch (e) {
+      alert('Network error while processing certificate.');
+    } finally {
+      setCertActionLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchReports();
@@ -566,6 +597,163 @@ export default function UserReports() {
                   <div style={{ marginTop: '0.35rem' }}><StatusBadge status={selectedReport.status} /></div>
                 </div>
               </div>
+
+              {/* Certificate Integration Section */}
+              {(() => {
+                const isCompleted = selectedReport.status === 'COMPLETED';
+                const sev = (selectedReport.severity || '').toUpperCase();
+                const risk = Number(selectedReport.risk_score || 0);
+                const findingsCount = selectedReport.structured_data?.findings?.length || 0;
+                const isEligible = isCompleted && (sev === 'LOW' || sev === 'SAFE' || sev === 'INFORMATIONAL' || sev === 'NONE') && risk <= 25 && findingsCount === 0;
+
+                return (
+                  <div style={{
+                    background: selectedReport.certificate_id || isEligible
+                      ? 'linear-gradient(135deg, rgba(0, 201, 167, 0.08) 0%, rgba(56, 189, 248, 0.05) 100%)'
+                      : 'rgba(239, 68, 68, 0.06)',
+                    border: `1px solid ${selectedReport.certificate_id || isEligible ? 'rgba(0, 201, 167, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
+                    borderRadius: '10px',
+                    padding: '1rem 1.25rem',
+                    marginBottom: '1.25rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.65rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: selectedReport.certificate_id || isEligible ? '#00c9a7' : '#f87171', fontWeight: 700, fontSize: '0.9rem' }}>
+                        <span>🛡️</span> Cybersecurity Assessment Certificate
+                      </div>
+                      {selectedReport.certificate_id ? (
+                        <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#38bdf8', fontWeight: 700 }}>
+                          {selectedReport.certificate_id}
+                        </span>
+                      ) : isEligible ? (
+                        <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700, background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '9999px' }}>
+                          ✓ ELIGIBLE (SAFE / NO RISK)
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700, background: 'rgba(239, 68, 68, 0.15)', padding: '2px 8px', borderRadius: '9999px' }}>
+                          ⚠ NOT ELIGIBLE
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.5rem', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '0.85rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: isCompleted ? '#34d399' : '#eab308' }}>
+                        <span>{isCompleted ? '✓' : '○'}</span> Assessment: {selectedReport.status}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: isEligible || selectedReport.certificate_id ? '#34d399' : '#f87171' }}>
+                        <span>{isEligible || selectedReport.certificate_id ? '✓' : '⚠'}</span> Result: {isEligible || selectedReport.certificate_id ? 'SAFE / NO RISK' : `${selectedReport.severity || 'RISK DETECTED'} (Score: ${risk})`}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#34d399' }}>
+                        <span>✓</span> Security Report Generated
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: selectedReport.certificate_id ? '#34d399' : isEligible ? '#38bdf8' : '#f87171', fontWeight: 600 }}>
+                        <span>{selectedReport.certificate_id ? '✓' : isEligible ? '⚡' : '✕'}</span> {selectedReport.certificate_id ? 'Certificate Issued' : isEligible ? 'Certificate Eligible' : 'Certificate Locked'}
+                      </div>
+                    </div>
+
+                    {!selectedReport.certificate_id && !isEligible && (
+                      <div style={{ fontSize: '0.76rem', color: '#fca5a5', marginBottom: '0.75rem', background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.75rem', borderRadius: '6px' }}>
+                        <strong>Reason:</strong> A CyberGuardian AI certificate can only be issued when the assessment result meets the configured SAFE / NO-RISK criteria. Security findings or elevated risks were identified in this evaluation.
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                      {selectedReport.certificate_id ? (
+                        <>
+                          <a
+                            href={`${API_BASE}/api/certificates/${selectedReport.certificate_id}/preview/`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              padding: '0.45rem 0.95rem',
+                              background: 'rgba(56, 189, 248, 0.15)',
+                              border: '1px solid rgba(56, 189, 248, 0.35)',
+                              borderRadius: '6px',
+                              color: '#38bdf8',
+                              textDecoration: 'none',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem'
+                            }}
+                          >
+                            View Certificate
+                          </a>
+                          <a
+                            href={`${API_BASE}/api/certificates/${selectedReport.certificate_id}/download/`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              padding: '0.45rem 1rem',
+                              background: '#00c9a7',
+                              color: '#060913',
+                              borderRadius: '6px',
+                              textDecoration: 'none',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem'
+                            }}
+                          >
+                            Download Certificate
+                          </a>
+                          <a
+                            href={`/verify/certificate/${selectedReport.certificate_id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              padding: '0.45rem 0.85rem',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '6px',
+                              color: '#f8fafc',
+                              textDecoration: 'none',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            Verify Online ↗
+                          </a>
+                        </>
+                      ) : isEligible ? (
+                        <button
+                          onClick={() => handleCertificateForReport(selectedReport.report_id || selectedReport.id)}
+                          disabled={certActionLoading}
+                          style={{
+                            padding: '0.5rem 1.1rem',
+                            background: '#00c9a7',
+                            color: '#060913',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontWeight: 700,
+                            fontSize: '0.82rem',
+                            cursor: certActionLoading ? 'wait' : 'pointer'
+                          }}
+                        >
+                          {certActionLoading ? 'Generating Certificate...' : 'Get Certificate'}
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          title="Assessment result did not meet SAFE / NO-RISK criteria"
+                          style={{
+                            padding: '0.5rem 1.1rem',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            color: '#64748b',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            fontSize: '0.82rem',
+                            cursor: 'not-allowed'
+                          }}
+                        >
+                          Certificate Ineligible (Risks Detected)
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Executive Summary */}
               <div style={{ marginBottom: '1.25rem' }}>

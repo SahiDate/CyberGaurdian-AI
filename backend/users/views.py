@@ -3,6 +3,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
 from .models import User, Notification, AdminAuditLog
@@ -3851,6 +3852,398 @@ class QuickScanPDFDownloadView(APIView):
             return response
         except Exception as e:
             return Response({"error": f"Failed to generate PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ==============================================================================
+# Phase 11 — Certificate Generation & Verification Views
+# ==============================================================================
+from scanner.models import Certificate, CertificateAuditLog
+from scanner.serializers import (
+    CertificateSerializer, CertificateDetailSerializer,
+    PublicCertificateVerificationSerializer, CertificateRevocationSerializer,
+    CertificateAuditLogSerializer
+)
+from scanner.services.certificates import (
+    CertificateEligibilityService, PDFCertificateGenerator, log_certificate_event
+)
+
+
+class CertificateListView(APIView):
+    """
+    GET /api/certificates/
+    User: Returns list of user's own certificates.
+    Admin: Returns platform-wide certificates with search, filters, and pagination.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        is_admin = getattr(user, 'role', '') in ('ADMIN', 'SOC_ANALYST', 'SUPER_ADMIN') or user.is_staff
+
+        if is_admin:
+            qs = Certificate.objects.all().order_by('-created_at')
+            search = request.query_params.get('search')
+            if search:
+                qs = qs.filter(
+                    Q(certificate_id__icontains=search) |
+                    Q(target__icontains=search) |
+                    Q(recipient_name__icontains=search) |
+                    Q(user__username__icontains=search) |
+                    Q(assessment_type__icontains=search) |
+                    Q(assessment_id__icontains=search)
+                )
+
+            status_param = request.query_params.get('status')
+            if status_param and status_param.upper() != 'ALL':
+                qs = qs.filter(status=status_param.upper())
+
+            assessment_type_param = request.query_params.get('assessment_type')
+            if assessment_type_param and assessment_type_param.upper() != 'ALL':
+                qs = qs.filter(assessment_type__iexact=assessment_type_param)
+
+            result_param = request.query_params.get('result') or request.query_params.get('result_status')
+            if result_param and result_param.upper() != 'ALL':
+                qs = qs.filter(result_status__iexact=result_param)
+
+            risk_level_param = request.query_params.get('risk_level')
+            if risk_level_param and risk_level_param.upper() != 'ALL':
+                qs = qs.filter(risk_level__iexact=risk_level_param)
+
+            user_param = request.query_params.get('user') or request.query_params.get('username')
+            if user_param:
+                qs = qs.filter(Q(user__username__icontains=user_param) | Q(recipient_name__icontains=user_param))
+
+            date_param = request.query_params.get('date')
+            if date_param:
+                qs = qs.filter(issue_date=date_param)
+
+            # Pagination
+            page_size = int(request.query_params.get('page_size', 15))
+            page = int(request.query_params.get('page', 1))
+            total = qs.count()
+            start = (page - 1) * page_size
+            end = start + page_size
+            certs = qs[start:end]
+
+            serializer = CertificateSerializer(certs, many=True)
+            return Response({
+                "count": total,
+                "page": page,
+                "page_size": page_size,
+                "results": serializer.data
+            }, status=status.HTTP_200_OK)
+        else:
+            qs = Certificate.objects.filter(user=user).order_by('-created_at')
+            serializer = CertificateSerializer(qs, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CertificateDetailView(APIView):
+    """
+    GET /api/certificates/<certificate_id>/
+    Retrieves detailed certificate record. Enforces user ownership or Admin role.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, certificate_id):
+        user = request.user
+        is_admin = getattr(user, 'role', '') in ('ADMIN', 'SOC_ANALYST', 'SUPER_ADMIN') or user.is_staff
+
+        cert = Certificate.objects.filter(certificate_id=certificate_id).first()
+        if not cert:
+            return Response({"error": "Certificate not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not is_admin and cert.user_id != user.id:
+            raise PermissionDenied("Access denied. You do not have permission to view this certificate.")
+
+        log_certificate_event(
+            event_type='CERTIFICATE_VIEWED',
+            cert_id=cert.certificate_id,
+            assessment_id=cert.report.report_id if cert.report else cert.target,
+            actor=user,
+            actor_type='ADMIN' if is_admin else 'USER',
+            status='SUCCESS',
+            certificate=cert,
+            request=request
+        )
+
+        return Response(CertificateDetailSerializer(cert).data, status=status.HTTP_200_OK)
+
+
+class CertificateEligibilityCheckView(APIView):
+    """
+    GET/POST /api/assessments/<assessment_id>/certificate/check/
+    Checks eligibility for generating a certificate for ANY eligible completed assessment module.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, assessment_id):
+        assessment_type = request.data.get('assessment_type') or request.query_params.get('type')
+        res = CertificateEligibilityService.check_eligibility(
+            request.user, assessment_id, assessment_type=assessment_type, request=request
+        )
+        return Response(res, status=status.HTTP_200_OK)
+
+    def get(self, request, assessment_id):
+        assessment_type = request.query_params.get('type')
+        res = CertificateEligibilityService.check_eligibility(
+            request.user, assessment_id, assessment_type=assessment_type, request=request
+        )
+        return Response(res, status=status.HTTP_200_OK)
+
+
+class CertificateGenerateView(APIView):
+    """
+    POST /api/assessments/<assessment_id>/certificate/generate/
+    Atomically verifies strict SAFE / NO-RISK criteria and generates certificate.
+    Prevents duplicate generation by returning existing valid certificate.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, assessment_id):
+        assessment_type = request.data.get('assessment_type') or request.query_params.get('type')
+        try:
+            cert = CertificateEligibilityService.generate_certificate(
+                user=request.user,
+                assessment_ref=assessment_id,
+                assessment_type=assessment_type,
+                request=request
+            )
+            return Response(CertificateDetailSerializer(cert).data, status=status.HTTP_201_CREATED)
+        except ValueError as ve:
+            return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Certificate generation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UserEligibleAssessmentsView(APIView):
+    """
+    GET /api/user/eligible-assessments/
+    Returns list of all recent user assessments across all scanning and SOC modules
+    along with normalized security result and real-time certificate eligibility.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        assessments = CertificateEligibilityService.list_user_eligible_assessments(request.user)
+        return Response({"assessments": assessments}, status=status.HTTP_200_OK)
+
+
+class CertificateDownloadPDFView(APIView):
+    """
+    GET /api/certificates/<certificate_id>/download/
+    Generates and downloads on-the-fly vector PDF certificate.
+    Strictly checks ownership or Admin role.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, certificate_id):
+        user = request.user
+        is_admin = getattr(user, 'role', '') in ('ADMIN', 'SOC_ANALYST', 'SUPER_ADMIN') or user.is_staff
+
+        cert = Certificate.objects.filter(certificate_id=certificate_id).first()
+        if not cert:
+            return Response({"error": "Certificate not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not is_admin and cert.user_id != user.id:
+            raise PermissionDenied("Access denied. You cannot download another user's certificate.")
+
+        try:
+            pdf_bytes = PDFCertificateGenerator.generate_certificate_pdf({
+                "certificate_id": cert.certificate_id,
+                "recipient_name": cert.recipient_name,
+                "target": cert.target,
+                "assessment_type": cert.assessment_type,
+                "assessment_name": cert.metadata.get("assessment_name", cert.assessment_type),
+                "assessment_id": cert.assessment_id or cert.certificate_id,
+                "result_status": "SAFE / NO RISK",
+                "issue_date": cert.issue_date.isoformat(),
+                "status": cert.status,
+                "verification_url": cert.verification_url,
+                "metadata": cert.metadata or {}
+            })
+
+            log_certificate_event(
+                event_type='CERTIFICATE_DOWNLOADED',
+                cert_id=cert.certificate_id,
+                assessment_id=cert.assessment_id or (cert.report.report_id if cert.report else cert.target),
+                actor=user,
+                actor_type='ADMIN' if is_admin else 'USER',
+                status='SUCCESS',
+                certificate=cert,
+                request=request
+            )
+
+            filename = f"{cert.certificate_id}.pdf"
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except Exception as e:
+            return Response({"error": f"Failed to download certificate PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CertificatePreviewView(APIView):
+    """
+    GET /api/certificates/<certificate_id>/preview/
+    Returns inline PDF preview stream for instant in-browser modal viewing.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, certificate_id):
+        user = request.user
+        is_admin = getattr(user, 'role', '') in ('ADMIN', 'SOC_ANALYST', 'SUPER_ADMIN') or user.is_staff
+
+        cert = Certificate.objects.filter(certificate_id=certificate_id).first()
+        if not cert:
+            return Response({"error": "Certificate not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not is_admin and cert.user_id != user.id:
+            raise PermissionDenied("Access denied. You cannot preview another user's certificate.")
+
+        try:
+            pdf_bytes = PDFCertificateGenerator.generate_certificate_pdf({
+                "certificate_id": cert.certificate_id,
+                "recipient_name": cert.recipient_name,
+                "target": cert.target,
+                "assessment_type": cert.assessment_type,
+                "assessment_name": cert.metadata.get("assessment_name", cert.assessment_type),
+                "assessment_id": cert.assessment_id or cert.certificate_id,
+                "result_status": "SAFE / NO RISK",
+                "issue_date": cert.issue_date.isoformat(),
+                "status": cert.status,
+                "verification_url": cert.verification_url,
+                "metadata": cert.metadata or {}
+            })
+
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'inline; filename="{cert.certificate_id}.pdf"'
+            return response
+        except Exception as e:
+            return Response({"error": f"Failed to preview certificate: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PublicCertificateVerifyView(APIView):
+    """
+    GET /api/public/certificates/<certificate_id>/verify/
+    Unauthenticated public verification endpoint.
+    Returns safe certificate status and verification details without exposing sensitive metadata.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, certificate_id):
+        cert = Certificate.objects.filter(certificate_id=certificate_id).first()
+        if not cert:
+            log_certificate_event(
+                event_type='CERTIFICATE_VERIFIED',
+                cert_id=certificate_id,
+                actor=request.user if getattr(request.user, 'is_authenticated', False) else None,
+                actor_type='USER' if getattr(request.user, 'is_authenticated', False) else 'PUBLIC',
+                status='INVALID',
+                failure_reason='Certificate does not exist.',
+                request=request
+            )
+            return Response({
+                "error": "Certificate not found.",
+                "verification_result": "INVALID",
+                "is_valid": False,
+                "certificate_id": certificate_id
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        log_certificate_event(
+            event_type='CERTIFICATE_VERIFIED',
+            cert_id=cert.certificate_id,
+            assessment_id=cert.report.report_id if cert.report else cert.target,
+            actor=request.user if getattr(request.user, 'is_authenticated', False) else None,
+            actor_type='USER' if getattr(request.user, 'is_authenticated', False) else 'PUBLIC',
+            status=cert.status,
+            certificate=cert,
+            request=request
+        )
+
+        data = PublicCertificateVerificationSerializer(cert).data
+        data['is_valid'] = (cert.status == 'VALID')
+        data['verification_result'] = 'VALID' if cert.status == 'VALID' else 'REVOKED'
+        data['issuer'] = 'CyberGuardian AI'
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class AdminCertificateRevokeView(APIView):
+    """
+    POST /api/certificates/<certificate_id>/revoke/
+    Authorized administrators can revoke a certificate with a mandatory reason.
+    Preserves audit history and updates status to REVOKED.
+    """
+    permission_classes = [IsAdminRole]
+
+    def post(self, request, certificate_id):
+        cert = Certificate.objects.filter(certificate_id=certificate_id).first()
+        if not cert:
+            return Response({"error": "Certificate not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = CertificateRevocationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        reason = serializer.validated_data['revocation_reason']
+        cert.status = 'REVOKED'
+        cert.revoked_at = timezone.now()
+        cert.revocation_reason = reason
+        cert.revoked_by = request.user
+        cert.save()
+
+        log_certificate_event(
+            event_type='CERTIFICATE_REVOKED',
+            cert_id=cert.certificate_id,
+            assessment_id=cert.report.report_id if cert.report else cert.target,
+            actor=request.user,
+            actor_type='ADMIN',
+            status='REVOKED',
+            failure_reason=reason,
+            certificate=cert,
+            details={"revocation_reason": reason},
+            request=request
+        )
+
+        return Response(CertificateDetailSerializer(cert).data, status=status.HTTP_200_OK)
+
+
+class AdminCertificateAnalyticsView(APIView):
+    """
+    GET /api/admin/certificates/analytics/
+    Admin metrics summary for certificates.
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        today = timezone.now().date()
+        first_of_month = today.replace(day=1)
+
+        total = Certificate.objects.count()
+        valid = Certificate.objects.filter(status='VALID').count()
+        revoked = Certificate.objects.filter(status='REVOKED').count()
+        issued_today = Certificate.objects.filter(issue_date=today).count()
+        issued_this_month = Certificate.objects.filter(issue_date__gte=first_of_month).count()
+
+        return Response({
+            "total_certificates": total,
+            "valid_certificates": valid,
+            "revoked_certificates": revoked,
+            "issued_today": issued_today,
+            "issued_this_month": issued_this_month
+        }, status=status.HTTP_200_OK)
+
+
+class AdminCertificateAuditView(APIView):
+    """
+    GET /api/admin/certificates/<certificate_id>/audit/
+    Admin timeline of all audit events for a specific certificate.
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, certificate_id):
+        logs = CertificateAuditLog.objects.filter(cert_id=certificate_id).order_by('-timestamp')
+        return Response(CertificateAuditLogSerializer(logs, many=True).data, status=status.HTTP_200_OK)
+
 
 
 
