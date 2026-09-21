@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const API = 'http://localhost:8000';
 
@@ -21,6 +22,7 @@ const EXP_BADGE_STYLES = {
 
 export default function WhoisLookup() {
   const { authTokens } = useContext(AuthContext);
+  const { isDark } = useTheme();
   const [domain, setDomain] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentResult, setCurrentResult] = useState(null);
@@ -175,19 +177,21 @@ export default function WhoisLookup() {
 
           {/* Quick chips */}
           <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', color: '#6e7681', fontWeight: 600 }}>Quick Targets:</span>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Targets:</span>
             {['google.com', 'github.com', 'wikipedia.org', 'iana.org', 'cloudflare.com'].map(chip => (
               <button
                 key={chip}
                 onClick={() => quickLookup(chip)}
                 style={{
-                  background: 'rgba(48, 54, 61, 0.4)',
-                  border: '1px solid #30363d',
+                  background: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '16px',
-                  padding: '0.2rem 0.65rem',
+                  padding: '0.25rem 0.75rem',
                   fontSize: '0.75rem',
-                  color: '#8b949e',
-                  cursor: 'pointer'
+                  color: 'var(--text-main)',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  transition: 'all 0.15s ease'
                 }}
               >
                 {chip}
@@ -204,22 +208,22 @@ export default function WhoisLookup() {
 
         {/* Current Result Details */}
         {currentResult && (
-          <div style={{
-            background: 'rgba(22, 27, 34, 0.95)',
-            border: '1px solid #30363d',
+          <div className="glass-panel" style={{
+            background: 'var(--panel-bg)',
+            border: '1px solid var(--border-color)',
             borderRadius: '12px',
             padding: '1.75rem',
             marginBottom: '2.5rem',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+            boxShadow: 'var(--panel-shadow)'
           }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #21262d', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
               <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f0f6fc', margin: 0 }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                   {currentResult.domain}
                 </h2>
-                <div style={{ color: '#8b949e', fontSize: '0.85rem', marginTop: '0.35rem' }}>
-                  Registrar: <span style={{ color: '#58a6ff', fontWeight: 600 }}>{currentResult.registrar || 'NOT_AVAILABLE'}</span>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.35rem' }}>
+                  Registrar: <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{currentResult.registrar || 'NOT_AVAILABLE'}</span>
                 </div>
               </div>
 
@@ -247,8 +251,8 @@ export default function WhoisLookup() {
                 {/* Threat Score */}
                 <span style={{
                   color: currentResult.threat_score >= 75 ? '#f85149' : currentResult.threat_score >= 50 ? '#e3b341' : currentResult.threat_score >= 25 ? '#388bfd' : '#39d353',
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid #30363d',
+                  background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.05)',
+                  border: '1px solid var(--border-color)',
                   padding: '0.35rem 0.75rem',
                   borderRadius: '6px',
                   fontSize: '0.8rem',
@@ -261,30 +265,30 @@ export default function WhoisLookup() {
 
             {/* KPI Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#8b949e', fontWeight: 600, textTransform: 'uppercase' }}>Domain Age</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: '#f0f6fc' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Domain Age</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text-main)' }}>
                   {currentResult.domain_age_days !== null ? `${Math.floor(currentResult.domain_age_days / 365)}y ${currentResult.domain_age_days % 365}d` : 'Unknown'}
                 </div>
               </div>
 
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#8b949e', fontWeight: 600, textTransform: 'uppercase' }}>Expires In</div>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Expires In</div>
                 <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: (currentResult.days_until_expiration ?? 0) <= 0 ? '#f85149' : (currentResult.days_until_expiration ?? 0) <= 30 ? '#e3b341' : '#39d353' }}>
                   {currentResult.days_until_expiration !== null ? `${currentResult.days_until_expiration} Days` : 'Unknown'}
                 </div>
               </div>
 
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#8b949e', fontWeight: 600, textTransform: 'uppercase' }}>DNSSEC Security</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: currentResult.dnssec === 'SIGNED' ? '#39d353' : '#8b949e' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>DNSSEC Security</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: currentResult.dnssec === 'SIGNED' ? '#39d353' : 'var(--text-muted)' }}>
                   {currentResult.dnssec === 'SIGNED' ? '🛡️ Signed' : '⚪ Unsigned'}
                 </div>
               </div>
 
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#8b949e', fontWeight: 600, textTransform: 'uppercase' }}>Registrant Country</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: '#58a6ff' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Registrant Country</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--accent-color)' }}>
                   {currentResult.registrant_country || 'NOT_AVAILABLE'}
                 </div>
               </div>
@@ -292,55 +296,55 @@ export default function WhoisLookup() {
 
             {/* Registration Details & Nameservers */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f0f6fc', marginTop: 0, marginBottom: '0.75rem' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1.25rem' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginTop: 0, marginBottom: '0.75rem' }}>
                   📋 Registration Timestamps
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
-                  <div><span style={{ color: '#8b949e' }}>Created Date:</span> <span style={{ color: '#f0f6fc', fontWeight: 600 }}>{currentResult.created_date ? new Date(currentResult.created_date).toUTCString() : 'NOT_AVAILABLE'}</span></div>
-                  <div><span style={{ color: '#8b949e' }}>Updated Date:</span> <span style={{ color: '#c9d1d9' }}>{currentResult.updated_date ? new Date(currentResult.updated_date).toUTCString() : 'NOT_AVAILABLE'}</span></div>
-                  <div><span style={{ color: '#8b949e' }}>Expires Date:</span> <span style={{ color: '#c9d1d9' }}>{currentResult.expires_date ? new Date(currentResult.expires_date).toUTCString() : 'NOT_AVAILABLE'}</span></div>
-                  <div><span style={{ color: '#8b949e' }}>Registry ID:</span> <span style={{ color: '#8b949e', fontFamily: 'monospace' }}>{currentResult.registry_domain_id || 'NOT_AVAILABLE'}</span></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Created Date:</span> <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{currentResult.created_date ? new Date(currentResult.created_date).toUTCString() : 'NOT_AVAILABLE'}</span></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Updated Date:</span> <span style={{ color: 'var(--text-muted)' }}>{currentResult.updated_date ? new Date(currentResult.updated_date).toUTCString() : 'NOT_AVAILABLE'}</span></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Expires Date:</span> <span style={{ color: 'var(--text-muted)' }}>{currentResult.expires_date ? new Date(currentResult.expires_date).toUTCString() : 'NOT_AVAILABLE'}</span></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Registry ID:</span> <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>{currentResult.registry_domain_id || 'NOT_AVAILABLE'}</span></div>
                   <div>
-                    <span style={{ color: '#8b949e' }}>Registrant Org:</span>{' '}
+                    <span style={{ color: 'var(--text-muted)' }}>Registrant Org:</span>{' '}
                     {currentResult.registrant_org === 'REDACTED_FOR_PRIVACY' ? (
                       <span style={{ color: '#e3b341', background: 'rgba(227,179,65,0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.75rem' }}>🔒 REDACTED FOR PRIVACY</span>
                     ) : (
-                      <span style={{ color: '#f0f6fc', fontWeight: 600 }}>{currentResult.registrant_org || 'NOT_AVAILABLE'}</span>
+                      <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{currentResult.registrant_org || 'NOT_AVAILABLE'}</span>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f0f6fc', marginTop: 0, marginBottom: '0.75rem' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1.25rem' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginTop: 0, marginBottom: '0.75rem' }}>
                   🌐 Authoritative Nameservers
                 </h3>
                 {currentResult.nameservers?.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '140px', overflowY: 'auto' }}>
                     {currentResult.nameservers.map((ns, idx) => (
-                      <div key={idx} style={{ background: 'rgba(56,139,253,0.08)', border: '1px solid rgba(56,139,253,0.2)', color: '#58a6ff', padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                      <div key={idx} style={{ background: isDark ? 'rgba(56,139,253,0.08)' : 'rgba(37,99,235,0.08)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontFamily: 'monospace' }}>
                         {ns}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <span style={{ color: '#8b949e', fontSize: '0.85rem' }}>No nameservers found.</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No nameservers found.</span>
                 )}
               </div>
             </div>
 
             {/* Security Indicators */}
             {currentResult.security_indicators?.length > 0 && (
-              <div style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#e3b341', marginTop: 0, marginBottom: '0.75rem' }}>
                   ⚠️ Security Observations ({currentResult.security_indicators.length})
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                   {currentResult.security_indicators.map((ind, idx) => (
-                    <div key={idx} style={{ borderLeft: '3px solid #e3b341', background: 'rgba(22, 27, 34, 0.6)', padding: '0.6rem 0.85rem', borderRadius: '0 6px 6px 0' }}>
-                      <div style={{ fontWeight: 600, color: '#f0f6fc', fontSize: '0.85rem' }}>{ind.type}</div>
-                      <div style={{ color: '#8b949e', fontSize: '0.8rem' }}>{ind.description}</div>
+                    <div key={idx} style={{ borderLeft: '3px solid #e3b341', background: isDark ? 'rgba(22, 27, 34, 0.6)' : '#ffffff', border: '1px solid var(--border-color)', borderLeftColor: '#e3b341', padding: '0.6rem 0.85rem', borderRadius: '0 6px 6px 0' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.85rem' }}>{ind.type}</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{ind.description}</div>
                     </div>
                   ))}
                 </div>
@@ -353,9 +357,9 @@ export default function WhoisLookup() {
                 onClick={() => setShowJson(!showJson)}
                 style={{
                   background: 'transparent',
-                  border: '1px solid #30363d',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '6px',
-                  color: '#8b949e',
+                  color: 'var(--text-muted)',
                   fontSize: '0.8rem',
                   padding: '0.4rem 0.75rem',
                   cursor: 'pointer'
@@ -365,8 +369,8 @@ export default function WhoisLookup() {
               </button>
               {showJson && (
                 <pre style={{
-                  background: '#010409',
-                  border: '1px solid #30363d',
+                  background: isDark ? '#010409' : '#0f172a',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   padding: '1rem',
                   color: '#7ee787',
@@ -383,14 +387,15 @@ export default function WhoisLookup() {
         )}
 
         {/* Scan History Table */}
-        <div style={{
-          background: 'rgba(22, 27, 34, 0.8)',
-          border: '1px solid rgba(48, 54, 61, 0.8)',
+        <div className="glass-panel" style={{
+          background: 'var(--panel-bg)',
+          border: '1px solid var(--border-color)',
           borderRadius: '12px',
-          padding: '1.5rem'
+          padding: '1.5rem',
+          boxShadow: 'var(--panel-shadow)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f0f6fc', margin: 0 }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
               📜 Your WHOIS Lookup History
             </h2>
 
@@ -401,48 +406,50 @@ export default function WhoisLookup() {
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
                 style={{
-                  padding: '0.4rem 0.75rem',
-                  background: '#0d1117',
-                  border: '1px solid #30363d',
+                  padding: '0.45rem 0.85rem',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '6px',
-                  color: '#f0f6fc',
+                  color: 'var(--text-main)',
                   fontSize: '0.82rem',
-                  outline: 'none'
+                  outline: 'none',
+                  boxShadow: 'var(--panel-shadow)'
                 }}
               />
               <select
                 value={filterAge}
                 onChange={(e) => setFilterAge(e.target.value)}
                 style={{
-                  padding: '0.4rem 0.75rem',
-                  background: '#0d1117',
-                  border: '1px solid #30363d',
+                  padding: '0.45rem 0.85rem',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '6px',
-                  color: '#f0f6fc',
+                  color: 'var(--text-main)',
                   fontSize: '0.82rem',
-                  outline: 'none'
+                  outline: 'none',
+                  cursor: 'pointer'
                 }}
               >
-                <option value="ALL">All Ages</option>
-                <option value="NEW">New (&lt; 90d)</option>
-                <option value="YOUNG">Young (90d-1y)</option>
-                <option value="ESTABLISHED">Established</option>
-                <option value="LEGACY">Legacy (&gt; 10y)</option>
+                <option value="ALL" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>All Ages</option>
+                <option value="NEW" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>New (&lt; 90d)</option>
+                <option value="YOUNG" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>Young (90d-1y)</option>
+                <option value="ESTABLISHED" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>Established</option>
+                <option value="LEGACY" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>Legacy (&gt; 10y)</option>
               </select>
             </div>
           </div>
 
           {historyLoading ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#8b949e' }}>Loading WHOIS history...</div>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Loading WHOIS history...</div>
           ) : filteredHistory.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#8b949e', fontSize: '0.9rem' }}>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               No domain lookups recorded yet. Enter a domain above to perform your first query.
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #30363d', textAlign: 'left', color: '#8b949e' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '0.75rem' }}>Domain</th>
                     <th style={{ padding: '0.75rem' }}>Registrar</th>
                     <th style={{ padding: '0.75rem' }}>Age Category</th>
@@ -457,18 +464,18 @@ export default function WhoisLookup() {
                   {filteredHistory.map(row => {
                     const ageBadge = AGE_BADGE_STYLES[row.age_category] || AGE_BADGE_STYLES.UNKNOWN;
                     return (
-                      <tr key={row.id} style={{ borderBottom: '1px solid #21262d' }}>
-                        <td style={{ padding: '0.75rem', fontWeight: 600, color: '#f0f6fc' }}>{row.domain}</td>
-                        <td style={{ padding: '0.75rem', color: '#8b949e' }}>{row.registrar}</td>
+                      <tr key={row.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--text-main)' }}>{row.domain}</td>
+                        <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>{row.registrar}</td>
                         <td style={{ padding: '0.75rem' }}>
                           <span style={{ color: ageBadge.color, background: ageBadge.bg, border: `1px solid ${ageBadge.border}`, padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
                             {row.age_category}
                           </span>
                         </td>
-                        <td style={{ padding: '0.75rem', color: (row.days_until_expiration ?? 0) <= 0 ? '#f85149' : (row.days_until_expiration ?? 0) <= 30 ? '#e3b341' : '#c9d1d9' }}>
+                        <td style={{ padding: '0.75rem', color: (row.days_until_expiration ?? 0) <= 0 ? '#f85149' : (row.days_until_expiration ?? 0) <= 30 ? '#e3b341' : 'var(--text-main)' }}>
                           {row.days_until_expiration !== null ? `${row.days_until_expiration}d` : 'N/A'}
                         </td>
-                        <td style={{ padding: '0.75rem', color: row.dnssec === 'SIGNED' ? '#39d353' : '#8b949e' }}>
+                        <td style={{ padding: '0.75rem', color: row.dnssec === 'SIGNED' ? '#39d353' : 'var(--text-muted)' }}>
                           {row.dnssec}
                         </td>
                         <td style={{ padding: '0.75rem' }}>
@@ -476,19 +483,20 @@ export default function WhoisLookup() {
                             {row.threat_score}/100
                           </span>
                         </td>
-                        <td style={{ padding: '0.75rem', color: '#8b949e' }}>
+                        <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
                           {new Date(row.created_at).toLocaleString()}
                         </td>
                         <td style={{ padding: '0.75rem' }}>
                           <button
                             onClick={() => setCurrentResult(row)}
                             style={{
-                              background: 'transparent',
-                              border: '1px solid #30363d',
+                              background: isDark ? 'rgba(88,166,255,0.12)' : 'rgba(37,99,235,0.08)',
+                              border: '1px solid var(--accent-color)',
                               borderRadius: '4px',
-                              color: '#58a6ff',
-                              padding: '0.2rem 0.5rem',
+                              color: 'var(--accent-color)',
+                              padding: '0.25rem 0.6rem',
                               fontSize: '0.75rem',
+                              fontWeight: 600,
                               cursor: 'pointer'
                             }}
                           >

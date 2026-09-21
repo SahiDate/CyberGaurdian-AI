@@ -21,6 +21,9 @@ import AIAgent from './components/user/AIAgent';
 import UserCertificates from './components/user/UserCertificates';
 import UserReports from './components/user/UserReports';
 import UserHistory from './components/user/UserHistory';
+import AllModules from './components/user/AllModules';
+import UserProfile from './components/user/UserProfile';
+import UserSettings from './components/user/UserSettings';
 import CertificateVerification from './components/public/CertificateVerification';
 
 // Admin Portal
@@ -124,6 +127,15 @@ function App() {
             } />
             <Route path="/history" element={
               <ProtectedRoute><UserHistory /></ProtectedRoute>
+            } />
+            <Route path="/modules" element={
+              <ProtectedRoute><AllModules /></ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute><UserProfile /></ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute><UserSettings /></ProtectedRoute>
             } />
             <Route path="/scan" element={
               <ProtectedRoute><Dashboard /></ProtectedRoute>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const API = 'http://localhost:8000';
 
@@ -20,6 +21,7 @@ const STATE_BADGES = {
 
 export default function PortScanner() {
   const { authTokens } = useContext(AuthContext);
+  const { isDark } = useTheme();
   const [targetInput, setTargetInput] = useState('');
   const [profile, setProfile] = useState('COMMON');
   const [customPortsInput, setCustomPortsInput] = useState('');
@@ -161,7 +163,7 @@ export default function PortScanner() {
           <form onSubmit={handleScan}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
               <div style={{ flex: '1 1 320px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#8b949e', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                   Target Hostname or Authorized IP
                 </label>
                 <input
@@ -211,7 +213,7 @@ export default function PortScanner() {
 
               {profile === 'CUSTOM' && (
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#8b949e', marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                     Custom Port Numbers (Comma separated, max 100 ports)
                   </label>
                   <input
@@ -222,10 +224,10 @@ export default function PortScanner() {
                     style={{
                       width: '100%',
                       padding: '0.75rem 1rem',
-                      background: '#0d1117',
-                      border: '1px solid #30363d',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--border-color)',
                       borderRadius: '8px',
-                      color: '#f0f6fc',
+                      color: 'var(--text-main)',
                       fontSize: '0.95rem',
                       outline: 'none',
                       boxSizing: 'border-box'
@@ -241,6 +243,7 @@ export default function PortScanner() {
                   style={{
                     width: '100%',
                     padding: '0.75rem 1.75rem',
+                    whiteSpace: 'nowrap',
                     background: scanning ? '#21262d' : 'linear-gradient(135deg, #1f6feb 0%, #238636 100%)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '8px',
@@ -270,7 +273,7 @@ export default function PortScanner() {
 
           {/* Quick chips */}
           <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', color: '#6e7681', fontWeight: 600 }}>Quick Targets:</span>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Targets:</span>
             {[
               'scanme.nmap.org',
               'google.com',
@@ -281,13 +284,15 @@ export default function PortScanner() {
                 key={chip}
                 onClick={() => quickScan(chip)}
                 style={{
-                  background: 'rgba(48, 54, 61, 0.4)',
-                  border: '1px solid #30363d',
+                  background: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '16px',
-                  padding: '0.2rem 0.65rem',
+                  padding: '0.25rem 0.75rem',
                   fontSize: '0.75rem',
-                  color: '#8b949e',
-                  cursor: 'pointer'
+                  color: 'var(--text-main)',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  transition: 'all 0.15s ease'
                 }}
               >
                 {chip}
@@ -304,38 +309,38 @@ export default function PortScanner() {
 
         {/* Results Panel */}
         {currentResult && (
-          <div style={{
-            background: 'rgba(22, 27, 34, 0.95)',
-            border: '1px solid #30363d',
+          <div className="glass-panel" style={{
+            background: 'var(--panel-bg)',
+            border: '1px solid var(--border-color)',
             borderRadius: '12px',
             padding: '1.75rem',
             marginBottom: '2.5rem',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+            boxShadow: 'var(--panel-shadow)'
           }}>
             {/* Result Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #21262d', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.75rem', background: '#21262d', color: '#58a6ff', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.75rem', background: isDark ? '#21262d' : 'rgba(37,99,235,0.1)', color: 'var(--accent-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700 }}>
                     {currentResult.target_type || 'TARGET'}
                   </span>
-                  <span style={{ fontSize: '0.75rem', background: '#21262d', color: '#e3b341', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.75rem', background: isDark ? '#21262d' : 'rgba(217,119,6,0.1)', color: isDark ? '#e3b341' : '#b45309', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700 }}>
                     PROFILE: {currentResult.scan_profile}
                   </span>
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f0f6fc', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                     {currentResult.target}
                   </h2>
                 </div>
-                <div style={{ color: '#8b949e', fontSize: '0.85rem', marginTop: '0.35rem' }}>
-                  Primary IP: <strong style={{ color: '#f0f6fc' }}>{currentResult.primary_ip || 'N/A'}</strong> | Scan Duration: <strong>{currentResult.scan_duration}s</strong>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.35rem' }}>
+                  Primary IP: <strong style={{ color: 'var(--text-main)' }}>{currentResult.primary_ip || 'N/A'}</strong> | Scan Duration: <strong>{currentResult.scan_duration}s</strong>
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
                 <span style={{
                   color: currentResult.threat_score >= 75 ? '#f85149' : currentResult.threat_score >= 50 ? '#e3b341' : currentResult.threat_score >= 25 ? '#388bfd' : '#39d353',
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid #30363d',
+                  background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.05)',
+                  border: '1px solid var(--border-color)',
                   padding: '0.4rem 0.85rem',
                   borderRadius: '6px',
                   fontSize: '0.85rem',
@@ -348,29 +353,29 @@ export default function PortScanner() {
 
             {/* KPI Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#8b949e', fontWeight: 600, textTransform: 'uppercase' }}>Ports Checked</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: '#f0f6fc' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Ports Checked</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text-main)' }}>
                   {currentResult.requested_ports?.length || currentResult.results?.length || 0}
                 </div>
               </div>
 
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#8b949e', fontWeight: 600, textTransform: 'uppercase' }}>Open Ports</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: currentResult.open_ports?.length > 0 ? '#39d353' : '#8b949e' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Open Ports</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: currentResult.open_ports?.length > 0 ? '#39d353' : 'var(--text-muted)' }}>
                   {currentResult.open_ports?.length || 0}
                 </div>
               </div>
 
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#8b949e', fontWeight: 600, textTransform: 'uppercase' }}>Closed Ports</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: '#8b949e' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Closed Ports</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text-muted)' }}>
                   {currentResult.closed_ports?.length || 0}
                 </div>
               </div>
 
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#8b949e', fontWeight: 600, textTransform: 'uppercase' }}>Filtered / Timeout</div>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Filtered / Timeout</div>
                 <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: '#e3b341' }}>
                   {currentResult.filtered_ports?.length || 0}
                 </div>
@@ -378,14 +383,14 @@ export default function PortScanner() {
             </div>
 
             {/* Detailed Port Table */}
-            <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', overflow: 'hidden', marginBottom: '1.75rem' }}>
-              <div style={{ padding: '1rem', borderBottom: '1px solid #21262d', fontWeight: 700, color: '#f0f6fc', fontSize: '0.95rem' }}>
+            <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', marginBottom: '1.75rem' }}>
+              <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem' }}>
                 📋 Port Scan Telemetry Results ({currentResult.results?.length || 0} Ports)
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #30363d', background: '#161b22', textAlign: 'left', color: '#8b949e' }}>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', background: isDark ? '#161b22' : 'rgba(0,0,0,0.03)', textAlign: 'left', color: 'var(--text-muted)' }}>
                       <th style={{ padding: '0.75rem 1rem' }}>Port</th>
                       <th style={{ padding: '0.75rem 1rem' }}>Protocol</th>
                       <th style={{ padding: '0.75rem 1rem' }}>State</th>
@@ -399,11 +404,11 @@ export default function PortScanner() {
                     {currentResult.results?.map((row, idx) => {
                       const stateBadge = STATE_BADGES[row.state] || STATE_BADGES.UNKNOWN;
                       return (
-                        <tr key={idx} style={{ borderBottom: '1px solid #21262d' }}>
-                          <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: '#f0f6fc' }}>
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                             {row.port}
                           </td>
-                          <td style={{ padding: '0.75rem 1rem', color: '#8b949e' }}>
+                          <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>
                             {row.protocol || 'TCP'}
                           </td>
                           <td style={{ padding: '0.75rem 1rem' }}>
@@ -419,16 +424,16 @@ export default function PortScanner() {
                               {stateBadge.label}
                             </span>
                           </td>
-                          <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: row.state === 'OPEN' ? '#58a6ff' : '#8b949e' }}>
+                          <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: row.state === 'OPEN' ? 'var(--accent-color)' : 'var(--text-muted)' }}>
                             {row.service || 'UNKNOWN'}
                           </td>
-                          <td style={{ padding: '0.75rem 1rem', color: '#8b949e' }}>
+                          <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>
                             {row.category || 'OTHER'}
                           </td>
-                          <td style={{ padding: '0.75rem 1rem', color: row.confidence === 'HIGH' ? '#39d353' : row.confidence === 'MEDIUM' ? '#e3b341' : '#8b949e', fontWeight: 600 }}>
+                          <td style={{ padding: '0.75rem 1rem', color: row.confidence === 'HIGH' ? '#39d353' : row.confidence === 'MEDIUM' ? '#e3b341' : 'var(--text-muted)', fontWeight: 600 }}>
                             {row.confidence}
                           </td>
-                          <td style={{ padding: '0.75rem 1rem', color: '#8b949e', fontSize: '0.8rem' }}>
+                          <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                             {row.response_time_ms ? `${row.response_time_ms} ms` : '—'}
                           </td>
                         </tr>
@@ -441,7 +446,7 @@ export default function PortScanner() {
 
             {/* Security Indicators */}
             {currentResult.indicators?.length > 0 && (
-              <div style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f85149', marginTop: 0, marginBottom: '0.75rem' }}>
                   ⚠️ Exposure Observations & Indicators ({currentResult.indicators.length})
                 </h3>
@@ -449,12 +454,12 @@ export default function PortScanner() {
                   {currentResult.indicators.map((ind, idx) => {
                     const sevStyle = SEVERITY_STYLES[ind.severity] || SEVERITY_STYLES.LOW;
                     return (
-                      <div key={idx} style={{ borderLeft: `3px solid ${sevStyle.color}`, background: 'rgba(22, 27, 34, 0.6)', padding: '0.65rem 0.85rem', borderRadius: '0 6px 6px 0' }}>
+                      <div key={idx} style={{ borderLeft: `3px solid ${sevStyle.color}`, background: isDark ? 'rgba(22, 27, 34, 0.6)' : '#ffffff', border: '1px solid var(--border-color)', borderLeftColor: sevStyle.color, padding: '0.65rem 0.85rem', borderRadius: '0 6px 6px 0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ color: sevStyle.color, fontWeight: 700, fontSize: '0.78rem' }}>{ind.severity}</span>
-                          <span style={{ color: '#f0f6fc', fontWeight: 600, fontSize: '0.85rem' }}>{ind.type}</span>
+                          <span style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: '0.85rem' }}>{ind.type}</span>
                         </div>
-                        <div style={{ color: '#8b949e', fontSize: '0.8rem', marginTop: '0.2rem' }}>{ind.description}</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.2rem' }}>{ind.description}</div>
                       </div>
                     );
                   })}
@@ -464,11 +469,11 @@ export default function PortScanner() {
 
             {/* Recommendations */}
             {currentResult.recommendations?.length > 0 && (
-              <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#58a6ff', marginTop: 0, marginBottom: '0.75rem' }}>
+              <div style={{ background: isDark ? '#0d1117' : 'var(--panel-subtle-bg, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--accent-color)', marginTop: 0, marginBottom: '0.75rem' }}>
                   💡 Hardening Recommendations
                 </h3>
-                <ul style={{ margin: 0, paddingLeft: '1.25rem', color: '#c9d1d9', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <ul style={{ margin: 0, paddingLeft: '1.25rem', color: 'var(--text-main)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   {currentResult.recommendations.map((rec, idx) => (
                     <li key={idx}>{rec}</li>
                   ))}
@@ -482,9 +487,9 @@ export default function PortScanner() {
                 onClick={() => setShowJson(!showJson)}
                 style={{
                   background: 'transparent',
-                  border: '1px solid #30363d',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '6px',
-                  color: '#8b949e',
+                  color: 'var(--text-muted)',
                   fontSize: '0.8rem',
                   padding: '0.4rem 0.75rem',
                   cursor: 'pointer'
@@ -494,8 +499,8 @@ export default function PortScanner() {
               </button>
               {showJson && (
                 <pre style={{
-                  background: '#010409',
-                  border: '1px solid #30363d',
+                  background: isDark ? '#010409' : '#0f172a',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   padding: '1rem',
                   color: '#7ee787',
@@ -512,14 +517,15 @@ export default function PortScanner() {
         )}
 
         {/* History Table */}
-        <div style={{
-          background: 'rgba(22, 27, 34, 0.8)',
-          border: '1px solid rgba(48, 54, 61, 0.8)',
+        <div className="glass-panel" style={{
+          background: 'var(--panel-bg)',
+          border: '1px solid var(--border-color)',
           borderRadius: '12px',
-          padding: '1.5rem'
+          padding: '1.5rem',
+          boxShadow: 'var(--panel-shadow)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f0f6fc', margin: 0 }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
               📜 Your Port Scan History
             </h2>
 
@@ -530,48 +536,50 @@ export default function PortScanner() {
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
                 style={{
-                  padding: '0.4rem 0.75rem',
-                  background: '#0d1117',
-                  border: '1px solid #30363d',
+                  padding: '0.45rem 0.85rem',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '6px',
-                  color: '#f0f6fc',
+                  color: 'var(--text-main)',
                   fontSize: '0.82rem',
-                  outline: 'none'
+                  outline: 'none',
+                  boxShadow: 'var(--panel-shadow)'
                 }}
               />
               <select
                 value={filterSev}
                 onChange={(e) => setFilterSev(e.target.value)}
                 style={{
-                  padding: '0.4rem 0.75rem',
-                  background: '#0d1117',
-                  border: '1px solid #30363d',
+                  padding: '0.45rem 0.85rem',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '6px',
-                  color: '#f0f6fc',
+                  color: 'var(--text-main)',
                   fontSize: '0.82rem',
-                  outline: 'none'
+                  outline: 'none',
+                  cursor: 'pointer'
                 }}
               >
-                <option value="ALL">All Severities</option>
-                <option value="CRITICAL">Critical</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
+                <option value="ALL" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>All Severities</option>
+                <option value="CRITICAL" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>Critical</option>
+                <option value="HIGH" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>High</option>
+                <option value="MEDIUM" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>Medium</option>
+                <option value="LOW" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>Low</option>
               </select>
             </div>
           </div>
 
           {historyLoading ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#8b949e' }}>Loading port scan history...</div>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Loading port scan history...</div>
           ) : filteredHistory.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#8b949e', fontSize: '0.9rem' }}>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               No port scans recorded yet. Enter a target above to run your first scan.
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #30363d', textAlign: 'left', color: '#8b949e' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '0.75rem' }}>Target</th>
                     <th style={{ padding: '0.75rem' }}>Profile</th>
                     <th style={{ padding: '0.75rem' }}>Primary IP</th>
@@ -586,17 +594,17 @@ export default function PortScanner() {
                   {filteredHistory.map(row => {
                     const sevStyle = SEVERITY_STYLES[row.severity?.toUpperCase()] || SEVERITY_STYLES.LOW;
                     return (
-                      <tr key={row.id} style={{ borderBottom: '1px solid #21262d' }}>
-                        <td style={{ padding: '0.75rem', fontWeight: 700, color: '#f0f6fc' }}>
+                      <tr key={row.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--text-main)' }}>
                           {row.target}
                         </td>
-                        <td style={{ padding: '0.75rem', color: '#58a6ff', fontSize: '0.8rem' }}>
+                        <td style={{ padding: '0.75rem', color: 'var(--accent-color)', fontSize: '0.8rem' }}>
                           {row.scan_profile}
                         </td>
-                        <td style={{ padding: '0.75rem', color: '#8b949e' }}>
+                        <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
                           {row.primary_ip || 'N/A'}
                         </td>
-                        <td style={{ padding: '0.75rem', color: row.open_ports?.length > 0 ? '#39d353' : '#8b949e', fontWeight: 700 }}>
+                        <td style={{ padding: '0.75rem', color: row.open_ports?.length > 0 ? '#39d353' : 'var(--text-muted)', fontWeight: 700 }}>
                           {row.open_ports?.length || 0}
                         </td>
                         <td style={{ padding: '0.75rem', fontWeight: 700, color: row.threat_score >= 75 ? '#f85149' : row.threat_score >= 50 ? '#e3b341' : '#39d353' }}>
@@ -607,19 +615,20 @@ export default function PortScanner() {
                             {row.severity}
                           </span>
                         </td>
-                        <td style={{ padding: '0.75rem', color: '#8b949e' }}>
+                        <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
                           {new Date(row.created_at).toLocaleString()}
                         </td>
                         <td style={{ padding: '0.75rem' }}>
                           <button
                             onClick={() => setCurrentResult(row)}
                             style={{
-                              background: 'transparent',
-                              border: '1px solid #30363d',
+                              background: isDark ? 'rgba(88,166,255,0.12)' : 'rgba(37,99,235,0.08)',
+                              border: '1px solid var(--accent-color)',
                               borderRadius: '4px',
-                              color: '#58a6ff',
-                              padding: '0.2rem 0.5rem',
+                              color: 'var(--accent-color)',
+                              padding: '0.25rem 0.6rem',
                               fontSize: '0.75rem',
+                              fontWeight: 600,
                               cursor: 'pointer'
                             }}
                           >

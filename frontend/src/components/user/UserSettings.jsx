@@ -14,7 +14,7 @@ export default function UserSettings() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0d12', color: '#fff', paddingBottom: '3rem' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-main)', paddingBottom: '3rem', transition: 'background-color 0.25s ease, color 0.25s ease' }}>
       <Navbar />
 
       <main style={{ maxWidth: '700px', margin: '0 auto', padding: '0 1.5rem' }}>
@@ -27,9 +27,9 @@ export default function UserSettings() {
           {msg && <div style={{ color: 'var(--success-color)', marginBottom: '1rem', background: 'rgba(57,211,83,0.1)', padding: '0.75rem', borderRadius: '6px' }}>{msg}</div>}
 
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--border-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
               <div>
-                <div style={{ fontWeight: 'bold' }}>Email Threat Notifications</div>
+                <div style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>Email Threat Notifications</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Receive email alerts when critical vulnerabilities are detected.</div>
               </div>
               <input
@@ -40,9 +40,9 @@ export default function UserSettings() {
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--border-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
               <div>
-                <div style={{ fontWeight: 'bold' }}>SMS Security Alerts</div>
+                <div style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>SMS Security Alerts</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Receive OTP codes and instant SMS security warnings.</div>
               </div>
               <input

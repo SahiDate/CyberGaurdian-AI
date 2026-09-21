@@ -257,15 +257,27 @@ class FileAnalysis(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        # Sync legacy fields for backward compatibility
+        # Sync legacy and modern fields bidirectionally
         if not self.filename and self.original_filename:
             self.filename = self.original_filename
+        elif not self.original_filename and self.filename:
+            self.original_filename = self.filename
+
         if not self.file_hash and self.sha256:
             self.file_hash = self.sha256
+        elif not self.sha256 and self.file_hash:
+            self.sha256 = self.file_hash
+
         if not self.file_type and self.detected_type:
             self.file_type = self.detected_type
+        elif (not self.detected_type or self.detected_type == 'GENERIC') and self.file_type:
+            self.detected_type = self.file_type
+
         if not self.risk_level and self.severity:
             self.risk_level = self.severity.lower()
+        elif (not self.severity or self.severity == 'LOW') and self.risk_level:
+            self.severity = self.risk_level.upper()
+
         super().save(*args, **kwargs)
 
     def __str__(self):

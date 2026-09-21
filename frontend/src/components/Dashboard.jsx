@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, Suspense, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { LayoutGrid } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import AnalysisResults from './AnalysisResults';
@@ -489,8 +490,78 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Critically-Damped Spring Fluid Navigation Tabs */}
-        <FluidTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        {/* Navigation Row: Centered Tabs + All Modules Button (Right side of SOC Analyzer, exact below Logout) */}
+        <div
+          className="dashboard-nav-row"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            width: '100%',
+            marginBottom: 'var(--space-24, 24px)',
+            minHeight: '46px'
+          }}
+        >
+          {/* Critically-Damped Spring Fluid Navigation Tabs */}
+          <FluidTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} style={{ marginBottom: 0 }} />
+
+          {/* ▦ All Modules Button: Positioned on the right side of SOC Analyzer tab & exact below Logout */}
+          <div
+            className="dashboard-all-modules-container"
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              display: 'flex',
+              alignItems: 'center',
+              zIndex: 5
+            }}
+          >
+            <Link
+              to="/modules"
+              id="btn-all-modules"
+              title="Explore all CyberGuardian AI security modules"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 18px',
+                borderRadius: '10px',
+                textDecoration: 'none',
+                fontWeight: '700',
+                fontSize: '0.875rem',
+                background: isDark
+                  ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                  : 'linear-gradient(135deg, #4f46e5 0%, #2563eb 100%)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                boxShadow: isDark
+                  ? '0 2px 10px rgba(99, 102, 241, 0.4)'
+                  : '0 2px 10px rgba(79, 70, 229, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = isDark
+                  ? '0 4px 16px rgba(99, 102, 241, 0.6)'
+                  : '0 4px 14px rgba(79, 70, 229, 0.45)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = isDark
+                  ? '0 2px 10px rgba(99, 102, 241, 0.4)'
+                  : '0 2px 10px rgba(79, 70, 229, 0.3)';
+              }}
+            >
+              <LayoutGrid size={15} />
+              <span>All Modules</span>
+            </Link>
+          </div>
+        </div>
 
         {activeTab === 'scanner' ? (
           <>

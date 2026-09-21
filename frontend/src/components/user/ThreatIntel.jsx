@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const API_BASE = 'http://localhost:8000';
 
@@ -20,6 +21,7 @@ const TARGET_TYPE_ICONS = {
 
 export default function ThreatIntel() {
   const { authTokens } = useContext(AuthContext);
+  const { isDark } = useTheme();
   const [target, setTarget] = useState('');
   const [targetType, setTargetType] = useState('AUTO');
   const [loading, setLoading] = useState(false);
@@ -269,15 +271,15 @@ export default function ThreatIntel() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
                   <span style={{ fontSize: '1.2rem' }}>{TARGET_TYPE_ICONS[scanResult.target_type] || '🔍'}</span>
-                  <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#fff', wordBreak: 'break-all' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', wordBreak: 'break-all' }}>
                     {scanResult.target}
                   </h2>
                 </div>
                 <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ padding: '0.2rem 0.6rem', borderRadius: '4px', background: 'rgba(255,255,255,0.08)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  <span style={{ padding: '0.2rem 0.6rem', borderRadius: '4px', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
                     Type: {scanResult.target_type}
                   </span>
-                  <span style={{ padding: '0.2rem 0.6rem', borderRadius: '4px', background: 'rgba(255,255,255,0.08)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  <span style={{ padding: '0.2rem 0.6rem', borderRadius: '4px', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
                     Providers: {scanResult.provider}
                   </span>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -287,9 +289,9 @@ export default function ThreatIntel() {
               </div>
 
               {/* Threat Score Gauge Box */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', background: 'rgba(0,0,0,0.3)', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--panel-subtle-bg, #f8fafc)', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 900, color: SEVERITY_CONFIG[scanResult.severity]?.color || '#fff', lineHeight: 1 }}>
+                  <div style={{ fontSize: '2.2rem', fontWeight: 900, color: SEVERITY_CONFIG[scanResult.severity]?.color || 'var(--text-main)', lineHeight: 1 }}>
                     {scanResult.threat_score}
                     <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/100</span>
                   </div>
@@ -331,9 +333,9 @@ export default function ThreatIntel() {
                     gap: '0.4rem',
                     padding: '0.55rem 1rem',
                     borderRadius: '8px',
-                    border: '1px solid #38bdf8',
-                    background: 'rgba(56, 189, 248, 0.15)',
-                    color: '#38bdf8',
+                    border: '1px solid var(--accent-color)',
+                    background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(37, 99, 235, 0.1)',
+                    color: 'var(--accent-color)',
                     fontSize: '0.85rem',
                     fontWeight: 700,
                     cursor: downloadingPdf ? 'not-allowed' : 'pointer',
@@ -348,13 +350,13 @@ export default function ThreatIntel() {
             </div>
 
             {/* Provider Breakdown Cards */}
-            <h3 style={{ fontSize: '1.1rem', margin: '0 0 1rem 0', fontWeight: 700 }}>
+            <h3 style={{ fontSize: '1.1rem', margin: '0 0 1rem 0', fontWeight: 700, color: 'var(--text-main)' }}>
               📊 Multi-Provider Intelligence Results
             </h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
               {(scanResult.normalized_result?.provider_breakdown || []).map((prov, idx) => (
-                <div key={idx} style={{ background: 'rgba(0,0,0,0.3)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <div key={idx} style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--panel-subtle-bg, #f8fafc)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--accent-color)' }}>
                       {prov.provider}
@@ -385,8 +387,8 @@ export default function ThreatIntel() {
                         <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#39d353' }}>{prov.harmless}</div>
                         <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Clean</div>
                       </div>
-                      <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '6px' }}>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#8b949e' }}>{prov.undetected}</div>
+                      <div style={{ background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', padding: '0.5rem', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-muted)' }}>{prov.undetected}</div>
                         <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Undetected</div>
                       </div>
                     </div>
@@ -398,7 +400,7 @@ export default function ThreatIntel() {
 
                   {/* Provider Extra Metadata */}
                   {prov.raw_summary && Object.keys(prov.raw_summary).length > 0 && (
-                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
                       {prov.raw_summary.abuseConfidenceScore !== undefined && (
                         <div>Abuse Score: <strong>{prov.raw_summary.abuseConfidenceScore}%</strong> ({prov.raw_summary.totalReports} reports)</div>
                       )}
@@ -416,8 +418,8 @@ export default function ThreatIntel() {
 
             {/* Evidence Signals */}
             {scanResult.detection_summary?.signals?.length > 0 && (
-              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>
+              <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--panel-subtle-bg, #f8fafc)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
                   📌 Correlated Evidence & Findings
                 </h4>
                 <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
@@ -433,7 +435,7 @@ export default function ThreatIntel() {
         {/* User History Table */}
         <div className="glass-panel" style={{ padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
+            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
               📜 My Threat Intelligence History
             </h2>
 
@@ -445,13 +447,14 @@ export default function ThreatIntel() {
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
                 style={{
-                  padding: '0.45rem 0.9rem',
+                  padding: '0.5rem 0.9rem',
                   fontSize: '0.85rem',
-                  background: 'rgba(0,0,0,0.4)',
+                  background: 'var(--input-bg)',
                   border: '1px solid var(--border-color)',
-                  color: '#fff',
+                  color: 'var(--text-main)',
                   borderRadius: '6px',
                   outline: 'none',
+                  minWidth: '180px'
                 }}
               />
 
@@ -459,38 +462,42 @@ export default function ThreatIntel() {
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
                 style={{
-                  padding: '0.45rem 0.8rem',
+                  padding: '0.5rem 0.85rem',
                   fontSize: '0.85rem',
-                  background: 'rgba(0,0,0,0.4)',
+                  background: 'var(--input-bg)',
                   border: '1px solid var(--border-color)',
-                  color: '#fff',
+                  color: 'var(--text-main)',
                   borderRadius: '6px',
+                  outline: 'none',
+                  cursor: 'pointer'
                 }}
               >
-                <option value="ALL">All Types</option>
-                <option value="DOMAIN">Domain</option>
-                <option value="URL">URL</option>
-                <option value="IP">IP</option>
-                <option value="FILE_HASH">File Hash</option>
+                <option value="ALL" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>All Types</option>
+                <option value="DOMAIN" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>Domain</option>
+                <option value="URL" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>URL</option>
+                <option value="IP" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>IP</option>
+                <option value="FILE_HASH" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>File Hash</option>
               </select>
 
               <select
                 value={sevFilter}
                 onChange={(e) => setSevFilter(e.target.value)}
                 style={{
-                  padding: '0.45rem 0.8rem',
+                  padding: '0.5rem 0.85rem',
                   fontSize: '0.85rem',
-                  background: 'rgba(0,0,0,0.4)',
+                  background: 'var(--input-bg)',
                   border: '1px solid var(--border-color)',
-                  color: '#fff',
+                  color: 'var(--text-main)',
                   borderRadius: '6px',
+                  outline: 'none',
+                  cursor: 'pointer'
                 }}
               >
-                <option value="ALL">All Severities</option>
-                <option value="CRITICAL">Critical</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
+                <option value="ALL" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>All Severities</option>
+                <option value="CRITICAL" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>Critical</option>
+                <option value="HIGH" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>High</option>
+                <option value="MEDIUM" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>Medium</option>
+                <option value="LOW" style={{ background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>Low</option>
               </select>
             </div>
           </div>
@@ -518,19 +525,34 @@ export default function ThreatIntel() {
                 </thead>
                 <tbody>
                   {filteredHistory.map((item) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '0.75rem', fontWeight: 700, color: '#fff', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{
+                        padding: '0.75rem',
+                        fontWeight: 700,
+                        color: 'var(--text-main)',
+                        maxWidth: '240px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }} title={item.target}>
                         {item.target}
                       </td>
                       <td style={{ padding: '0.75rem' }}>
-                        <span style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(255,255,255,0.06)' }}>
+                        <span style={{
+                          fontSize: '0.8rem',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
+                          background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                          color: 'var(--text-main)',
+                          border: '1px solid var(--border-color)'
+                        }}>
                           {item.target_type}
                         </span>
                       </td>
                       <td style={{ padding: '0.75rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                         {item.provider}
                       </td>
-                      <td style={{ padding: '0.75rem', fontWeight: 800, color: SEVERITY_CONFIG[item.severity]?.color || '#fff' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: 800, color: SEVERITY_CONFIG[item.severity]?.color || 'var(--text-main)' }}>
                         {item.threat_score}/100
                       </td>
                       <td style={{ padding: '0.75rem' }}>
@@ -556,15 +578,18 @@ export default function ThreatIntel() {
                         <button
                           onClick={() => setScanResult(item)}
                           style={{
-                            padding: '0.3rem 0.75rem',
+                            padding: '0.35rem 0.85rem',
                             fontSize: '0.78rem',
                             fontWeight: 700,
-                            background: 'rgba(56,139,253,0.15)',
-                            color: '#388bfd',
-                            border: '1px solid #388bfd',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
+                            background: isDark ? 'rgba(56,139,253,0.15)' : 'rgba(37,99,235,0.1)',
+                            color: 'var(--accent-color)',
+                            border: '1px solid var(--accent-color)',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
                           }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--accent-color)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = isDark ? 'rgba(56,139,253,0.15)' : 'rgba(37,99,235,0.1)'}
                         >
                           View Details
                         </button>

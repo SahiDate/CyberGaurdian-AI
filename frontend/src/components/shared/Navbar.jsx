@@ -21,7 +21,9 @@ import {
   ChevronDown,
   Menu,
   X,
-  Sparkles
+  Sparkles,
+  LayoutGrid,
+  User
 } from 'lucide-react';
 
 const SCANNER_TOOLS = [
@@ -38,14 +40,53 @@ export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scannersOpen, setScannersOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const scannersRef = useRef(null);
+  const profileRef = useRef(null);
+  const scannersTimeoutRef = useRef(null);
+  const profileTimeoutRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
   const isScannerActive = SCANNER_TOOLS.some(tool => tool.path === location.pathname);
 
+  const handleScannersEnter = () => {
+    if (scannersTimeoutRef.current) clearTimeout(scannersTimeoutRef.current);
+    setScannersOpen(true);
+  };
+
+  const handleScannersLeave = () => {
+    scannersTimeoutRef.current = setTimeout(() => {
+      setScannersOpen(false);
+    }, 220);
+  };
+
+  const handleScannersClick = (e) => {
+    e.stopPropagation();
+    if (scannersTimeoutRef.current) clearTimeout(scannersTimeoutRef.current);
+    setScannersOpen(prev => !prev);
+  };
+
+  const handleProfileEnter = () => {
+    if (profileTimeoutRef.current) clearTimeout(profileTimeoutRef.current);
+    setProfileOpen(true);
+  };
+
+  const handleProfileLeave = () => {
+    profileTimeoutRef.current = setTimeout(() => {
+      setProfileOpen(false);
+    }, 220);
+  };
+
+  const handleProfileClick = (e) => {
+    e.stopPropagation();
+    if (profileTimeoutRef.current) clearTimeout(profileTimeoutRef.current);
+    setProfileOpen(prev => !prev);
+  };
+
   // Close dropdowns on route change or click outside
   useEffect(() => {
     setScannersOpen(false);
+    setProfileOpen(false);
     setMobileOpen(false);
   }, [location.pathname]);
 
@@ -54,22 +95,29 @@ export default function Navbar() {
       if (scannersRef.current && !scannersRef.current.contains(e.target)) {
         setScannersOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (scannersTimeoutRef.current) clearTimeout(scannersTimeoutRef.current);
+      if (profileTimeoutRef.current) clearTimeout(profileTimeoutRef.current);
+    };
   }, []);
 
   const navLinkStyle = (active) => ({
-    padding: '0.45rem 0.75rem',
+    padding: '0.38rem 0.52rem',
     borderRadius: '7px',
     textDecoration: 'none',
     color: active ? '#ffffff' : 'var(--text-muted)',
     background: active ? 'var(--accent-color)' : 'transparent',
     fontWeight: '600',
-    fontSize: '0.84rem',
+    fontSize: '0.8rem',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '0.4rem',
+    gap: '0.32rem',
     transition: 'all 0.15s ease',
     whiteSpace: 'nowrap',
     cursor: 'pointer'
@@ -78,7 +126,7 @@ export default function Navbar() {
   return (
     <header className="glass-panel" style={{
       margin: '0.85rem 1rem 1.5rem 1rem',
-      padding: '0.7rem 1.15rem',
+      padding: '0.6rem 1rem',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -89,13 +137,13 @@ export default function Navbar() {
       background: 'var(--panel-bg)',
       boxShadow: 'var(--panel-shadow)'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', width: '100%', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', width: '100%', justifyContent: 'space-between', minWidth: 0 }}>
         
         {/* Brand Logo & Portal Tag */}
-        <Link to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+        <Link to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.55rem', flexShrink: 0 }}>
           <div style={{
-            width: '32px',
-            height: '32px',
+            width: '30px',
+            height: '30px',
             borderRadius: '8px',
             background: 'linear-gradient(135deg, #00c9a7 0%, #0077b6 100%)',
             display: 'flex',
@@ -103,13 +151,13 @@ export default function Navbar() {
             justifyContent: 'center',
             boxShadow: '0 2px 8px rgba(0, 201, 167, 0.3)'
           }}>
-            <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+            <span style={{ fontSize: '1rem' }}>🛡️</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{
               margin: 0,
               color: 'var(--text-main)',
-              fontSize: '1.15rem',
+              fontSize: '1.1rem',
               fontWeight: 800,
               letterSpacing: '-0.3px',
               lineHeight: 1.15
@@ -117,7 +165,7 @@ export default function Navbar() {
               CyberGuardian
             </span>
             <span style={{
-              fontSize: '0.62rem',
+              fontSize: '0.6rem',
               color: '#00c9a7',
               fontWeight: 700,
               letterSpacing: '0.8px',
@@ -131,9 +179,10 @@ export default function Navbar() {
         {/* Organized Desktop Navigation Links */}
         <nav className="desktop-only-nav" style={{
           display: 'flex',
-          gap: '0.3rem',
+          gap: '0.18rem',
           alignItems: 'center',
-          flexWrap: 'nowrap'
+          flexWrap: 'nowrap',
+          minWidth: 0
         }}>
           {/* 1. Dashboard */}
           <Link to="/dashboard" style={navLinkStyle(isActive('/dashboard'))}>
@@ -141,15 +190,22 @@ export default function Navbar() {
             Dashboard
           </Link>
 
+          {/* All Modules */}
+          <Link to="/modules" id="nav-all-modules" style={navLinkStyle(isActive('/modules'))}>
+            <LayoutGrid size={14} />
+            All Modules
+          </Link>
+
           {/* 2. Scanners & Tools Dropdown */}
           <div
             ref={scannersRef}
             style={{ position: 'relative' }}
-            onMouseEnter={() => setScannersOpen(true)}
-            onMouseLeave={() => setScannersOpen(false)}
+            onMouseEnter={handleScannersEnter}
+            onMouseLeave={handleScannersLeave}
           >
             <button
-              onClick={() => setScannersOpen(!scannersOpen)}
+              onClick={handleScannersClick}
+              id="nav-scanners-btn"
               style={{
                 ...navLinkStyle(isScannerActive),
                 border: 'none',
@@ -166,84 +222,87 @@ export default function Navbar() {
               }} />
             </button>
 
-            {/* Dropdown Menu Panel */}
+            {/* Dropdown Menu Panel (with gapless hover bridge) */}
             {scannersOpen && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 6px)',
-                left: 0,
-                minWidth: '280px',
-                background: 'var(--panel-solid-bg)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '10px',
-                padding: '0.5rem',
-                boxShadow: '0 12px 30px rgba(0, 0, 0, 0.35)',
-                backdropFilter: 'blur(16px)',
-                zIndex: 1000,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.2rem'
-              }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  paddingTop: '6px',
+                  zIndex: 1000
+                }}
+                onMouseEnter={handleScannersEnter}
+                onMouseLeave={handleScannersLeave}
+              >
                 <div style={{
-                  padding: '0.35rem 0.65rem 0.25rem',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  color: 'var(--text-muted)',
-                  letterSpacing: '0.6px'
+                  minWidth: '280px',
+                  background: 'var(--panel-solid-bg)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '10px',
+                  padding: '0.5rem',
+                  boxShadow: 'var(--panel-shadow)',
+                  backdropFilter: 'blur(16px)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.2rem'
                 }}>
-                  Perimeter & Threat Scanners
-                </div>
+                  <div style={{
+                    padding: '0.35rem 0.65rem 0.25rem',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    color: 'var(--text-muted)',
+                    letterSpacing: '0.6px'
+                  }}>
+                    Perimeter & Threat Scanners
+                  </div>
 
-                {SCANNER_TOOLS.map((tool) => {
-                  const ToolIcon = tool.icon;
-                  const current = isActive(tool.path);
-                  return (
-                    <Link
-                      key={tool.path}
-                      to={tool.path}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.7rem',
-                        padding: '0.5rem 0.65rem',
-                        borderRadius: '6px',
-                        textDecoration: 'none',
-                        background: current ? 'rgba(88, 166, 255, 0.15)' : 'transparent',
-                        color: current ? 'var(--accent-color)' : 'var(--text-main)',
-                        transition: 'background 0.15s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!current) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!current) e.currentTarget.style.background = 'transparent';
-                      }}
-                    >
-                      <div style={{
-                        width: '26px',
-                        height: '26px',
-                        borderRadius: '6px',
-                        background: current ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.06)',
-                        color: current ? '#ffffff' : 'var(--text-muted)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <ToolIcon size={14} />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '0.84rem', fontWeight: 600, lineHeight: 1.2 }}>
-                          {tool.label}
-                        </span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          {tool.desc}
-                        </span>
-                      </div>
-                    </Link>
-                  );
-                })}
+                  {SCANNER_TOOLS.map((tool) => {
+                    const ToolIcon = tool.icon;
+                    const current = isActive(tool.path);
+                    return (
+                      <Link
+                        key={tool.path}
+                        to={tool.path}
+                        onClick={() => setScannersOpen(false)}
+                        className="scanner-dropdown-item"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.7rem',
+                          padding: '0.5rem 0.65rem',
+                          borderRadius: '6px',
+                          textDecoration: 'none',
+                          background: current ? 'rgba(88, 166, 255, 0.15)' : 'transparent',
+                          color: current ? 'var(--accent-color)' : 'var(--text-main)'
+                        }}
+                      >
+                        <div style={{
+                          width: '26px',
+                          height: '26px',
+                          borderRadius: '6px',
+                          background: current ? 'var(--accent-color)' : 'var(--hover-bg, rgba(125, 125, 125, 0.1))',
+                          color: current ? '#ffffff' : 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <ToolIcon size={14} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '0.84rem', fontWeight: 600, lineHeight: 1.2 }}>
+                            {tool.label}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {tool.desc}
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -292,14 +351,14 @@ export default function Navbar() {
           <Link
             to="/certificates"
             style={{
-              padding: '0.45rem 0.85rem',
+              padding: '0.38rem 0.65rem',
               borderRadius: '7px',
               textDecoration: 'none',
               fontWeight: '700',
-              fontSize: '0.84rem',
+              fontSize: '0.8rem',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem',
+              gap: '0.35rem',
               transition: 'all 0.2s ease',
               whiteSpace: 'nowrap',
               background: isActive('/certificates')
@@ -310,100 +369,210 @@ export default function Navbar() {
                 ? '1px solid #00c9a7'
                 : '1px solid rgba(0, 201, 167, 0.35)',
               boxShadow: isActive('/certificates')
-                ? '0 0 14px rgba(0, 201, 167, 0.4)'
+                ? '0 0 12px rgba(0, 201, 167, 0.4)'
                 : 'none'
             }}
           >
-            <Award size={15} />
+            <Award size={14} />
             <span>Certificates</span>
           </Link>
         </nav>
 
         {/* Desktop User Controls & Actions */}
-        <div className="desktop-only-nav" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
+        <div className="desktop-only-nav" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
           {/* Theme Mode Toggle (Single Instance) */}
           <ThemeToggle />
 
-          {/* Settings Shortcut */}
-          <Link
-            to="/settings"
-            title="Account & System Settings"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '32px',
-              height: '32px',
-              borderRadius: '7px',
-              textDecoration: 'none',
-              color: isActive('/settings') ? 'var(--accent-color)' : 'var(--text-muted)',
-              background: isActive('/settings') ? 'rgba(88, 166, 255, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid var(--border-color)',
-              transition: 'all 0.15s ease'
-            }}
+          {/* User Profile Pill with Integrated Dropdown (Settings + Logout) */}
+          <div
+            ref={profileRef}
+            style={{ position: 'relative' }}
+            onMouseEnter={handleProfileEnter}
+            onMouseLeave={handleProfileLeave}
           >
-            <Settings size={16} />
-          </Link>
+            <button
+              onClick={handleProfileClick}
+              id="user-profile-menu-btn"
+              title="Account Options"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.32rem 0.55rem',
+                borderRadius: '8px',
+                background: profileOpen || isActive('/profile') || isActive('/settings')
+                  ? 'rgba(88, 166, 255, 0.15)'
+                  : 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-main)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none',
+                fontFamily: 'inherit'
+              }}
+            >
+              <div style={{
+                width: '22px',
+                height: '22px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #00c9a7 0%, #0077b6 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                flexShrink: 0
+              }}>
+                {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                {user ? user.username : 'User'}
+              </span>
+              <ChevronDown size={13} style={{
+                transition: 'transform 0.2s ease',
+                transform: profileOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                opacity: 0.75,
+                marginLeft: '1px'
+              }} />
+            </button>
 
-          {/* User Profile Pill */}
-          <Link
-            to="/profile"
-            title="View Profile"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.35rem 0.65rem',
-              borderRadius: '7px',
-              textDecoration: 'none',
-              background: isActive('/profile') ? 'rgba(88, 166, 255, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-main)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <div style={{
-              width: '22px',
-              height: '22px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #00c9a7 0%, #0077b6 100%)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.72rem',
-              fontWeight: 800
-            }}>
-              {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+            {/* Profile Dropdown Menu (with gapless hover bridge) */}
+            {profileOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  paddingTop: '6px',
+                  zIndex: 1000
+                }}
+                onMouseEnter={handleProfileEnter}
+                onMouseLeave={handleProfileLeave}
+              >
+                <div style={{
+                  minWidth: '220px',
+                  background: 'var(--panel-solid-bg, #1e293b)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '10px',
+                  padding: '0.5rem',
+                  boxShadow: 'var(--panel-shadow)',
+                  backdropFilter: 'blur(16px)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem'
+                }}>
+                  {/* User Info Header */}
+                  <div style={{
+                    padding: '0.5rem 0.65rem',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    marginBottom: '0.25rem'
+                  }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.2 }}>
+                      {user?.username || 'User'}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {user?.email || (user?.role ? user.role.toLowerCase() : 'Authenticated User')}
+                    </div>
+                  </div>
+
+                {/* Profile Link */}
+                <Link
+                  to="/profile"
+                  onClick={() => setProfileOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.5rem 0.65rem',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    color: isActive('/profile') ? 'var(--accent-color)' : 'var(--text-main)',
+                    background: isActive('/profile') ? 'rgba(88, 166, 255, 0.15)' : 'transparent',
+                    fontSize: '0.84rem',
+                    fontWeight: 600,
+                    transition: 'background 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive('/profile')) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive('/profile')) e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <User size={15} style={{ color: 'var(--text-muted)' }} />
+                  <span>My Profile</span>
+                </Link>
+
+                {/* Settings Link */}
+                <Link
+                  to="/settings"
+                  onClick={() => setProfileOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.5rem 0.65rem',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    color: isActive('/settings') ? 'var(--accent-color)' : 'var(--text-main)',
+                    background: isActive('/settings') ? 'rgba(88, 166, 255, 0.15)' : 'transparent',
+                    fontSize: '0.84rem',
+                    fontWeight: 600,
+                    transition: 'background 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive('/settings')) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive('/settings')) e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <Settings size={15} style={{ color: 'var(--text-muted)' }} />
+                  <span>Settings</span>
+                </Link>
+
+                {/* Divider */}
+                <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '0.25rem 0' }} />
+
+                {/* Logout Option */}
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    logoutUser();
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.5rem 0.65rem',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--danger-color, #ef4444)',
+                    fontSize: '0.84rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    transition: 'background 0.15s ease',
+                    fontFamily: 'inherit'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <LogOut size={15} />
+                  <span>Logout</span>
+                </button>
+              </div>
             </div>
-            <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
-              {user ? user.username : 'User'}
-            </span>
-          </Link>
-
-          {/* Logout Action */}
-          <button
-            onClick={logoutUser}
-            title="Sign Out"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.42rem 0.75rem',
-              background: 'rgba(248, 81, 73, 0.12)',
-              border: '1px solid rgba(248, 81, 73, 0.35)',
-              color: 'var(--danger-color)',
-              borderRadius: '7px',
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <LogOut size={13} />
-            <span>Logout</span>
-          </button>
+          )}
         </div>
+      </div>
 
         {/* Mobile Hamburger Toggle Button (Hidden on Desktop via CSS) */}
         <button
@@ -489,6 +658,7 @@ export default function Navbar() {
             </div>
             {[
               ['/dashboard', 'Dashboard', LayoutDashboard],
+              ['/modules', 'All Modules', LayoutGrid],
               ['/soc-analysis', 'SOC Analysis', Activity],
               ['/threat-intel', 'Threat Intel', Radio],
               ['/ai-agent', 'AI Security Agent', Bot],

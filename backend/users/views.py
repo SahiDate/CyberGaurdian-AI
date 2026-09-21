@@ -1882,8 +1882,11 @@ class FileAnalysisUserHistoryView(APIView):
         if search:
             queryset = queryset.filter(
                 Q(original_filename__icontains=search) |
+                Q(filename__icontains=search) |
                 Q(sha256__icontains=search) |
-                Q(detected_type__icontains=search)
+                Q(file_hash__icontains=search) |
+                Q(detected_type__icontains=search) |
+                Q(file_type__icontains=search)
             )
 
         serializer = FileAnalysisSerializer(queryset[:100], many=True)

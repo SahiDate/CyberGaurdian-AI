@@ -154,11 +154,14 @@ export default function FileAnalyzer() {
   };
 
   const filteredHistory = history.filter(item => {
-    const matchType = typeFilter === 'ALL' || item.detected_type?.toUpperCase() === typeFilter;
+    const fileName = item.original_filename || item.filename || item.stored_filename || '';
+    const hash = item.sha256 || item.file_hash || '';
+    const fileType = item.detected_type || item.file_type || '';
+    const matchType = typeFilter === 'ALL' || fileType?.toUpperCase() === typeFilter;
     const matchSev = sevFilter === 'ALL' || item.severity?.toUpperCase() === sevFilter;
     const matchSearch = !search ||
-      item.original_filename?.toLowerCase().includes(search.toLowerCase()) ||
-      item.sha256?.toLowerCase().includes(search.toLowerCase());
+      fileName.toLowerCase().includes(search.toLowerCase()) ||
+      hash.toLowerCase().includes(search.toLowerCase());
     return matchType && matchSev && matchSearch;
   });
 
@@ -264,16 +267,16 @@ export default function FileAnalyzer() {
                   FILE ANALYSIS RESULT
                 </div>
                 <h2 style={{ margin: '0.2rem 0 0', color: 'var(--text-main)', fontSize: '1.35rem', fontWeight: 800 }}>
-                  {currentResult.original_filename}
+                  {currentResult.original_filename || currentResult.filename || 'Analyzed File'}
                 </h2>
                 <div style={{ fontSize: '0.8rem', color: 'var(--accent-color)', marginTop: '0.2rem', fontFamily: 'monospace' }}>
-                  SHA-256: {currentResult.sha256}
+                  SHA-256: {currentResult.sha256 || currentResult.file_hash || 'N/A'}
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                 <button
-                  onClick={() => handleDownloadPdf(currentResult.id, currentResult.original_filename)}
+                  onClick={() => handleDownloadPdf(currentResult.id, currentResult.original_filename || currentResult.filename)}
                   disabled={downloadingPdf}
                   style={{
                     display: 'inline-flex',
@@ -408,35 +411,42 @@ export default function FileAnalyzer() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredHistory.map(item => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }} onClick={() => setCurrentResult(item)}>
-                      <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: 'var(--text-main)' }}>{item.original_filename}</td>
-                      <td style={{ padding: '0.75rem 1rem', color: 'var(--text-main)' }}>{item.detected_type}</td>
-                      <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>{(item.file_size / 1024).toFixed(1)} KB</td>
-                      <td style={{ padding: '0.75rem 1rem', color: 'var(--accent-color)', fontFamily: 'monospace', fontSize: '0.75rem' }}>{item.sha256?.substring(0, 16)}...</td>
-                      <td style={{ padding: '0.75rem 1rem', fontWeight: 800, color: SEVERITY_STYLES[item.severity]?.color || 'var(--text-main)' }}>{item.threat_score}/100</td>
-                      <td style={{ padding: '0.75rem 1rem' }}><SevBadge severity={item.severity} /></td>
-                      <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>{new Date(item.created_at).toLocaleString()}</td>
-                      <td style={{ padding: '0.75rem 1rem' }} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => handleDownloadPdf(item.id, item.original_filename)}
-                          style={{
-                            padding: '0.3rem 0.6rem',
-                            background: 'rgba(56, 139, 253, 0.12)',
-                            border: '1px solid #388bfd',
-                            color: '#58a6ff',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            cursor: 'pointer'
-                          }}
-                          title="Download PDF"
-                        >
-                          📥 PDF
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredHistory.map(item => {
+                    const displayName = item.original_filename || item.filename || item.stored_filename || 'Unnamed File';
+                    const displayHash = item.sha256 || item.file_hash || '';
+                    const displayType = item.detected_type || item.file_type || 'GENERIC';
+                    return (
+                      <tr key={item.id} style={{ borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }} onClick={() => setCurrentResult(item)}>
+                        <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: 'var(--text-main)' }}>{displayName}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-main)' }}>{displayType}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>{(item.file_size / 1024).toFixed(1)} KB</td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--accent-color)', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          {displayHash ? `${displayHash.substring(0, 16)}...` : '...'}
+                        </td>
+                        <td style={{ padding: '0.75rem 1rem', fontWeight: 800, color: SEVERITY_STYLES[item.severity]?.color || 'var(--text-main)' }}>{item.threat_score}/100</td>
+                        <td style={{ padding: '0.75rem 1rem' }}><SevBadge severity={item.severity} /></td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>{new Date(item.created_at).toLocaleString()}</td>
+                        <td style={{ padding: '0.75rem 1rem' }} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleDownloadPdf(item.id, displayName)}
+                            style={{
+                              padding: '0.3rem 0.6rem',
+                              background: 'rgba(56, 139, 253, 0.12)',
+                              border: '1px solid #388bfd',
+                              color: '#58a6ff',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              cursor: 'pointer'
+                            }}
+                            title="Download PDF"
+                          >
+                            📥 PDF
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

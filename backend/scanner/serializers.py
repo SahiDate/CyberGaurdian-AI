@@ -191,6 +191,19 @@ class FileAnalysisSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'user_id', 'username', 'created_at', 'updated_at']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Ensure original_filename is populated from legacy filename if empty
+        if not data.get('original_filename'):
+            data['original_filename'] = instance.filename or instance.original_filename or 'Unnamed File'
+        if not data.get('filename'):
+            data['filename'] = data.get('original_filename')
+        if not data.get('sha256') and instance.file_hash:
+            data['sha256'] = instance.file_hash
+        if (not data.get('detected_type') or data.get('detected_type') == 'GENERIC') and instance.file_type:
+            data['detected_type'] = instance.file_type
+        return data
+
 
 class FileUploadSerializer(serializers.Serializer):
     file = serializers.FileField(

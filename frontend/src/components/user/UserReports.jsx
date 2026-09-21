@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const API_BASE = 'http://localhost:8000';
 
@@ -53,6 +54,7 @@ const StatusBadge = ({ status }) => {
 
 export default function UserReports() {
   const { authTokens } = useContext(AuthContext);
+  const { isDark } = useTheme();
 
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -458,12 +460,15 @@ export default function UserReports() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
           }}>
             <div style={{
-              background: '#0d1117', border: '1px solid var(--border-color)', borderRadius: '12px',
-              maxWidth: '520px', width: '100%', padding: '1.75rem', boxSizing: 'border-box'
+              background: isDark ? '#0d1117' : 'var(--panel-solid-bg, #ffffff)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              maxWidth: '520px', width: '100%', padding: '1.75rem', boxSizing: 'border-box',
+              boxShadow: 'var(--panel-shadow)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>⚡ Generate Security Report</h3>
-                <button onClick={() => setShowGenModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-main)' }}>⚡ Generate Security Report</h3>
+                <button onClick={() => setShowGenModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
               </div>
 
               <form onSubmit={handleGenerateReport}>
@@ -542,17 +547,20 @@ export default function UserReports() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
           }}>
             <div style={{
-              background: '#0d1117', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px',
+              background: isDark ? '#0d1117' : 'var(--panel-solid-bg, #ffffff)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
               maxWidth: '900px', width: '100%', maxHeight: '90vh', overflowY: 'auto',
-              padding: '1.75rem', boxSizing: 'border-box'
+              padding: '1.75rem', boxSizing: 'border-box',
+              boxShadow: 'var(--panel-shadow)'
             }}>
               {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#58a6ff', fontWeight: 700, textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--accent-color)', fontWeight: 700, textTransform: 'uppercase' }}>
                     {selectedReport.report_id} — {selectedReport.report_type}
                   </div>
-                  <h2 style={{ margin: '0.2rem 0 0', fontSize: '1.35rem', color: '#fff' }}>
+                  <h2 style={{ margin: '0.2rem 0 0', fontSize: '1.35rem', color: 'var(--text-main)' }}>
                     {selectedReport.title || `Security Report for ${selectedReport.target}`}
                   </h2>
                 </div>
@@ -567,7 +575,7 @@ export default function UserReports() {
                   <button onClick={() => downloadReportFile(selectedReport.id, 'csv')} style={{ padding: '0.35rem 0.75rem', background: 'rgba(57,211,83,0.15)', border: '1px solid #39d353', color: '#39d353', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
                     CSV
                   </button>
-                  <button onClick={() => setSelectedReport(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.4rem', cursor: 'pointer', marginLeft: '0.5rem' }}>✕</button>
+                  <button onClick={() => setSelectedReport(null)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontSize: '1.4rem', cursor: 'pointer', marginLeft: '0.5rem' }}>✕</button>
                 </div>
               </div>
 

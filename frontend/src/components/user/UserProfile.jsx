@@ -56,7 +56,7 @@ export default function UserProfile() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0d12', color: '#fff', paddingBottom: '3rem' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-main)', paddingBottom: '3rem', transition: 'background-color 0.25s ease, color 0.25s ease' }}>
       <Navbar />
 
       <main style={{ maxWidth: '700px', margin: '0 auto', padding: '0 1.5rem' }}>
@@ -75,7 +75,7 @@ export default function UserProfile() {
                 type="text"
                 value={user ? user.username : ''}
                 disabled
-                style={{ width: '100%', padding: '0.8rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', borderRadius: '6px' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '0.8rem', background: 'var(--border-subtle)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', borderRadius: '6px' }}
               />
             </div>
 
@@ -85,7 +85,7 @@ export default function UserProfile() {
                 type="text"
                 value={user ? user.role : 'USER'}
                 disabled
-                style={{ width: '100%', padding: '0.8rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', fontWeight: 'bold', borderRadius: '6px' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '0.8rem', background: 'var(--border-subtle)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', fontWeight: 'bold', borderRadius: '6px' }}
               />
             </div>
 
@@ -95,19 +95,19 @@ export default function UserProfile() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={{ width: '100%', padding: '0.8rem', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', color: '#fff', borderRadius: '6px' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '0.8rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '6px' }}
                 required
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.4rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Phone Number (For SMS OTP)</label>
+              <label style={{ display: 'block', marginBottom: '0.4rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Phone Number</label>
               <input
                 type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                style={{ width: '100%', padding: '0.8rem', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', color: '#fff', borderRadius: '6px' }}
-                placeholder="+1234567890"
+                placeholder="+1 (555) 000-0000"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '0.8rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '6px' }}
               />
             </div>
 

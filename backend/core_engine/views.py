@@ -260,12 +260,16 @@ def process_soc_log_analysis(request, raw_logs=None, uploaded_file=None, source=
             try:
                 FileAnalysis.objects.create(
                     user=user,
+                    original_filename=filename,
                     filename=filename,
+                    sha256=file_hash,
                     file_hash=file_hash,
                     file_size=len(log_text),
                     file_type="LOG_FILE",
+                    detected_type="DOCUMENT",
                     analysis_result=parsed_data,
-                    risk_level=risk_level.lower()
+                    risk_level=risk_level.lower(),
+                    severity=risk_level.upper()
                 )
             except Exception:
                 pass

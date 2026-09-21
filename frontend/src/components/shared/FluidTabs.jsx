@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect } from 'react';
  * Apple fluid tab bar with critically-damped spring active indicator slider
  * and pointer-down physics.
  */
-export default function FluidTabs({ tabs, activeTab, onChange }) {
+export default function FluidTabs({ tabs, activeTab, onChange, style }) {
   const containerRef = useRef(null);
   const tabRefs = useRef({});
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
@@ -37,7 +37,8 @@ export default function FluidTabs({ tabs, activeTab, onChange }) {
       justifyContent: 'center',
       alignItems: 'center',
       width: '100%',
-      marginBottom: '24px'
+      marginBottom: '24px',
+      ...style
     }}>
       <div
         ref={containerRef}
