@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext, Suspense, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import AnalysisResults from './AnalysisResults';
@@ -186,12 +187,21 @@ function StatCard({ title, targetValue, sub, trend, isPositive, iconBg, iconColo
 export default function Dashboard() {
   const { isDark } = useTheme();
   const { user, logoutUser, authTokens } = useContext(AuthContext);
+  const location = useLocation();
 
   const [activeTab, setActiveTab] = useState('scanner');
   const [chartMode, setChartMode] = useState('3d');
   const [target, setTarget] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
+
+  useEffect(() => {
+    if (location.state?.prefillTarget) {
+      setTarget(location.state.prefillTarget);
+      setActiveTab('scanner');
+      window.scrollTo({ top: 180, behavior: 'smooth' });
+    }
+  }, [location.state]);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message: string }
   const [metrics, setMetrics] = useState({
     high_security_risks: 0,

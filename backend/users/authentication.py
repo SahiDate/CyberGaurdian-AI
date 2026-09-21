@@ -20,10 +20,14 @@ class GracefulJWTAuthentication(JWTAuthentication):
     """
     def authenticate(self, request):
         header = self.get_header(request)
-        if header is None:
-            return None
+        raw_token = None
+        if header is not None:
+            raw_token = self.get_raw_token(header)
+        elif hasattr(request, 'GET') and request.GET.get('token'):
+            raw_token = request.GET.get('token')
+        elif hasattr(request, 'query_params') and request.query_params.get('token'):
+            raw_token = request.query_params.get('token')
 
-        raw_token = self.get_raw_token(header)
         if raw_token is None:
             return None
 

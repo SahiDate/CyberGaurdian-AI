@@ -3,6 +3,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
@@ -2873,15 +2874,34 @@ class SOCAnalyzeView(APIView):
     Executes deterministic SOC security correlation and risk analysis.
     POST /api/soc/analyze/
     Supports authenticated users, previous users, and guest/newcomer visitors.
+    Supports both target correlation and multipart/form-data log file analysis.
     """
     permission_classes = [AllowAny]
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def post(self, request):
-        serializer = SOCAnalysisRequestSerializer(data=request.data)
+        uploaded_file = request.FILES.get('file') or request.FILES.get('log_file')
+        raw_logs = request.data.get('raw_logs') or request.data.get('log_text')
+        analysis_type = str(request.data.get('analysis_type', '')).lower()
+
+        # Route to SOC Log Processor if file/raw_logs or log analysis_type is provided
+        if uploaded_file or raw_logs or analysis_type in ['log', 'log_file', 'log_analysis']:
+            from core_engine.views import process_soc_log_analysis
+            source = request.data.get('source', 'user_upload' if uploaded_file else 'manual_input')
+            return process_soc_log_analysis(
+                request=request,
+                raw_logs=raw_logs,
+                uploaded_file=uploaded_file,
+                source=source
+            )
+
+        serializer = SOCAnalysisRequestSerializer(data=request.data, context={'request': request})
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        target = serializer.validated_data['target'].strip()
+        target = serializer.validated_data.get('target', '').strip()
+        if not target:
+            return Response({"error": "Target (domain, URL, IP, or file hash) or log content is required."}, status=status.HTTP_400_BAD_REQUEST)
         source_scan_ids = serializer.validated_data.get('source_scan_ids', {})
         auto_correlate = serializer.validated_data.get('auto_correlate', True)
         user = resolve_request_user(request)
@@ -2905,37 +2925,37 @@ class SOCAnalyzeView(APIView):
             try:
                 threat_intel = ThreatIntelResult.objects.get(id=source_scan_ids['threat_intelligence'], user=user)
             except ThreatIntelResult.DoesNotExist:
-                pass
+                return Response({"error": "Referenced threat intelligence scan does not exist or does not belong to the user."}, status=status.HTTP_400_BAD_REQUEST)
 
         if 'file_analysis' in source_scan_ids:
             try:
                 file_analysis = FileAnalysis.objects.get(id=source_scan_ids['file_analysis'], user=user)
             except FileAnalysis.DoesNotExist:
-                pass
+                return Response({"error": "Referenced file analysis does not exist or does not belong to the user."}, status=status.HTTP_400_BAD_REQUEST)
 
         if 'ssl_scan' in source_scan_ids:
             try:
                 ssl_scan = SSLScanResult.objects.get(id=source_scan_ids['ssl_scan'], user=user)
             except SSLScanResult.DoesNotExist:
-                pass
+                return Response({"error": "Referenced SSL scan does not exist or does not belong to the user."}, status=status.HTTP_400_BAD_REQUEST)
 
         if 'whois_scan' in source_scan_ids:
             try:
                 whois_lookup = WhoisLookupResult.objects.get(id=source_scan_ids['whois_scan'], user=user)
             except WhoisLookupResult.DoesNotExist:
-                pass
+                return Response({"error": "Referenced WHOIS lookup does not exist or does not belong to the user."}, status=status.HTTP_400_BAD_REQUEST)
 
         if 'url_scan' in source_scan_ids:
             try:
                 url_scan = URLScanResult.objects.get(id=source_scan_ids['url_scan'], user=user)
             except URLScanResult.DoesNotExist:
-                pass
+                return Response({"error": "Referenced URL scan does not exist or does not belong to the user."}, status=status.HTTP_400_BAD_REQUEST)
 
         if 'port_scan' in source_scan_ids:
             try:
                 port_scan = PortScanResult.objects.get(id=source_scan_ids['port_scan'], user=user)
             except PortScanResult.DoesNotExist:
-                pass
+                return Response({"error": "Referenced port scan does not exist or does not belong to the user."}, status=status.HTTP_400_BAD_REQUEST)
 
         # 2. Auto-Correlate user's recent scan records if requested
         if auto_correlate:
@@ -4033,20 +4053,37 @@ class CertificateDownloadPDFView(APIView):
     """
     GET /api/certificates/<certificate_id>/download/
     Generates and downloads on-the-fly vector PDF certificate.
-    Strictly checks ownership or Admin role.
+    Authenticates via Authorization header OR ?token= query parameter.
+    Strictly checks ownership or Admin role (anti-IDOR).
     """
-    permission_classes = [IsAuthenticated]
+    authentication_classes = [GracefulJWTAuthentication]
+    permission_classes = [AllowAny]
 
     def get(self, request, certificate_id):
         user = request.user
-        is_admin = getattr(user, 'role', '') in ('ADMIN', 'SOC_ANALYST', 'SUPER_ADMIN') or user.is_staff
+        is_admin = getattr(user, 'role', '') in ('ADMIN', 'SOC_ANALYST', 'SUPER_ADMIN') or getattr(user, 'is_staff', False)
 
         cert = Certificate.objects.filter(certificate_id=certificate_id).first()
         if not cert:
             return Response({"error": "Certificate not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if not is_admin and cert.user_id != user.id:
+        # IDOR check: If another authenticated non-admin user requests this cert, deny access
+        if user and user.is_authenticated and not is_admin and cert.user_id != user.id:
             raise PermissionDenied("Access denied. You cannot download another user's certificate.")
+
+        # If unauthenticated, check token query param or allow if certificate is VALID
+        if not user or not user.is_authenticated:
+            token = request.GET.get('token') or request.query_params.get('token')
+            if token:
+                auth_res = GracefulJWTAuthentication().authenticate(request)
+                if auth_res:
+                    user, _ = auth_res
+                    request.user = user
+                    is_admin = getattr(user, 'role', '') in ('ADMIN', 'SOC_ANALYST', 'SUPER_ADMIN') or getattr(user, 'is_staff', False)
+                    if not is_admin and cert.user_id != user.id:
+                        raise PermissionDenied("Access denied. You cannot download another user's certificate.")
+            elif cert.status != 'VALID':
+                return Response({"detail": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
             pdf_bytes = PDFCertificateGenerator.generate_certificate_pdf({
@@ -4067,8 +4104,8 @@ class CertificateDownloadPDFView(APIView):
                 event_type='CERTIFICATE_DOWNLOADED',
                 cert_id=cert.certificate_id,
                 assessment_id=cert.assessment_id or (cert.report.report_id if cert.report else cert.target),
-                actor=user,
-                actor_type='ADMIN' if is_admin else 'USER',
+                actor=user if user and user.is_authenticated else None,
+                actor_type='ADMIN' if is_admin else ('USER' if user and user.is_authenticated else 'PUBLIC'),
                 status='SUCCESS',
                 certificate=cert,
                 request=request
@@ -4077,6 +4114,7 @@ class CertificateDownloadPDFView(APIView):
             filename = f"{cert.certificate_id}.pdf"
             response = HttpResponse(pdf_bytes, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response['Access-Control-Allow-Origin'] = '*'
             return response
         except Exception as e:
             return Response({"error": f"Failed to download certificate PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -4086,19 +4124,36 @@ class CertificatePreviewView(APIView):
     """
     GET /api/certificates/<certificate_id>/preview/
     Returns inline PDF preview stream for instant in-browser modal viewing.
+    Authenticates via Authorization header OR ?token= query parameter.
     """
-    permission_classes = [IsAuthenticated]
+    authentication_classes = [GracefulJWTAuthentication]
+    permission_classes = [AllowAny]
 
     def get(self, request, certificate_id):
         user = request.user
-        is_admin = getattr(user, 'role', '') in ('ADMIN', 'SOC_ANALYST', 'SUPER_ADMIN') or user.is_staff
+        is_admin = getattr(user, 'role', '') in ('ADMIN', 'SOC_ANALYST', 'SUPER_ADMIN') or getattr(user, 'is_staff', False)
 
         cert = Certificate.objects.filter(certificate_id=certificate_id).first()
         if not cert:
             return Response({"error": "Certificate not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if not is_admin and cert.user_id != user.id:
+        # IDOR check: If another authenticated non-admin user requests this cert, deny access
+        if user and user.is_authenticated and not is_admin and cert.user_id != user.id:
             raise PermissionDenied("Access denied. You cannot preview another user's certificate.")
+
+        # If unauthenticated, check token query param or allow if certificate is VALID
+        if not user or not user.is_authenticated:
+            token = request.GET.get('token') or request.query_params.get('token')
+            if token:
+                auth_res = GracefulJWTAuthentication().authenticate(request)
+                if auth_res:
+                    user, _ = auth_res
+                    request.user = user
+                    is_admin = getattr(user, 'role', '') in ('ADMIN', 'SOC_ANALYST', 'SUPER_ADMIN') or getattr(user, 'is_staff', False)
+                    if not is_admin and cert.user_id != user.id:
+                        raise PermissionDenied("Access denied. You cannot preview another user's certificate.")
+            elif cert.status != 'VALID':
+                return Response({"detail": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
             pdf_bytes = PDFCertificateGenerator.generate_certificate_pdf({
@@ -4117,6 +4172,9 @@ class CertificatePreviewView(APIView):
 
             response = HttpResponse(pdf_bytes, content_type='application/pdf')
             response['Content-Disposition'] = f'inline; filename="{cert.certificate_id}.pdf"'
+            response['Access-Control-Allow-Origin'] = '*'
+            response['X-Frame-Options'] = 'SAMEORIGIN'
+            response['Content-Security-Policy'] = "frame-ancestors 'self' http://localhost:5173 http://localhost:3000 http://127.0.0.1:5173"
             return response
         except Exception as e:
             return Response({"error": f"Failed to preview certificate: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

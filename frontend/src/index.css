@@ -759,6 +759,25 @@ table td {
   gap: var(--space-16);
 }
 
+/* User Portal Navigation Responsiveness */
+.mobile-only-control {
+  display: none !important;
+}
+
+@media (max-width: 1150px) {
+  .desktop-only-nav {
+    display: none !important;
+  }
+  .mobile-hamburger-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  .mobile-only-control {
+    display: flex !important;
+  }
+}
+
 /* Mobile & Tablet Breakpoint Overrides */
 @media (max-width: 768px) {
   :root {

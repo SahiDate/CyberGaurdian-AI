@@ -68,8 +68,19 @@ TEMPLATES = [
 WSGI_APPLICATION = 'cyberguardian.wsgi.application'
 
 DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.mysql')
+use_sqlite = DB_ENGINE == 'django.db.backends.sqlite3' or os.environ.get('USE_SQLITE', 'False') == 'True' or 'test' in sys.argv
 
-if DB_ENGINE == 'django.db.backends.sqlite3' or os.environ.get('USE_SQLITE', 'False') == 'True' or 'test' in sys.argv:
+if not use_sqlite:
+    import socket
+    mysql_host = os.environ.get('DB_HOST', '127.0.0.1')
+    mysql_port = int(os.environ.get('DB_PORT', '3306'))
+    try:
+        with socket.create_connection((mysql_host, mysql_port), timeout=0.5):
+            pass
+    except (socket.error, socket.timeout, OSError):
+        use_sqlite = True
+
+if use_sqlite:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
   ShieldCheck, Award, Download, ExternalLink, Eye, RotateCw,
-  CheckCircle2, XCircle, Clock, AlertCircle, FileText, ChevronRight, X
+  CheckCircle2, XCircle, Clock, AlertCircle, FileText, ChevronRight, X, ArrowLeft
 } from 'lucide-react';
 
 const API = 'http://localhost:8000';
 
 export default function UserCertificates() {
+  const navigate = useNavigate();
   const { authTokens, user } = useContext(AuthContext);
   const { isDark } = useTheme();
 
@@ -21,7 +23,12 @@ export default function UserCertificates() {
   const [selectedCert, setSelectedCert] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  const getAuthHeaders = () => {
+  // PDF Preview & Download state
+  const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [downloadingCertId, setDownloadingCertId] = useState(null);
+
+  const getAuthToken = () => {
     let token = authTokens?.access;
     if (!token) {
       try {
@@ -29,12 +36,48 @@ export default function UserCertificates() {
         if (stored) token = JSON.parse(stored)?.access;
       } catch (e) {}
     }
+    return token;
+  };
+
+  const getAuthHeaders = () => {
+    const token = getAuthToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Fetch certificate preview as authenticated blob to guarantee no 401 in iframe
+  useEffect(() => {
+    let blobUrl = null;
+    if (selectedCert) {
+      setPreviewLoading(true);
+      setPreviewBlobUrl(null);
+      const token = getAuthToken();
+      fetch(`${API}/api/certificates/${encodeURIComponent(selectedCert.certificate_id)}/preview/`, {
+        headers: getAuthHeaders()
+      })
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.blob();
+        })
+        .then(blob => {
+          blobUrl = window.URL.createObjectURL(blob);
+          setPreviewBlobUrl(blobUrl);
+        })
+        .catch(err => {
+          console.error("Authenticated preview blob error, using token URL fallback:", err);
+          setPreviewBlobUrl(`${API}/api/certificates/${encodeURIComponent(selectedCert.certificate_id)}/preview/?token=${encodeURIComponent(token || '')}#toolbar=0`);
+        })
+        .finally(() => {
+          setPreviewLoading(false);
+        });
+    }
+    return () => {
+      if (blobUrl) window.URL.revokeObjectURL(blobUrl);
+    };
+  }, [selectedCert]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -48,11 +91,15 @@ export default function UserCertificates() {
 
       if (certsRes.ok) {
         const certsData = await certsRes.json();
-        setCertificates(certsData.results || certsData);
+        setCertificates(Array.isArray(certsData) ? certsData : (certsData.results || []));
+      } else {
+        setCertificates([]);
       }
       if (assessRes.ok) {
         const assessData = await assessRes.json();
-        setAssessments(assessData.assessments || []);
+        setAssessments(assessData.assessments || (Array.isArray(assessData) ? assessData : []));
+      } else {
+        setAssessments([]);
       }
     } catch (e) {
       console.error(e);
@@ -89,15 +136,91 @@ export default function UserCertificates() {
     }
   };
 
+  // Securely download certificate PDF via authenticated blob
+  const handleDownloadCertificate = async (certificateId) => {
+    setDownloadingCertId(certificateId);
+    try {
+      const res = await fetch(`${API}/api/certificates/${encodeURIComponent(certificateId)}/download/`, {
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${certificateId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("Blob download failed, using authenticated link fallback:", err);
+      const token = getAuthToken();
+      window.open(`${API}/api/certificates/${encodeURIComponent(certificateId)}/download/?token=${encodeURIComponent(token || '')}`, '_blank');
+    } finally {
+      setDownloadingCertId(null);
+    }
+  };
+
+  // Helper to format target names cleanly
+  const formatTargetName = (target) => {
+    if (!target) return 'System Assessment';
+    let cleaned = String(target).trim();
+    if (cleaned.includes('/') || cleaned.includes('\\')) {
+      cleaned = cleaned.split(/[\\/]/).pop();
+    }
+    const match = cleaned.match(/([a-zA-Z0-9_\-\s]+\.[a-zA-Z0-9]{1,8})$/i);
+    if (match) return match[1];
+    return cleaned;
+  };
+
+  // Theme design tokens
+  const cardBg = isDark ? 'rgba(15, 23, 42, 0.75)' : '#ffffff';
+  const cardBorder = isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #e2e8f0';
+  const cardShadow = isDark ? '0 4px 20px rgba(0, 0, 0, 0.35)' : '0 4px 16px rgba(0, 0, 0, 0.05)';
+  const textTitle = isDark ? '#f8fafc' : '#0f172a';
+  const textSub = isDark ? '#94a3b8' : '#64748b';
+  const metaBoxBg = isDark ? 'rgba(0, 0, 0, 0.25)' : '#f8fafc';
+  const metaBoxBorder = isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid #e2e8f0';
+  const navBtnBg = isDark ? 'rgba(255, 255, 255, 0.06)' : '#ffffff';
+  const navBtnBorder = isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid #cbd5e1';
+
   return (
     <div style={{
       minHeight: '100vh',
-      color: 'var(--text-main, #f8fafc)',
+      color: textTitle,
       paddingBottom: '4rem'
     }}>
       <Navbar />
 
       <main style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 1.25rem' }}>
+        {/* Navigation & Back Button */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <button
+            onClick={() => navigate('/dashboard')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.5rem 1rem',
+              background: navBtnBg,
+              border: navBtnBorder,
+              borderRadius: '8px',
+              color: textTitle,
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              boxShadow: isDark ? 'none' : '0 2px 6px rgba(0, 0, 0, 0.04)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.12)' : '#f1f5f9'}
+            onMouseLeave={(e) => e.currentTarget.style.background = navBtnBg}
+          >
+            <ArrowLeft size={16} />
+            Back to Dashboard
+          </button>
+        </div>
+
         {/* Page Title & Actions */}
         <div style={{
           display: 'flex',
@@ -114,12 +237,13 @@ export default function UserCertificates() {
               fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
-              gap: '0.6rem'
+              gap: '0.6rem',
+              color: textTitle
             }}>
               <Award size={28} color="#00c9a7" />
               Cybersecurity Analysis Completion Certificates
             </h1>
-            <p style={{ margin: 0, color: 'var(--text-muted, #94a3b8)', fontSize: '0.88rem' }}>
+            <p style={{ margin: 0, color: textSub, fontSize: '0.88rem' }}>
               Formal verification certificates issued upon completion of end-to-end security scans, SOC analysis, and reports.
             </p>
           </div>
@@ -131,14 +255,15 @@ export default function UserCertificates() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.45rem',
-              padding: '0.55rem 1rem',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+              padding: '0.55rem 1.1rem',
+              background: navBtnBg,
+              border: navBtnBorder,
               borderRadius: '8px',
-              color: 'var(--text-main, #f8fafc)',
+              color: textTitle,
               cursor: 'pointer',
               fontSize: '0.85rem',
-              fontWeight: 600
+              fontWeight: 600,
+              boxShadow: isDark ? 'none' : '0 2px 6px rgba(0, 0, 0, 0.04)'
             }}
           >
             <RotateCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
@@ -173,55 +298,58 @@ export default function UserCertificates() {
           marginBottom: '2rem'
         }}>
           <div style={{
-            background: 'rgba(15, 23, 42, 0.65)',
-            border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
+            background: cardBg,
+            border: cardBorder,
             borderRadius: '12px',
             padding: '1.25rem 1.5rem',
+            boxShadow: cardShadow,
             backdropFilter: 'blur(8px)'
           }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.78rem', color: textSub, textTransform: 'uppercase', fontWeight: 600 }}>
               Active Certificates
             </div>
             <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#00c9a7', marginTop: '0.25rem' }}>
-              {certificates.filter(c => c.status === 'VALID').length}
+              {(certificates || []).filter(c => c.status === 'VALID').length}
             </div>
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted, #94a3b8)', marginTop: '0.2rem' }}>
+            <div style={{ fontSize: '0.74rem', color: textSub, marginTop: '0.2rem' }}>
               Cryptographically verifiable online
             </div>
           </div>
 
           <div style={{
-            background: 'rgba(15, 23, 42, 0.65)',
-            border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
+            background: cardBg,
+            border: cardBorder,
             borderRadius: '12px',
             padding: '1.25rem 1.5rem',
+            boxShadow: cardShadow,
             backdropFilter: 'blur(8px)'
           }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.78rem', color: textSub, textTransform: 'uppercase', fontWeight: 600 }}>
               Completed Assessments
             </div>
             <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.25rem' }}>
-              {reports.length}
+              {Array.isArray(assessments) ? assessments.length : 0}
             </div>
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted, #94a3b8)', marginTop: '0.2rem' }}>
+            <div style={{ fontSize: '0.74rem', color: textSub, marginTop: '0.2rem' }}>
               Eligible for completion certification
             </div>
           </div>
 
           <div style={{
-            background: 'rgba(15, 23, 42, 0.65)',
-            border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
+            background: cardBg,
+            border: cardBorder,
             borderRadius: '12px',
             padding: '1.25rem 1.5rem',
+            boxShadow: cardShadow,
             backdropFilter: 'blur(8px)'
           }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.78rem', color: textSub, textTransform: 'uppercase', fontWeight: 600 }}>
               Tamper-Proof Verification
             </div>
             <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#34d399', marginTop: '0.25rem' }}>
               100%
             </div>
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted, #94a3b8)', marginTop: '0.2rem' }}>
+            <div style={{ fontSize: '0.74rem', color: textSub, marginTop: '0.2rem' }}>
               Vector QR code with SHA-256 tokens
             </div>
           </div>
@@ -231,7 +359,7 @@ export default function UserCertificates() {
         <div style={{
           display: 'flex',
           gap: '0.5rem',
-          borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+          borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
           marginBottom: '1.5rem'
         }}>
           <button
@@ -241,13 +369,13 @@ export default function UserCertificates() {
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'certificates' ? '2px solid #00c9a7' : '2px solid transparent',
-              color: activeTab === 'certificates' ? '#00c9a7' : 'var(--text-muted, #94a3b8)',
+              color: activeTab === 'certificates' ? '#00c9a7' : textSub,
               fontWeight: 700,
               fontSize: '0.9rem',
               cursor: 'pointer'
             }}
           >
-            My Issued Certificates ({certificates.length})
+            My Issued Certificates ({(Array.isArray(certificates) ? certificates : []).length})
           </button>
           <button
             onClick={() => setActiveTab('eligibility')}
@@ -256,30 +384,30 @@ export default function UserCertificates() {
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'eligibility' ? '2px solid #00c9a7' : '2px solid transparent',
-              color: activeTab === 'eligibility' ? '#00c9a7' : 'var(--text-muted, #94a3b8)',
+              color: activeTab === 'eligibility' ? '#00c9a7' : textSub,
               fontWeight: 700,
               fontSize: '0.9rem',
               cursor: 'pointer'
             }}
           >
-            Assessment Eligibility Checklist ({reports.length})
+            Assessment Eligibility Checklist ({(Array.isArray(assessments) ? assessments : []).length})
           </button>
         </div>
 
         {/* Tab 1: Issued Certificates */}
         {activeTab === 'certificates' && (
           <div>
-            {certificates.length === 0 ? (
+            {(certificates || []).length === 0 ? (
               <div style={{
                 textAlign: 'center',
                 padding: '3.5rem 1rem',
-                background: 'rgba(15, 23, 42, 0.5)',
-                border: '1px dashed var(--border-color, rgba(255, 255, 255, 0.12))',
+                background: cardBg,
+                border: isDark ? '1px dashed rgba(255, 255, 255, 0.12)' : '1px dashed #cbd5e1',
                 borderRadius: '12px'
               }}>
                 <Award size={48} color="#64748b" style={{ margin: '0 auto 1rem' }} />
-                <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.2rem' }}>No Certificates Generated Yet</h3>
-                <p style={{ color: 'var(--text-muted, #94a3b8)', maxWidth: '480px', margin: '0 auto 1.5rem', fontSize: '0.88rem' }}>
+                <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.2rem', color: textTitle }}>No Certificates Generated Yet</h3>
+                <p style={{ color: textSub, maxWidth: '480px', margin: '0 auto 1.5rem', fontSize: '0.88rem' }}>
                   Complete a security assessment and generate a security report to become eligible for your official CyberGuardian AI Completion Certificate.
                 </p>
                 <button
@@ -302,16 +430,19 @@ export default function UserCertificates() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
                 {certificates.map(cert => {
                   const isValid = cert.status === 'VALID';
+                  const isDownloading = downloadingCertId === cert.certificate_id;
+                  const displayName = formatTargetName(cert.target);
+
                   return (
                     <div key={cert.id} style={{
-                      background: 'rgba(15, 23, 42, 0.7)',
-                      border: `1px solid ${isValid ? 'rgba(0, 201, 167, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
+                      background: cardBg,
+                      border: `1px solid ${isValid ? 'rgba(0, 201, 167, 0.35)' : 'rgba(239, 68, 68, 0.3)'}`,
                       borderRadius: '14px',
                       padding: '1.5rem',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+                      boxShadow: cardShadow,
                       backdropFilter: 'blur(10px)'
                     }}>
                       <div>
@@ -331,7 +462,7 @@ export default function UserCertificates() {
                             fontSize: '0.72rem',
                             fontWeight: 700,
                             background: isValid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                            color: isValid ? '#34d399' : '#f87171',
+                            color: isValid ? '#10b981' : '#f87171',
                             border: `1px solid ${isValid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
                           }}>
                             {cert.status}
@@ -346,17 +477,17 @@ export default function UserCertificates() {
                             padding: '2px 8px',
                             borderRadius: '4px',
                             background: 'rgba(56, 189, 248, 0.15)',
-                            color: '#38bdf8'
+                            color: '#0284c7'
                           }}>
                             {cert.assessment_type ? cert.assessment_type.replace(/_/g, ' ') : 'Security Assessment'}
                           </span>
-                          <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--text-muted, #94a3b8)' }}>
+                          <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: textSub }}>
                             {cert.assessment_id || cert.certificate_id}
                           </span>
                         </div>
 
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94a3b8)', marginBottom: '0.65rem', wordBreak: 'break-all' }}>
-                          Target: <strong style={{ color: 'var(--text-main, #e2e8f0)' }}>{cert.target}</strong>
+                        <div style={{ fontSize: '0.88rem', color: textSub, marginBottom: '0.65rem', wordBreak: 'break-all' }}>
+                          Target: <strong style={{ color: textTitle, fontSize: '0.95rem' }} title={cert.target}>{displayName}</strong>
                         </div>
 
                         {/* Result Badge */}
@@ -364,34 +495,36 @@ export default function UserCertificates() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '0.35rem',
-                          background: 'rgba(16, 185, 129, 0.15)',
+                          background: 'rgba(16, 185, 129, 0.12)',
                           border: '1px solid rgba(16, 185, 129, 0.3)',
-                          color: '#34d399',
-                          padding: '2px 8px',
+                          color: '#059669',
+                          padding: '3px 9px',
                           borderRadius: '6px',
-                          fontSize: '0.74rem',
+                          fontSize: '0.76rem',
                           fontWeight: 700,
                           marginBottom: '1rem'
                         }}>
-                          <CheckCircle2 size={12} /> {cert.result_status || 'SAFE / NO RISK'}
+                          <CheckCircle2 size={13} /> {cert.result_status || 'SAFE / NO RISK'}
                         </div>
 
                         {/* Metadata row */}
                         <div style={{
-                          background: 'rgba(0, 0, 0, 0.2)',
+                          background: metaBoxBg,
+                          border: metaBoxBorder,
                           padding: '0.75rem',
                           borderRadius: '8px',
                           display: 'flex',
                           justifyContent: 'space-between',
                           fontSize: '0.78rem',
-                          marginBottom: '1.25rem'
+                          marginBottom: '1.25rem',
+                          color: textTitle
                         }}>
                           <div>
-                            <span style={{ color: 'var(--text-muted, #94a3b8)' }}>Recipient: </span>
+                            <span style={{ color: textSub }}>Recipient: </span>
                             <strong>{cert.recipient_name}</strong>
                           </div>
                           <div>
-                            <span style={{ color: 'var(--text-muted, #94a3b8)' }}>Issued: </span>
+                            <span style={{ color: textSub }}>Issued: </span>
                             <strong>{cert.issue_date}</strong>
                           </div>
                         </div>
@@ -405,12 +538,12 @@ export default function UserCertificates() {
                             flex: 1,
                             padding: '0.55rem',
                             background: 'rgba(56, 189, 248, 0.1)',
-                            border: '1px solid rgba(56, 189, 248, 0.25)',
+                            border: '1px solid rgba(56, 189, 248, 0.3)',
                             borderRadius: '8px',
-                            color: '#38bdf8',
+                            color: '#0284c7',
                             cursor: 'pointer',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -420,38 +553,37 @@ export default function UserCertificates() {
                           <Eye size={14} /> Preview
                         </button>
 
-                        <a
-                          href={`${API}/api/certificates/${cert.certificate_id}/download/`}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          onClick={() => handleDownloadCertificate(cert.certificate_id)}
+                          disabled={isDownloading}
                           style={{
                             flex: 1,
                             padding: '0.55rem',
-                            background: 'rgba(0, 201, 167, 0.12)',
-                            border: '1px solid rgba(0, 201, 167, 0.3)',
+                            background: 'rgba(0, 201, 167, 0.15)',
+                            border: '1px solid rgba(0, 201, 167, 0.4)',
                             borderRadius: '8px',
-                            color: '#00c9a7',
-                            textDecoration: 'none',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
+                            color: '#008775',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '0.35rem'
+                            gap: '0.35rem',
+                            cursor: isDownloading ? 'wait' : 'pointer'
                           }}
                         >
-                          <Download size={14} /> Download
-                        </a>
+                          <Download size={14} /> {isDownloading ? 'Downloading...' : 'Download PDF'}
+                        </button>
 
                         <Link
                           to={`/verify/certificate/${cert.certificate_id}`}
                           target="_blank"
                           style={{
                             padding: '0.55rem 0.75rem',
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+                            background: navBtnBg,
+                            border: navBtnBorder,
                             borderRadius: '8px',
-                            color: 'var(--text-main, #f8fafc)',
+                            color: textTitle,
                             textDecoration: 'none',
                             fontSize: '0.8rem',
                             display: 'flex',
@@ -475,30 +607,30 @@ export default function UserCertificates() {
         {activeTab === 'eligibility' && (
           <div>
             <div style={{
-              background: 'rgba(56, 189, 248, 0.08)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
+              background: isDark ? 'rgba(56, 189, 248, 0.08)' : '#f0f9ff',
+              border: isDark ? '1px solid rgba(56, 189, 248, 0.2)' : '1px solid #bae6fd',
               borderRadius: '10px',
               padding: '1rem 1.25rem',
               marginBottom: '1.5rem',
               fontSize: '0.85rem',
-              color: 'var(--text-muted, #94a3b8)',
+              color: textSub,
               lineHeight: 1.5
             }}>
-              <strong style={{ color: '#38bdf8' }}>Certificate Rule: </strong>
-              A CyberGuardian AI Completion Certificate is earned for ANY single completed security assessment meeting the <strong style={{ color: '#34d399' }}>SAFE / NO-RISK</strong> criteria. You do <span style={{ textDecoration: 'underline' }}>not</span> need to run all scanners or SOC analysis — ONE qualifying assessment is sufficient!
+              <strong style={{ color: '#0284c7' }}>Certificate Rule: </strong>
+              A CyberGuardian AI Completion Certificate is earned for ANY single completed security assessment meeting the <strong style={{ color: '#10b981' }}>SAFE / NO-RISK</strong> criteria. You do <span style={{ textDecoration: 'underline' }}>not</span> need to run all scanners or SOC analysis — ONE qualifying assessment is sufficient!
             </div>
 
-            {assessments.length === 0 ? (
+            {(assessments || []).length === 0 ? (
               <div style={{
                 textAlign: 'center',
                 padding: '3rem 1rem',
-                background: 'rgba(15, 23, 42, 0.5)',
-                border: '1px dashed var(--border-color, rgba(255, 255, 255, 0.12))',
+                background: cardBg,
+                border: isDark ? '1px dashed rgba(255, 255, 255, 0.12)' : '1px dashed #cbd5e1',
                 borderRadius: '12px'
               }}>
                 <Award size={42} color="#64748b" style={{ margin: '0 auto 0.75rem' }} />
-                <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem' }}>No Certificate is Currently Available</h3>
-                <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.85rem', maxWidth: '520px', margin: '0 auto 1.25rem' }}>
+                <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem', color: textTitle }}>No Certificate is Currently Available</h3>
+                <p style={{ color: textSub, fontSize: '0.85rem', maxWidth: '520px', margin: '0 auto 1.25rem' }}>
                   Complete any eligible CyberGuardian AI security assessment with a SAFE / NO-RISK result to become eligible.
                 </p>
                 <Link
@@ -523,22 +655,24 @@ export default function UserCertificates() {
                   const isSafe = item.is_eligible || item.result === 'SAFE';
                   const isCertified = item.already_certified;
                   const isGenerating = generatingFor === item.id;
+                  const displayName = formatTargetName(item.target);
 
                   return (
                     <div key={item.id} style={{
-                      background: 'rgba(15, 23, 42, 0.75)',
-                      border: `1px solid ${isSafe ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.2)'}`,
+                      background: cardBg,
+                      border: `1px solid ${isSafe ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.25)'}`,
                       borderRadius: '12px',
                       padding: '1.25rem 1.5rem',
                       display: 'flex',
                       flexWrap: 'wrap',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      gap: '1.25rem'
+                      gap: '1.25rem',
+                      boxShadow: cardShadow
                     }}>
                       <div style={{ flex: '1 1 300px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.4rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#38bdf8' }}>
+                          <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#0284c7' }}>
                             {item.id}
                           </span>
                           <span style={{
@@ -546,19 +680,19 @@ export default function UserCertificates() {
                             padding: '0.15rem 0.5rem',
                             borderRadius: '4px',
                             background: 'rgba(56, 189, 248, 0.1)',
-                            color: '#38bdf8',
+                            color: '#0284c7',
                             fontWeight: 600
                           }}>
                             {item.name}
                           </span>
                         </div>
 
-                        <h4 style={{ margin: '0 0 0.35rem', fontSize: '1.1rem', fontWeight: 700 }}>
-                          {item.target}
+                        <h4 style={{ margin: '0 0 0.35rem', fontSize: '1.1rem', fontWeight: 700, color: textTitle }} title={item.target}>
+                          {displayName}
                         </h4>
 
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94a3b8)' }}>
-                          Result: <strong style={{ color: isSafe ? '#34d399' : '#f87171' }}>{item.result}</strong> • Risk Level: <strong>{item.risk_level}</strong>
+                        <div style={{ fontSize: '0.78rem', color: textSub }}>
+                          Result: <strong style={{ color: isSafe ? '#10b981' : '#f87171' }}>{item.result}</strong> • Risk Level: <strong>{item.risk_level}</strong>
                           {item.created_at && ` • ${new Date(item.created_at).toLocaleDateString()}`}
                         </div>
                       </div>
@@ -571,7 +705,7 @@ export default function UserCertificates() {
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '0.4rem',
-                              color: '#34d399',
+                              color: '#059669',
                               background: 'rgba(16, 185, 129, 0.12)',
                               padding: '4px 10px',
                               borderRadius: '6px',
@@ -581,7 +715,7 @@ export default function UserCertificates() {
                             }}>
                               <CheckCircle2 size={15} /> SAFE / NO RISK CRITERIA MET
                             </div>
-                            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted, #94a3b8)' }}>
+                            <div style={{ fontSize: '0.76rem', color: textSub }}>
                               Assessment completed cleanly with zero critical threats.
                             </div>
                           </div>
@@ -601,7 +735,7 @@ export default function UserCertificates() {
                             }}>
                               <AlertCircle size={15} /> NOT ELIGIBLE (RISKS DETECTED)
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)', maxWidth: '300px' }}>
+                            <div style={{ fontSize: '0.75rem', color: textSub, maxWidth: '300px' }}>
                               {item.reason}
                             </div>
                           </div>
@@ -618,9 +752,9 @@ export default function UserCertificates() {
                               style={{
                                 padding: '0.55rem 1rem',
                                 background: 'rgba(0, 201, 167, 0.15)',
-                                border: '1px solid rgba(0, 201, 167, 0.3)',
+                                border: '1px solid rgba(0, 201, 167, 0.35)',
                                 borderRadius: '8px',
-                                color: '#00c9a7',
+                                color: '#008775',
                                 textDecoration: 'none',
                                 fontSize: '0.82rem',
                                 fontWeight: 700,
@@ -659,10 +793,10 @@ export default function UserCertificates() {
                             disabled
                             style={{
                               padding: '0.55rem 1rem',
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
+                              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
                               borderRadius: '8px',
-                              color: '#64748b',
+                              color: '#94a3b8',
                               cursor: 'not-allowed',
                               fontSize: '0.82rem',
                               fontWeight: 600
@@ -699,16 +833,17 @@ export default function UserCertificates() {
             boxSizing: 'border-box'
           }}>
             <div style={{
-              background: 'var(--panel-bg, #0f172a)',
-              border: '1px solid var(--border-color, rgba(255, 255, 255, 0.15))',
+              background: cardBg,
+              border: cardBorder,
               borderRadius: '16px',
               maxWidth: '920px',
               width: '100%',
-              maxHeight: '90vh',
+              maxHeight: '92vh',
               overflowY: 'auto',
               padding: '2rem',
               boxSizing: 'border-box',
-              position: 'relative'
+              position: 'relative',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.5)'
             }}>
               {/* Modal Close */}
               <button
@@ -717,12 +852,12 @@ export default function UserCertificates() {
                   position: 'absolute',
                   top: '1.25rem',
                   right: '1.25rem',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: 'none',
+                  background: isDark ? 'rgba(255, 255, 255, 0.1)' : '#f1f5f9',
+                  border: isDark ? 'none' : '1px solid #cbd5e1',
                   borderRadius: '50%',
                   width: '34px',
                   height: '34px',
-                  color: '#fff',
+                  color: textTitle,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -734,7 +869,7 @@ export default function UserCertificates() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <Award size={24} color="#00c9a7" />
-                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: textTitle }}>
                   Certificate Preview
                 </h3>
               </div>
@@ -745,24 +880,34 @@ export default function UserCertificates() {
                 height: '480px',
                 borderRadius: '10px',
                 overflow: 'hidden',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid #cbd5e1',
                 marginBottom: '1.5rem',
-                background: '#fff'
+                background: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}>
-                <iframe
-                  src={`${API}/api/certificates/${selectedCert.certificate_id}/preview/#toolbar=0`}
-                  title="Certificate PDF Preview"
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                />
+                {previewLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', color: textSub }}>
+                    <RotateCw size={32} style={{ animation: 'spin 1s linear infinite', color: '#00c9a7' }} />
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Rendering Vector PDF Certificate...</span>
+                  </div>
+                ) : (
+                  <iframe
+                    src={previewBlobUrl || `${API}/api/certificates/${encodeURIComponent(selectedCert.certificate_id)}/preview/?token=${encodeURIComponent(getAuthToken() || '')}#toolbar=0`}
+                    title="Certificate PDF Preview"
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                  />
+                )}
               </div>
 
               {/* Modal Footer Controls */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, fontFamily: 'monospace', color: '#38bdf8' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, fontFamily: 'monospace', color: '#0284c7' }}>
                     {selectedCert.certificate_id}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>
+                  <div style={{ fontSize: '0.78rem', color: textSub }}>
                     Recipient: {selectedCert.recipient_name} • Status: {selectedCert.status}
                   </div>
                 </div>
@@ -776,10 +921,10 @@ export default function UserCertificates() {
                       background: 'rgba(56, 189, 248, 0.12)',
                       border: '1px solid rgba(56, 189, 248, 0.3)',
                       borderRadius: '8px',
-                      color: '#38bdf8',
+                      color: '#0284c7',
                       textDecoration: 'none',
                       fontSize: '0.85rem',
-                      fontWeight: 600,
+                      fontWeight: 700,
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.4rem'
@@ -788,25 +933,26 @@ export default function UserCertificates() {
                     <ExternalLink size={15} /> Verify Online
                   </Link>
 
-                  <a
-                    href={`${API}/api/certificates/${selectedCert.certificate_id}/download/`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    onClick={() => handleDownloadCertificate(selectedCert.certificate_id)}
+                    disabled={downloadingCertId === selectedCert.certificate_id}
                     style={{
                       padding: '0.65rem 1.4rem',
                       background: '#00c9a7',
                       color: '#060913',
+                      border: 'none',
                       borderRadius: '8px',
-                      fontWeight: 700,
+                      fontWeight: 800,
                       fontSize: '0.85rem',
-                      textDecoration: 'none',
+                      cursor: downloadingCertId === selectedCert.certificate_id ? 'wait' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.4rem'
+                      gap: '0.4rem',
+                      boxShadow: '0 4px 12px rgba(0, 201, 167, 0.3)'
                     }}
                   >
-                    <Download size={15} /> Download PDF
-                  </a>
+                    <Download size={15} /> {downloadingCertId === selectedCert.certificate_id ? 'Downloading...' : 'Download PDF'}
+                  </button>
                 </div>
               </div>
             </div>

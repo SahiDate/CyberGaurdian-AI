@@ -467,11 +467,29 @@ class PortScanSerializer(serializers.ModelSerializer):
 class SOCAnalysisRequestSerializer(serializers.Serializer):
     target = serializers.CharField(
         max_length=1024,
-        required=True,
-        error_messages={
-            'required': 'Target (domain, URL, IP, or file hash) is required for SOC analysis.',
-            'blank': 'Target cannot be blank.'
-        }
+        required=False,
+        allow_blank=True,
+        default=""
+    )
+    analysis_type = serializers.CharField(
+        max_length=50,
+        required=False,
+        default="COMPOSITE"
+    )
+    raw_logs = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default=""
+    )
+    log_text = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default=""
+    )
+    source = serializers.CharField(
+        max_length=50,
+        required=False,
+        default=""
     )
     source_scan_ids = serializers.DictField(
         child=serializers.IntegerField(min_value=1),
@@ -482,6 +500,20 @@ class SOCAnalysisRequestSerializer(serializers.Serializer):
         required=False,
         default=True
     )
+
+    def validate(self, data):
+        target = data.get('target', '').strip()
+        analysis_type = data.get('analysis_type', '').lower()
+        has_log = bool(data.get('raw_logs') or data.get('log_text') or analysis_type in ['log', 'log_file', 'log_analysis'])
+
+        request = self.context.get('request')
+        has_file = bool(request and (request.FILES.get('file') or request.FILES.get('log_file')))
+
+        if not target and not has_log and not has_file:
+            raise serializers.ValidationError({
+                'target': 'Target (domain, URL, IP, or file hash) or log content/file is required for SOC analysis.'
+            })
+        return data
 
 
 class SOCAnalysisSerializer(serializers.ModelSerializer):

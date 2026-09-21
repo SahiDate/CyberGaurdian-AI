@@ -20,6 +20,7 @@ import SOCAnalysis from './components/user/SOCAnalysis';
 import AIAgent from './components/user/AIAgent';
 import UserCertificates from './components/user/UserCertificates';
 import UserReports from './components/user/UserReports';
+import UserHistory from './components/user/UserHistory';
 import CertificateVerification from './components/public/CertificateVerification';
 
 // Admin Portal
@@ -47,6 +48,7 @@ import AdminApiHealth from './components/admin/AdminApiHealth';
 // Shared
 import NotFound404 from './components/shared/NotFound404';
 import Unauthorized403 from './components/shared/Unauthorized403';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
@@ -78,6 +80,7 @@ function App() {
         <ThemeProvider>
           {/* Persistent continuous 3D canvas background across all page transitions */}
           <Scene3D />
+          <ErrorBoundary>
           <Routes>
             {/* ── Public User Routes ─────────────────────────── */}
             <Route path="/login" element={<Login />} />
@@ -118,6 +121,12 @@ function App() {
             } />
             <Route path="/reports" element={
               <ProtectedRoute><UserReports /></ProtectedRoute>
+            } />
+            <Route path="/history" element={
+              <ProtectedRoute><UserHistory /></ProtectedRoute>
+            } />
+            <Route path="/scan" element={
+              <ProtectedRoute><Dashboard /></ProtectedRoute>
             } />
 
             {/* ── Admin Portal Public ────────────────────────── */}
@@ -188,6 +197,7 @@ function App() {
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="*" element={<NotFound404 />} />
           </Routes>
+          </ErrorBoundary>
         </ThemeProvider>
       </AuthProvider>
     </Router>
