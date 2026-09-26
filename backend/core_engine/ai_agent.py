@@ -44,7 +44,7 @@ from .scanners import scan_website_headers, check_ssl_certificate, scan_ports  #
 from .threat_intel import check_virustotal  # type: ignore
 
 
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "cybersec-ai")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "cybersec-ai-phishing")
 
 # In-memory LRU-style cache for AI inferences (Fingerprint -> AI Response)
 _AI_SYNTHESIS_CACHE = {}
@@ -57,7 +57,11 @@ def _get_cache_key(data: dict) -> str:
 
 
 def _compute_deterministic_scan_analysis(target: str, findings: dict) -> dict:
-    """Ultra-fast (<1ms) expert rule-based cybersecurity analysis."""
+    """
+    Expert rule-based cybersecurity & phishing detection analysis engine.
+    Ensures phishing, credential harvesting, and brand spoofing threats are accurately
+    flagged as Critical or High severity with zero false-negative drop to Medium.
+    """
     ports = findings.get("open_ports", []) or []
     headers = findings.get("security_headers", {}) or {}
     ssl_info = findings.get("ssl", {}) or {}
@@ -67,13 +71,23 @@ def _compute_deterministic_scan_analysis(target: str, findings: dict) -> dict:
     missing_headers = [k for k, v in headers.items() if v == 'Missing'] if isinstance(headers, dict) else []
     has_ssl_err = isinstance(ssl_info, dict) and ("error" in ssl_info or ssl_info.get("status") not in ["Valid", "OK"])
     is_malicious_vt = isinstance(vt, dict) and (vt.get("positives", 0) > 0 or vt.get("status") == "Malicious")
+    is_phishing = is_malicious_vt or (isinstance(vt, dict) and "phishing" in str(vt.get("category", "")).lower())
 
     recs = []
-    if is_malicious_vt:
-        sev = "Critical"
-        summary = f"Target {target} has been flagged by threat intelligence feeds with malicious reputation indicators."
-        recs.append("Isolate target and review inbound/outbound connection logs immediately.")
-        recs.append("Blacklist associated domain and IP addresses on network firewalls.")
+    # 1. PHISHING / ACTIVE MALICIOUS THREATS (Top Priority)
+    if is_phishing or is_malicious_vt:
+        sev = vt.get("severity", "Critical")
+        indicators = vt.get("indicators", []) if isinstance(vt, dict) else []
+        ind_str = f" Key indicators: {'; '.join(indicators[:3])}." if indicators else ""
+        
+        summary = (
+            f"🚨 CRITICAL PHISHING / MALICIOUS THREAT DETECTED: Target '{target}' exhibits active "
+            f"credential harvesting, deceptive infrastructure, or brand impersonation signatures.{ind_str}"
+        )
+        recs.append("BLOCK IMMEDIATELY: Restrict all outbound traffic to this URL across enterprise firewall and DNS filters.")
+        recs.append("CREDENTIAL SAFETY: Do NOT enter credentials, login details, 2FA tokens, or personal banking information.")
+        recs.append("THREAT ESCALATION: Report domain to Google Safe Browsing, PhishTank, and corporate SOC teams.")
+        recs.append("INCIDENT RESPONSE: If users visited this site, immediately reset passwords and revoke active web sessions.")
     elif open_count >= 4 or (has_ssl_err and open_count >= 2):
         sev = "High"
         summary = f"Target {target} exposes {open_count} open perimeter ports ({ports}) with SSL/header hardening gaps."
@@ -99,6 +113,7 @@ def _compute_deterministic_scan_analysis(target: str, findings: dict) -> dict:
 
     return {
         "severity": sev,
+        "is_phishing": is_phishing or is_malicious_vt,
         "summary": summary,
         "recommendations": recs
     }
@@ -141,18 +156,38 @@ def _compute_deterministic_log_analysis(metrics_summary: dict) -> dict:
 
 import requests
 
-def _call_fast_ollama(prompt_text: str, timeout: float = 1.2) -> dict:
-    """Fast, non-blocking direct Ollama API call with true socket-level timeout."""
+def _call_fast_ollama(prompt_text: str, timeout: float = 2.0) -> dict:
+    """Fast non-blocking direct Ollama API call with model fallback and fast preflight."""
+    # Fast preflight check (0.25s) to verify if Ollama is listening locally
+    try:
+        ping = requests.get("http://localhost:11434/api/tags", timeout=0.25)
+        if ping.status_code != 200:
+            return None
+        available_models = [m.get('name', '') for m in ping.json().get('models', [])]
+    except Exception:
+        # Ollama server is offline or unreachable — immediately return with zero delay
+        return None
+
+    # Pick the best available model
+    target_model = None
+    for candidate in [OLLAMA_MODEL, "cybersec-ai-phishing:latest", "cybersec-ai-phishing", "cybersec-ai:latest", "cybersec-ai", "llama3:latest", "llama3"]:
+        if any(candidate in m for m in available_models):
+            target_model = candidate
+            break
+
+    if not target_model:
+        return None
+
     try:
         url = "http://localhost:11434/api/generate"
         payload = {
-            "model": OLLAMA_MODEL,
+            "model": target_model,
             "prompt": prompt_text,
             "stream": False,
             "format": "json",
             "options": {
-                "temperature": 0.2,
-                "num_predict": 150
+                "temperature": 0.1,
+                "num_predict": 180
             }
         }
         res = requests.post(url, json=payload, timeout=timeout)
@@ -218,22 +253,51 @@ def run_autonomous_analysis(target):
     # 3. Check Cache
     cache_key = _get_cache_key(findings)
     if cache_key in _AI_SYNTHESIS_CACHE:
-        findings["ai_analysis"] = _AI_SYNTHESIS_CACHE[cache_key]
+        cached_ai = _AI_SYNTHESIS_CACHE[cache_key]
+        findings["ai_analysis"] = cached_ai
+        findings["security_score"] = 15 if cached_ai.get("is_phishing") or cached_ai.get("severity") in ["Critical", "High"] else 80
+        findings["is_phishing"] = cached_ai.get("is_phishing", False)
+        findings["phishing_indicators"] = vt_result.get("indicators", [])
         return findings
 
     # Compute high-accuracy deterministic baseline immediately (<1ms)
     ai_analysis = _compute_deterministic_scan_analysis(target, findings)
+    is_phish_baseline = ai_analysis.get("is_phishing", False) or vt_result.get("status") == "Malicious"
 
-    # 4. Optional fast LLM augmentation (strict 1.0s socket timeout)
+    # 4. Optional fast LLM augmentation (bounded timeout)
     prompt_str = f"""
-    You are CyberGuardian AI, an expert cybersecurity analyst.
-    Analyze the following findings for target '{target}' and return pure JSON.
-    Findings: {json.dumps(findings)}
-    JSON structure: {{"severity": "Low/Medium/High/Critical", "summary": "2 sentence summary", "recommendations": ["rec1", "rec2"]}}
+    You are CyberGuardian AI, an expert cybersecurity and phishing analyst.
+    Analyze target '{target}' and threat findings to evaluate phishing, credential theft, and security posture.
+    Return pure JSON:
+    Findings: {json.dumps(findings, default=str)}
+    JSON structure: {{"severity": "Critical/High/Medium/Low", "is_phishing": true/false, "summary": "2 sentence summary", "recommendations": ["rec1", "rec2"]}}
     """
-    llm_res = _call_fast_ollama(prompt_str, timeout=1.0)
+    llm_res = _call_fast_ollama(prompt_str, timeout=2.0)
     if llm_res:
+        # Security Guardrail: Never let LLM downgrade confirmed phishing/malicious findings
+        if is_phish_baseline:
+            llm_res["is_phishing"] = True
+            if llm_res.get("severity") not in ["Critical", "High"]:
+                llm_res["severity"] = ai_analysis.get("severity", "Critical")
         ai_analysis = llm_res
+
+    # Determine final authoritative severity and security score
+    final_sev = str(ai_analysis.get("severity", "Low")).capitalize()
+    is_phishing = ai_analysis.get("is_phishing", False) or is_phish_baseline
+    ai_analysis["is_phishing"] = is_phishing
+
+    if is_phishing or final_sev in ["Critical", "High"]:
+        final_sev = "Critical" if (final_sev == "Critical" or vt_result.get("threat_score", 0) >= 70) else "High"
+        sec_score = 15 if final_sev == "Critical" else 30
+    elif final_sev == "Medium":
+        sec_score = 60
+    else:
+        sec_score = 92
+
+    ai_analysis["severity"] = final_sev
+    findings["security_score"] = sec_score
+    findings["is_phishing"] = is_phishing
+    findings["phishing_indicators"] = vt_result.get("indicators", [])
 
     _AI_SYNTHESIS_CACHE[cache_key] = ai_analysis
     findings["ai_analysis"] = ai_analysis

@@ -32,9 +32,9 @@ export default function AdminIncidents() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState(null);
-  const [newStatus, setNewStatus] = useState('');
-  const [notes, setNotes] = useState('');
+  const [selected, setSelected] = useState(() => location.state?.selectedIncident || null);
+  const [newStatus, setNewStatus] = useState(() => location.state?.selectedIncident?.status || '');
+  const [notes, setNotes] = useState(() => location.state?.selectedIncident?.resolution_notes || '');
   const [updating, setUpdating] = useState(false);
   const [msg, setMsg] = useState(null);
 
@@ -49,19 +49,39 @@ export default function AdminIncidents() {
     fetchIncidents();
   }, []);
 
-  // Handle URL query parameter ?id=... from Notification Bell click
+  // Handle URL query parameter ?id=... from Notification Bell click or navigation state
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const targetId = params.get('id');
-    if (targetId && incidents.length > 0) {
-      const match = incidents.find(i => String(i.id) === String(targetId));
+    const targetId = params.get('id') || (location.state?.selectedIncident ? String(location.state.selectedIncident.id) : null);
+    if (targetId) {
+      const match = incidents.find(i => String(i.id) === String(targetId)) || location.state?.selectedIncident;
       if (match) {
         setSelected(match);
         setNewStatus(match.status);
         setNotes(match.resolution_notes || '');
+        // Clear status filter and search so target incident is always visible in the table
+        setStatusFilter('ALL');
+        setSearch('');
+
+        // Smooth scroll and focus highlight
+        setTimeout(() => {
+          const rowEl = document.getElementById(`incident-row-${match.id}`);
+          if (rowEl) {
+            rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            rowEl.style.transition = 'outline 0.3s ease, background-color 0.3s ease';
+            rowEl.style.outline = '2px solid #6366f1';
+            setTimeout(() => {
+              if (rowEl) rowEl.style.outline = 'none';
+            }, 2500);
+          }
+          const panelEl = document.getElementById('incident-details-panel');
+          if (panelEl && window.innerWidth <= 1024) {
+            panelEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 150);
       }
     }
-  }, [location.search, incidents]);
+  }, [location.search, location.state, incidents]);
 
   const fetchIncidents = async () => {
     try {
@@ -297,9 +317,12 @@ export default function AdminIncidents() {
                       return (
                         <tr
                           key={inc.id}
+                          id={`incident-row-${inc.id}`}
                           style={{
                             cursor: 'pointer',
-                            backgroundColor: isRowSelected ? (isDark ? 'rgba(99, 102, 241, 0.12)' : '#eef2ff') : 'transparent'
+                            backgroundColor: isRowSelected ? (isDark ? 'rgba(99, 102, 241, 0.12)' : '#eef2ff') : 'transparent',
+                            borderLeft: isRowSelected ? '4px solid #6366f1' : '4px solid transparent',
+                            transition: 'all 0.2s ease'
                           }}
                           onClick={() => {
                             setSelected(inc);
@@ -354,7 +377,7 @@ export default function AdminIncidents() {
 
           {/* Incident Details & Resolution Panel */}
           {selected && (
-            <div className="admin-card" style={{ padding: '1.5rem', height: 'fit-content' }}>
+            <div id="incident-details-panel" className="admin-card" style={{ padding: '1.5rem', height: 'fit-content' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--admin-text-main, #0f172a)' }}>
                   Incident #{selected.id}

@@ -33,11 +33,38 @@ KNOWN_SHORTENERS = {
     'tiny.cc', 'rb.gy', 'cutt.ly', 'shorturl.at', 'bl.ink', 'v.gd', 'qr.ae'
 }
 
+# Suspicious Top-Level Domains (TLDs) frequently abused in disposable phishing infrastructure
+SUSPICIOUS_TLDS = {
+    'pro', 'sbs', 'cfd', 'rest', 'icu', 'top', 'xyz', 'buzz', 'click', 'monster',
+    'quest', 'beauty', 'hair', 'live', 'shop', 'tk', 'ml', 'ga', 'cf', 'gq',
+    'site', 'courses', 'autos', 'fun', 'lat', 'biz.id', 'bid', 'loan', 'date',
+    'trade', 'racing', 'download', 'space', 'fit', 'kim', 'mom', 'surf', 'support'
+}
+
+# Free dynamic cloud platforms & staging services often abused for zero-day phishing
+FREE_HOSTING_DOMAINS = [
+    'railway.app', 'canva.site', 'mystagingwebsite.com', 'web.app', 'firebaseapp.com',
+    'glitch.me', 'pages.dev', 'workers.dev', 'vercel.app', 'netlify.app', 'ngrok.io',
+    'ngrok-free.app', 'trycloudflare.com', '000webhostapp.com', 'weebly.com',
+    'wixsite.com', 'render.com', 'fly.dev', 'surge.sh', 'github.io'
+]
+
+# Targeted high-value brands commonly spoofed in phishing lures
+TARGETED_BRANDS = [
+    'allegro', 'paypal', 'microsoft', 'apple', 'google', 'facebook', 'instagram',
+    'netflix', 'amazon', 'roblox', 'steam', 'discord', 'freefire', 'telegram',
+    'binance', 'coinbase', 'metamask', 'chase', 'wellsfargo', 'bofa', 'citi',
+    'outlook', 'office365', 'dhl', 'fedex', 'usps', 'ups', 'maxis', 'espacesecu',
+    'santander', 'barclays', 'revolut', 'cashapp', 'venmo', 'trustwallet', 'ledger'
+]
+
 # Suspicious keywords in path/query for credential harvesting / phishing
 SUSPICIOUS_KEYWORDS = [
     'login', 'signin', 'verify', 'banking', 'paypal', 'wallet', 'account',
     'update', 'security', 'authenticate', 'webscr', 'password', 'credential',
-    'confirm', 'secure', 'authorize', 'session', 'wp-login', 'admin'
+    'confirm', 'secure', 'authorize', 'session', 'wp-login', 'admin', 'loading.php',
+    'index.php', 'auth.php', 'claim', 'gift', 'airdrop', 'bonus', 'vip', 'recovery',
+    'espacesecu', 'lokalna', 'oferta', 'ofeta', 'cashmana'
 ]
 
 # Supported Web Schemes
@@ -213,17 +240,61 @@ def analyze_url_structure_indicators(url_info: Dict[str, Any]) -> List[Dict[str,
             "description": "URL contains double-percent encoding (%25), commonly used in filter evasion and path traversal."
         })
 
-    # 9. Suspicious keywords in path/query
-    full_searchable = f"{path.lower()}?{query.lower()}"
+    # 9. Brand Impersonation in Hostname
+    for brand in TARGETED_BRANDS:
+        if brand in hostname:
+            genuine_domains = [f"{brand}.com", f"{brand}.pl", f"{brand}.org", f"{brand}.net", f"{brand}.co.uk"]
+            if not any(hostname == g or hostname.endswith(f".{g}") for g in genuine_domains):
+                indicators.append({
+                    "type": "DECEPTIVE_BRAND_IMPERSONATION",
+                    "severity": "CRITICAL",
+                    "description": f"Target hostname '{hostname}' impersonates recognized brand '{brand}'."
+                })
+                break
+
+    # 10. Suspicious / High-Abuse TLD
+    for tld in SUSPICIOUS_TLDS:
+        if hostname.endswith(f".{tld}"):
+            indicators.append({
+                "type": "SUSPICIOUS_PHISHING_TLD",
+                "severity": "HIGH",
+                "description": f"Domain uses high-abuse / disposable phishing TLD (.{tld})."
+            })
+            break
+
+    # 11. Free dynamic cloud platform abuse
+    for fh in FREE_HOSTING_DOMAINS:
+        if hostname.endswith(f".{fh}") or hostname == fh:
+            indicators.append({
+                "type": "FREE_HOSTING_PHISHING_ABUSE",
+                "severity": "HIGH",
+                "description": f"URL is hosted on public/staging app platform ({fh}) frequently abused for phishing."
+            })
+            break
+
+    # 12. Suspicious keywords in path/query/hostname
+    full_searchable = f"{hostname}/{path.lower()}?{query.lower()}"
     matched_keywords = [kw for kw in SUSPICIOUS_KEYWORDS if kw in full_searchable]
-    if len(matched_keywords) >= 2:
+    if len(matched_keywords) >= 1:
+        sev = "HIGH" if len(matched_keywords) >= 2 or any(k in full_searchable for k in ['loading.php', 'index.php', 'auth.php', 'verify', 'login', 'confirma', 'espacesecu']) else "MEDIUM"
         indicators.append({
             "type": "SUSPICIOUS_PHISHING_KEYWORDS",
-            "severity": "MEDIUM",
-            "description": f"URL path/query contains multiple authentication/financial keywords: {', '.join(matched_keywords)}."
+            "severity": sev,
+            "description": f"URL contains authentication/financial phishing keywords: {', '.join(matched_keywords[:4])}."
         })
 
-    # 10. Non-standard port
+    # 13. DGA / High Digit Ratio in Hostname
+    labels = hostname.split('.')
+    main_domain = labels[0] if len(labels) > 0 else ""
+    digits = sum(c.isdigit() for c in main_domain)
+    if len(main_domain) >= 6 and (digits / len(main_domain)) >= 0.4:
+        indicators.append({
+            "type": "DGA_ENTROPY_DETECTED",
+            "severity": "HIGH",
+            "description": f"Hostname '{main_domain}' exhibits high numeric entropy / DGA characteristics."
+        })
+
+    # 14. Non-standard port
     port = url_info["port"]
     scheme = url_info["scheme"]
     if (scheme == 'http' and port not in (80, 8080)) or (scheme == 'https' and port not in (443, 8443)):
@@ -269,29 +340,35 @@ class URLScannerService:
         port = url_info["port"]
         norm_url = url_info["normalized_url"]
 
-        # Step 2: SSRF Pre-flight Validation
+        # Step 2: URL Static Structure & Syntax Analysis
+        structure_indicators = analyze_url_structure_indicators(url_info)
+
+        # Step 3: SSRF Pre-flight Validation
         try:
             resolved_ips = validate_target_ssrf(hostname, port)
             primary_ip = resolved_ips[0] if resolved_ips else "UNKNOWN"
         except SSRFBlockedError as e:
+            ssrf_indicator = {
+                "type": "SSRF_ATTEMPT_BLOCKED",
+                "severity": "CRITICAL",
+                "description": str(e)
+            }
+            all_inds = structure_indicators + [ssrf_indicator]
             return {
+                "original_url": raw_url,
                 "target": raw_url,
                 "normalized_url": norm_url,
                 "hostname": hostname,
                 "domain": url_info["domain"],
                 "status": "SSRF_BLOCKED",
                 "error_message": str(e),
-                "indicators": [{
-                    "type": "SSRF_ATTEMPT_BLOCKED",
-                    "severity": "CRITICAL",
-                    "description": str(e)
-                }],
+                "indicators": all_inds,
+                "threat_score": 95,
+                "severity": "CRITICAL",
+                "confidence": 100,
                 "risk": {"score": 95, "severity": "CRITICAL", "confidence": 100},
                 "structured_evidence": {"source": "URL_SCANNER", "error": str(e)}
             }
-
-        # Step 3: URL Static Structure & Syntax Analysis
-        structure_indicators = analyze_url_structure_indicators(url_info)
 
         # Step 4: Safe Network Request & Redirect Chain Analysis
         network_result = self._execute_safe_http_request(norm_url)
@@ -712,10 +789,22 @@ class URLScannerService:
                 score += 15
                 confidence_factors.append(70)
 
-        # 3. URL Structure & Obfuscation (Weight: 10-35 points each)
+        # 3. URL Structure & Obfuscation (Weight: 10-55 points each)
         for ind in structure_indicators:
             itype = ind.get("type", "")
-            if itype == "IP_HOST_URL":
+            if itype == "DECEPTIVE_BRAND_IMPERSONATION":
+                score += 55
+                confidence_factors.append(95)
+            elif itype == "FREE_HOSTING_PHISHING_ABUSE":
+                score += 45
+                confidence_factors.append(90)
+            elif itype == "SUSPICIOUS_PHISHING_TLD":
+                score += 40
+                confidence_factors.append(85)
+            elif itype == "DGA_ENTROPY_DETECTED":
+                score += 35
+                confidence_factors.append(85)
+            elif itype == "IP_HOST_URL":
                 score += 30
                 confidence_factors.append(90)
             elif itype == "DOUBLE_URL_ENCODING":
@@ -725,17 +814,27 @@ class URLScannerService:
                 score += 35
                 confidence_factors.append(90)
             elif itype == "PUNYCODE_DOMAIN":
-                score += 20
+                score += 25
                 confidence_factors.append(80)
             elif itype == "URL_SHORTENER_DETECTED":
                 score += 15
                 confidence_factors.append(80)
             elif itype == "SUSPICIOUS_PHISHING_KEYWORDS":
-                score += 20
-                confidence_factors.append(75)
+                score += 35
+                confidence_factors.append(85)
             elif itype == "EXCESSIVE_SUBDOMAINS":
-                score += 10
+                score += 15
                 confidence_factors.append(70)
+
+        # Enforce minimum Critical threat threshold if strong phishing combination is present
+        phish_sig_count = sum(1 for ind in structure_indicators if ind.get("type") in (
+            "DECEPTIVE_BRAND_IMPERSONATION", "FREE_HOSTING_PHISHING_ABUSE", "SUSPICIOUS_PHISHING_TLD", "DGA_ENTROPY_DETECTED"
+        ))
+        has_keywords = any(ind.get("type") == "SUSPICIOUS_PHISHING_KEYWORDS" for ind in structure_indicators)
+        if phish_sig_count >= 1 and has_keywords:
+            score = max(score, 85)
+        elif phish_sig_count >= 2:
+            score = max(score, 80)
 
         # 4. SSL Vulnerabilities
         ssl_status = ssl_evidence.get("certificate_status", "")

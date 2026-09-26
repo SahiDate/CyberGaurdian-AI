@@ -21,6 +21,9 @@ export default function AdminURLScanner() {
   const [sevFilter, setSevFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedScan, setSelectedScan] = useState(null);
+  const [newUrl, setNewUrl] = useState('');
+  const [inspecting, setInspecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -29,6 +32,49 @@ export default function AdminURLScanner() {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleSyncUserActions = async () => {
+    setSyncing(true);
+    try {
+      await fetch(`${API}/api/admin/url-scanner/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authTokens?.access}`,
+        },
+        body: JSON.stringify({ action: 'sync_user_actions' })
+      });
+      await fetchData();
+    } catch (e) {
+      console.error("Error syncing user actions:", e);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleAdminScan = async (e) => {
+    if (e) e.preventDefault();
+    if (!newUrl.trim()) return;
+    setInspecting(true);
+    try {
+      const res = await fetch(`${API}/api/admin/url-scanner/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authTokens?.access}`,
+        },
+        body: JSON.stringify({ url: newUrl.trim() })
+      });
+      if (res.ok) {
+        setNewUrl('');
+        await fetchData();
+      }
+    } catch (e) {
+      console.error("Error running admin URL scan:", e);
+    } finally {
+      setInspecting(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -79,22 +125,41 @@ export default function AdminURLScanner() {
               Platform-wide URL security telemetry, redirect chain analysis, SSRF containment, and correlated threat intelligence.
             </p>
           </div>
-          <button
-            onClick={fetchData}
-            className="glass-panel"
-            style={{
-              padding: '0.55rem 1.1rem',
-              background: 'rgba(56,139,253,0.15)',
-              border: '1px solid var(--accent-color)',
-              color: 'var(--accent-color)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: '0.82rem'
-            }}
-          >
-            🔄 Refresh Analytics
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button
+              onClick={handleSyncUserActions}
+              disabled={syncing}
+              className="glass-panel"
+              style={{
+                padding: '0.55rem 1.1rem',
+                background: 'rgba(57,211,83,0.15)',
+                border: '1px solid var(--success-color)',
+                color: 'var(--success-color)',
+                borderRadius: '8px',
+                cursor: syncing ? 'not-allowed' : 'pointer',
+                fontWeight: 700,
+                fontSize: '0.82rem'
+              }}
+            >
+              {syncing ? '⏳ Syncing Users...' : '⚡ Ingest User Telemetry'}
+            </button>
+            <button
+              onClick={fetchData}
+              className="glass-panel"
+              style={{
+                padding: '0.55rem 1.1rem',
+                background: 'rgba(56,139,253,0.15)',
+                border: '1px solid var(--accent-color)',
+                color: 'var(--accent-color)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '0.82rem'
+              }}
+            >
+              🔄 Refresh Analytics
+            </button>
+          </div>
         </div>
 
         {/* Real DB Analytics Stats Cards */}
@@ -125,6 +190,44 @@ export default function AdminURLScanner() {
             </div>
           </div>
         )}
+
+        {/* Admin Live URL Inspector Bar */}
+        <form onSubmit={handleAdminScan} style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          <input
+            type="url"
+            placeholder="Inspect any destination URL (e.g. https://example.com/login)..."
+            value={newUrl}
+            onChange={(e) => setNewUrl(e.target.value)}
+            className="glass-panel"
+            style={{
+              flex: '1 1 320px',
+              padding: '0.7rem 1.1rem',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              color: 'var(--text-main)',
+              fontSize: '0.88rem',
+              outline: 'none'
+            }}
+          />
+          <button
+            type="submit"
+            disabled={inspecting || !newUrl.trim()}
+            style={{
+              padding: '0.7rem 1.5rem',
+              background: 'var(--accent-color)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: inspecting || !newUrl.trim() ? 'not-allowed' : 'pointer',
+              opacity: inspecting || !newUrl.trim() ? 0.6 : 1
+            }}
+          >
+            {inspecting ? '🔍 Inspecting Destination...' : '🚀 Inspect URL'}
+          </button>
+        </form>
 
         {/* Filter Controls */}
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>

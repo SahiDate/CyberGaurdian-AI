@@ -99,6 +99,29 @@ class ThreatIntelligenceService:
                         "error_message": f"Execution error: {str(e)}"
                     })
 
+        # 3b. Local CyberGuardian Phishing Intelligence Engine check
+        try:
+            from core_engine.threat_intel import detect_phishing_signatures
+            is_phish, p_score, p_indicators, p_sev = detect_phishing_signatures(norm_target)
+            if is_phish:
+                provider_responses.append({
+                    "provider": "CyberGuardian Phishing Intelligence",
+                    "status": "SUCCESS",
+                    "malicious": max(1, len(p_indicators)),
+                    "suspicious": 1,
+                    "harmless": 0,
+                    "undetected": 0,
+                    "raw_summary": {
+                        "is_phishing": True,
+                        "threat_score": p_score,
+                        "indicators": p_indicators,
+                        "severity": p_sev
+                    },
+                    "error_message": None
+                })
+        except Exception:
+            pass
+
         # 4. Evidence Correlation & Threat Scoring
         threat_score, severity, confidence, evidence_summary = calculate_threat_score_and_severity(provider_responses)
 

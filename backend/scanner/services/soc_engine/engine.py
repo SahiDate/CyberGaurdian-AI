@@ -522,7 +522,11 @@ class SOCAnalysisEngine:
             })
 
         # RULE 2: Suspicious Redirect / Phishing Keywords + Bad Reputation
-        has_phish_url = any(ind in all_indicators for ind in ("SUSPICIOUS_PHISHING_KEYWORDS", "DOUBLE_URL_ENCODING", "EMBEDDED_CREDENTIALS_USERINFO", "PUNYCODE_DOMAIN"))
+        has_phish_url = any(ind in all_indicators for ind in (
+            "SUSPICIOUS_PHISHING_KEYWORDS", "DOUBLE_URL_ENCODING", "EMBEDDED_CREDENTIALS_USERINFO",
+            "PUNYCODE_DOMAIN", "DECEPTIVE_BRAND_IMPERSONATION", "SUSPICIOUS_PHISHING_TLD",
+            "FREE_HOSTING_PHISHING_ABUSE", "DGA_ENTROPY_DETECTED"
+        ))
         if has_phish_url and has_bad_rep:
             correlations.append({
                 "rule_id": "CORR-002",
@@ -530,7 +534,7 @@ class SOCAnalysisEngine:
                 "severity": "CRITICAL",
                 "confidence": 96,
                 "sources": ["URL_SCANNER", "THREAT_INTELLIGENCE"],
-                "description": "Target URL utilizes deceptive syntactic evasion patterns (punycode, credential embedding, double encoding, or phishing terms) and matches negative threat intelligence reputation."
+                "description": "Target URL utilizes deceptive syntactic evasion patterns (brand impersonation, punycode, credential embedding, double encoding, or phishing terms) and matches negative threat intelligence reputation."
             })
 
         # RULE 3: Public Internet-Facing Target + Exposed Database Service
@@ -587,6 +591,19 @@ class SOCAnalysisEngine:
                 "confidence": 99,
                 "sources": ["FILE_ANALYZER", "THREAT_INTELLIGENCE"],
                 "description": "Uploaded binary or document matches definitive YARA malware signatures and corroborates known malicious threat feed IOC records."
+            })
+
+        # RULE 7: Active Brand Impersonation & Phishing Campaign
+        has_brand_impersonation = "DECEPTIVE_BRAND_IMPERSONATION" in all_indicators
+        has_phish_hosting_or_tld = any(ind in all_indicators for ind in ("SUSPICIOUS_PHISHING_TLD", "FREE_HOSTING_PHISHING_ABUSE"))
+        if has_brand_impersonation or (has_phish_hosting_or_tld and (has_bad_rep or has_phish_url)):
+            correlations.append({
+                "rule_id": "CORR-007",
+                "title": "Active Brand Impersonation & Phishing Lure Infrastructure",
+                "severity": "CRITICAL",
+                "confidence": 98,
+                "sources": ["URL_SCANNER", "THREAT_INTELLIGENCE"] if has_bad_rep else ["URL_SCANNER"],
+                "description": "Target employs deceptive brand impersonation or suspicious TLD/free hosting vectors indicative of credential harvesting campaigns."
             })
 
         return correlations

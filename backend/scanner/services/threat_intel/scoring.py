@@ -81,6 +81,15 @@ def calculate_threat_score_and_severity(provider_results: List[Dict[str, Any]]) 
                     signals.append(f"urlscan.io: {m} malicious scan verdict(s) and {s} suspicious verdict(s).")
                 else:
                     signals.append("urlscan.io: Clean scan history.")
+
+            elif provider_name == "CyberGuardian Phishing Intelligence":
+                phish_pts = max(80, min(100, 75 + (m * 5)))
+                calculated_points = max(calculated_points, phish_pts)
+                raw_sum = res.get("raw_summary", {})
+                detected_indicators = raw_sum.get("indicators", [])
+                signals.append(
+                    f"CyberGuardian Phishing Intelligence: Flagged as deceptive phishing / credential harvesting infrastructure ({', '.join(detected_indicators) if detected_indicators else 'heuristics'})."
+                )
         else:
             signals.append(f"{provider_name}: Provider status '{status}' ({res.get('error_message', 'No details')}).")
 

@@ -20,6 +20,7 @@ from datetime import timedelta, date, datetime
 from django.db.models import Count
 from django.db.models.functions import TruncDate, TruncWeek
 import random
+import re
 try:
     import psutil
     _PSUTIL_AVAILABLE = True
@@ -329,55 +330,133 @@ def _send_otp_email(to_email: str, otp: str, purpose: str):
 
 class RegisterView(generics.CreateAPIView):
     """
-    Public registration endpoint. strictly creates accounts with role='USER'.
+    Public registration endpoint. Strictly creates accounts with role='USER'.
     Admin registration via public API is forbidden.
     """
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
 
-    def perform_create(self, serializer):
-        user = serializer.save(is_active=False)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            errors = serializer.errors
+            first_error = None
+            for field, messages in errors.items():
+                if isinstance(messages, list) and len(messages) > 0:
+                    first_error = f"{messages[0]}"
+                    break
+                elif isinstance(messages, str):
+                    first_error = messages
+                    break
+            return Response({
+                "error": first_error or "Registration validation failed.",
+                "details": errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user = serializer.save()
         otp = generate_otp()
         user.otp = otp
         user.otp_created_at = timezone.now()
         user.save()
-        
-        dispatch_otp(
-            to_email=user.email,
-            otp=otp,
-            purpose='registration',
-            to_phone=user.phone_number,
-            username=user.username
-        )
+
+        try:
+            dispatch_otp(
+                to_email=user.email,
+                otp=otp,
+                purpose='registration',
+                to_phone=user.phone_number,
+                username=user.username
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Registration OTP dispatch exception: {e}")
+
+        return Response({
+            "message": "Registration successful. OTP sent for verification.",
+            "username": user.username,
+            "email": user.email,
+            "phone_number": user.phone_number
+        }, status=status.HTTP_201_CREATED)
 
 
 class VerifyRegistrationView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        username = request.data.get('username')
-        otp = request.data.get('otp')
-        
-        user = User.objects.filter(Q(username=username) | Q(email=username)).first()
+        username = (request.data.get('username') or '').strip()
+        otp = (request.data.get('otp') or '').strip()
+
+        if not username or not otp:
+            return Response({"error": "Username and OTP are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(
+            Q(username__iexact=username) | 
+            Q(username__iexact=re.sub(r'\s+', '_', username)) | 
+            Q(username__iexact=re.sub(r'_', ' ', username)) | 
+            Q(email__iexact=username)
+        ).first()
         if not user:
-            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-            
+            return Response({"error": "User not found. Please register first."}, status=status.HTTP_404_NOT_FOUND)
+
         if user.is_active:
-            return Response({"error": "User already verified."}, status=status.HTTP_400_BAD_REQUEST)
-            
+            return Response({"error": "Account is already verified. Please log in."}, status=status.HTTP_400_BAD_REQUEST)
+
         if user.otp == otp:
             if user.otp_created_at and timezone.now() > user.otp_created_at + timedelta(minutes=10):
-                return Response({"error": "OTP expired."}, status=status.HTTP_400_BAD_REQUEST)
-                
+                return Response({"error": "OTP has expired. Please request a new OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
             user.is_active = True
             user.is_email_verified = True
             user.otp = None
             user.otp_created_at = None
             user.save()
-            return Response({"message": "Registration verified successfully."}, status=status.HTTP_200_OK)
-            
-        return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Registration verified successfully. You may now log in."}, status=status.HTTP_200_OK)
+
+        return Response({"error": "Invalid verification code. Please check and try again."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResendRegistrationOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        identifier = (request.data.get('username') or request.data.get('email') or '').strip()
+        if not identifier:
+            return Response({"error": "Username or email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(
+            Q(username__iexact=identifier) | 
+            Q(username__iexact=re.sub(r'\s+', '_', identifier)) | 
+            Q(username__iexact=re.sub(r'_', ' ', identifier)) | 
+            Q(email__iexact=identifier)
+        ).first()
+        if not user:
+            return Response({"error": "No pending registration found for this account."}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.is_active:
+            return Response({"error": "Account is already active. Please log in."}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp = generate_otp()
+        user.otp = otp
+        user.otp_created_at = timezone.now()
+        user.save()
+
+        try:
+            dispatch_otp(
+                to_email=user.email,
+                otp=otp,
+                purpose='registration',
+                to_phone=user.phone_number,
+                username=user.username
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Resend OTP dispatch exception: {e}")
+
+        return Response({
+            "message": "A new verification code has been dispatched.",
+            "username": user.username
+        }, status=status.HTTP_200_OK)
 
 
 class LoginInitiateView(APIView):
@@ -394,8 +473,14 @@ class LoginInitiateView(APIView):
         if not identifier or not password:
             return Response({"error": "Username/Email and password are required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        clean_id = identifier.strip()
         # Match user by username or email (matching active password)
-        users = User.objects.filter(Q(username=identifier) | Q(email=identifier))
+        users = User.objects.filter(
+            Q(username__iexact=clean_id) | 
+            Q(username__iexact=re.sub(r'\s+', '_', clean_id)) | 
+            Q(username__iexact=re.sub(r'_', ' ', clean_id)) | 
+            Q(email__iexact=clean_id)
+        )
         user = None
         for u in users:
             if u.check_password(password):
@@ -2169,6 +2254,78 @@ class SSLScanAdminListView(APIView):
         serializer = SSLScanSerializer(queryset[:200], many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def post(self, request):
+        action = request.data.get('action')
+        if action == 'sync_user_actions':
+            from django.core.management import call_command
+            try:
+                call_command('seed_forensic_scans')
+                return Response({"message": "Successfully synchronized platform telemetry from user actions."}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"error": f"Failed to sync user actions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        target = (request.data.get('target') or '').strip()
+        if not target:
+            return Response({"error": "Target domain or hostname is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        port = int(request.data.get('port', 443))
+        user_id = request.data.get('user_id')
+        target_user = request.user
+        if user_id:
+            found_user = User.objects.filter(pk=user_id).first()
+            if found_user:
+                target_user = found_user
+
+        service = SSLScannerService(timeout=10)
+        scan_output = service.scan_target(target, custom_port=port)
+
+        valid_from_dt = None
+        valid_until_dt = None
+        if scan_output.get("valid_from"):
+            try:
+                valid_from_dt = datetime.fromisoformat(scan_output["valid_from"].replace('Z', '+00:00'))
+            except Exception:
+                pass
+        if scan_output.get("valid_until"):
+            try:
+                valid_until_dt = datetime.fromisoformat(scan_output["valid_until"].replace('Z', '+00:00'))
+            except Exception:
+                pass
+
+        record = SSLScanResult.objects.create(
+            user=target_user,
+            target=scan_output.get("target", target),
+            domain=scan_output.get("domain", target),
+            port=scan_output.get("port", port),
+            certificate_status=scan_output.get("certificate_status", "VALID"),
+            issuer_cn=scan_output.get("issuer_cn", ""),
+            subject_cn=scan_output.get("subject_cn", ""),
+            valid_from=valid_from_dt,
+            valid_until=valid_until_dt,
+            days_remaining=scan_output.get("days_remaining"),
+            tls_version=scan_output.get("tls_version", "UNKNOWN"),
+            cipher_name=scan_output.get("cipher_name", "UNKNOWN"),
+            cipher_bits=scan_output.get("cipher_bits", 0),
+            hostname_valid=scan_output.get("hostname_valid", True),
+            san_list=scan_output.get("san_list", []),
+            security_issues=scan_output.get("security_issues", []),
+            threat_score=scan_output.get("threat_score", 0),
+            severity=scan_output.get("severity", "LOW"),
+            confidence=scan_output.get("confidence", 100),
+            status=scan_output.get("status", "SUCCESS"),
+            error_message=scan_output.get("error_message"),
+            structured_evidence=scan_output.get("structured_evidence", {})
+        )
+
+        AdminAuditLog.objects.create(
+            admin=request.user,
+            action='ADMIN_EXECUTE_SSL_SCAN',
+            target_user=target_user,
+            target_record=f"SSLScan #{record.id} ({record.domain}:{record.port})"
+        )
+
+        return Response(SSLScanSerializer(record).data, status=status.HTTP_201_CREATED)
+
 
 class SSLScanAdminDetailView(APIView):
     """
@@ -2595,6 +2752,64 @@ class URLScanAdminListView(APIView):
         serializer = URLScanSerializer(queryset[:200], many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def post(self, request):
+        action = request.data.get('action')
+        if action == 'sync_user_actions':
+            from django.core.management import call_command
+            try:
+                call_command('seed_forensic_scans')
+                return Response({"message": "Successfully synchronized platform telemetry from user actions."}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"error": f"Failed to sync user actions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        url = (request.data.get('url') or request.data.get('target') or '').strip()
+        if not url:
+            return Response({"error": "Target URL is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_id = request.data.get('user_id')
+        target_user = request.user
+        if user_id:
+            found_user = User.objects.filter(pk=user_id).first()
+            if found_user:
+                target_user = found_user
+
+        service = URLScannerService()
+        scan_output = service.scan_url(raw_url=url, user=target_user)
+
+        record = URLScanResult.objects.create(
+            user=target_user,
+            original_url=scan_output.get("original_url", url),
+            normalized_url=scan_output.get("normalized_url", url),
+            final_url=scan_output.get("final_url", url),
+            hostname=scan_output.get("hostname", ""),
+            domain=scan_output.get("domain", ""),
+            scheme=scan_output.get("scheme", "https"),
+            port=scan_output.get("port", 443),
+            primary_ip=scan_output.get("primary_ip", ""),
+            http_status=scan_output.get("http_status", 0),
+            content_type=scan_output.get("content_type", ""),
+            server=scan_output.get("server", ""),
+            redirect_count=scan_output.get("redirect_count", 0),
+            redirect_chain=scan_output.get("redirect_chain", []),
+            indicators=scan_output.get("indicators", []),
+            recommendations=scan_output.get("recommendations", []),
+            threat_score=scan_output.get("threat_score", 0),
+            severity=scan_output.get("severity", "LOW"),
+            confidence=scan_output.get("confidence", 100),
+            status=scan_output.get("status", "SUCCESS"),
+            error_message=scan_output.get("error_message"),
+            structured_evidence=scan_output.get("structured_evidence", {})
+        )
+
+        AdminAuditLog.objects.create(
+            admin=request.user,
+            action='ADMIN_EXECUTE_URL_SCAN',
+            target_user=target_user,
+            target_record=f"URLScan #{record.id} ({record.hostname})"
+        )
+
+        return Response(URLScanSerializer(record).data, status=status.HTTP_201_CREATED)
+
 
 class URLScanAdminDetailView(APIView):
     """
@@ -2808,6 +3023,63 @@ class PortScanAdminListView(APIView):
         serializer = PortScanSerializer(queryset[:200], many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def post(self, request):
+        action = request.data.get('action')
+        if action == 'sync_user_actions':
+            from django.core.management import call_command
+            try:
+                call_command('seed_forensic_scans')
+                return Response({"message": "Successfully synchronized platform telemetry from user actions."}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"error": f"Failed to sync user actions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        target = (request.data.get('target') or '').strip()
+        if not target:
+            return Response({"error": "Target host or IP address is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        profile = request.data.get('scan_profile', 'COMMON')
+        user_id = request.data.get('user_id')
+        target_user = request.user
+        if user_id:
+            found_user = User.objects.filter(pk=user_id).first()
+            if found_user:
+                target_user = found_user
+
+        service = PortScannerService()
+        scan_output = service.scan(target=target, scan_profile=profile, user=target_user)
+
+        record = PortScanResult.objects.create(
+            user=target_user,
+            target=scan_output.get("target", target),
+            target_type=scan_output.get("target_type", "DOMAIN"),
+            resolved_ips=scan_output.get("resolved_ips", []),
+            primary_ip=scan_output.get("primary_ip", ""),
+            scan_profile=scan_output.get("scan_profile", profile),
+            requested_ports=scan_output.get("requested_ports", []),
+            results=scan_output.get("results", {}),
+            open_ports=scan_output.get("open_ports", []),
+            closed_ports=scan_output.get("closed_ports", []),
+            filtered_ports=scan_output.get("filtered_ports", []),
+            indicators=scan_output.get("indicators", []),
+            recommendations=scan_output.get("recommendations", []),
+            threat_score=scan_output.get("threat_score", 0),
+            severity=scan_output.get("severity", "LOW"),
+            confidence=scan_output.get("confidence", 100),
+            status=scan_output.get("status", "SUCCESS"),
+            error_message=scan_output.get("error_message"),
+            structured_evidence=scan_output.get("structured_evidence", {}),
+            scan_duration=scan_output.get("scan_duration", 0.0)
+        )
+
+        AdminAuditLog.objects.create(
+            admin=request.user,
+            action='ADMIN_EXECUTE_PORT_SCAN',
+            target_user=target_user,
+            target_record=f"PortScan #{record.id} ({record.target} - {len(record.open_ports)} open)"
+        )
+
+        return Response(PortScanSerializer(record).data, status=status.HTTP_201_CREATED)
+
 
 class PortScanAdminDetailView(APIView):
     """
@@ -2853,10 +3125,16 @@ class PortScanAdminAnalyticsView(APIView):
         ssrf_blocked_count = PortScanResult.objects.filter(status='SSRF_BLOCKED').count()
         by_profile = list(PortScanResult.objects.values('scan_profile').annotate(count=Count('id')).order_by('-count'))
 
+        total_open_ports = 0
+        for scan in PortScanResult.objects.all():
+            if isinstance(scan.open_ports, list):
+                total_open_ports += len(scan.open_ports)
+
         return Response({
             "total_scans": total_scans,
             "scans_today": scans_today,
             "threats_detected": critical_count + high_count + medium_count,
+            "open_ports_discovered": total_open_ports,
             "severity_breakdown": {
                 "critical": critical_count,
                 "high": high_count,

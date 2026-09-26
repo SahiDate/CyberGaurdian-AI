@@ -24,23 +24,87 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['user_id'] = user.id
         return token
 
+import re
+
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    username = serializers.CharField(
+        max_length=150,
+        required=True,
+        validators=[]  # Handled in validate_username to allow re-registration of unverified accounts
+    )
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(
+        write_only=True,
+        min_length=6,
+        error_messages={
+            'min_length': 'Password must be at least 6 characters long.',
+            'blank': 'Password is required.'
+        }
+    )
+    phone_number = serializers.CharField(required=False, allow_blank=True, default='')
 
     class Meta:
         model = User
         fields = ['username', 'email', 'password', 'phone_number']
 
+    def validate_username(self, value):
+        val = re.sub(r'\s+', ' ', value.strip())
+        if not re.match(r'^[\w\s.@+-]+$', val):
+            raise serializers.ValidationError(
+                "Username may only contain letters, numbers, spaces, and @/./+/-/_ characters."
+            )
+        # Check if an ACTIVE user already has this username
+        active_user = User.objects.filter(username__iexact=val, is_active=True).first()
+        if active_user:
+            raise serializers.ValidationError("An active account with this username already exists. Please log in.")
+        return val
+
+    def validate_email(self, value):
+        val = value.strip().lower()
+        active_user = User.objects.filter(email__iexact=val, is_active=True).first()
+        if active_user:
+            raise serializers.ValidationError("An account with this email address already exists. Please log in.")
+        return val
+
+    def validate_phone_number(self, value):
+        if not value:
+            return ""
+        # Clean formatting spaces/dashes if any
+        val = value.strip()
+        # Keep digits and leading +
+        cleaned = re.sub(r'[^\d+]', '', val)
+        return cleaned[:20]
+
     def create(self, validated_data):
-        # Public registration is strictly forced to USER role
+        username = validated_data['username']
+        email = validated_data['email']
+        password = validated_data['password']
+        phone_number = validated_data.get('phone_number', '')
+
+        # Check if an unverified user already exists with this username or email
+        unverified_user = User.objects.filter(username__iexact=username, is_active=False).first()
+        if not unverified_user:
+            unverified_user = User.objects.filter(email__iexact=email, is_active=False).first()
+
+        if unverified_user:
+            unverified_user.username = username
+            unverified_user.email = email
+            unverified_user.set_password(password)
+            unverified_user.phone_number = phone_number
+            unverified_user.role = 'USER'
+            unverified_user.status = 'ACTIVE'
+            unverified_user.is_active = False
+            unverified_user.save()
+            return unverified_user
+
         user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            phone_number=validated_data.get('phone_number', ''),
+            username=username,
+            email=email,
+            password=password,
+            phone_number=phone_number,
             role='USER',
             status='ACTIVE',
-            is_active=False # Pending OTP verification
+            is_active=False
         )
         return user
 

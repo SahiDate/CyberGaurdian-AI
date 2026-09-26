@@ -5,8 +5,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from users.authentication import GracefulJWTAuthentication
 from .ai_agent import run_autonomous_analysis, run_log_analysis_ai
-from .log_parser import LogParser
-from scanner.models import ScanResult, Report, ThreatIntelResult, FileAnalysis, Incident, AIActivity, SOCAnalysis
+from scanner.models import (
+    ScanResult, Report, ThreatIntelResult, FileAnalysis, Incident, AIActivity, SOCAnalysis,
+    SSLScanResult, URLScanResult, PortScanResult, WhoisLookupResult
+)
 from users.models import User, Notification, AdminAuditLog
 from users.views import resolve_request_user
 from urllib.parse import urlparse
@@ -477,10 +479,22 @@ class AnalyzeTargetView(APIView):
                 domain = parsed_url.netloc or parsed_url.path
 
                 ai_analysis = results.get("ai_analysis", {})
-                ai_severity = ai_analysis.get("severity", "Low").lower()
-                risk_map = {"critical": "high", "high": "high", "medium": "medium", "low": "excellent"}
-                risk_level = risk_map.get(ai_severity, "medium")
-                score = 85 if risk_level != 'high' else 35
+                ai_severity = str(ai_analysis.get("severity", "Low")).lower()
+                is_phishing = results.get("is_phishing", False) or ai_analysis.get("is_phishing", False) or (ai_severity in ['critical', 'high'])
+
+                # Determine risk level and score
+                if is_phishing or ai_severity == 'critical':
+                    risk_level = 'high'
+                    score = results.get("security_score", 15)
+                elif ai_severity == 'high':
+                    risk_level = 'high'
+                    score = results.get("security_score", 30)
+                elif ai_severity == 'medium':
+                    risk_level = 'medium'
+                    score = results.get("security_score", 60)
+                else:
+                    risk_level = 'good' if results.get("security_score", 85) < 90 else 'excellent'
+                    score = results.get("security_score", 85)
 
                 scan = ScanResult.objects.create(
                     user=user,
@@ -494,19 +508,64 @@ class AnalyzeTargetView(APIView):
                     whois_data=results.get("threat_intel", {})
                 )
 
+                # Persist correlated platform forensic records for SOC Admin visibility
+                try:
+                    ssl_info = results.get("ssl", {})
+                    if ssl_info and not ssl_info.get("error"):
+                        SSLScanResult.objects.create(
+                            user=user,
+                            scan=scan,
+                            target=target,
+                            domain=domain,
+                            port=443,
+                            certificate_status="VALID" if ssl_info.get("valid") else "EXPIRED",
+                            issuer_cn=ssl_info.get("issuer", "Unknown CA"),
+                            subject_cn=domain,
+                            days_remaining=ssl_info.get("days_left", 90),
+                            tls_version=ssl_info.get("version", "TLSv1.3"),
+                            cipher_name=ssl_info.get("cipher", "TLS_AES_128_GCM_SHA256"),
+                            threat_score=100 - score if score < 70 else 0,
+                            severity="CRITICAL" if score < 40 else ("HIGH" if score < 70 else "LOW"),
+                            status="SUCCESS"
+                        )
+                except Exception:
+                    pass
+
+                try:
+                    URLScanResult.objects.create(
+                        user=user,
+                        scan=scan,
+                        original_url=target,
+                        normalized_url=target,
+                        final_url=target,
+                        hostname=domain,
+                        domain=domain,
+                        scheme="https" if target.startswith("https://") else "http",
+                        port=443 if target.startswith("https://") else 80,
+                        http_status=200,
+                        server="Web Server",
+                        threat_score=100 - score,
+                        severity=ai_severity.upper() if ai_severity in ['critical', 'high', 'medium', 'low'] else "LOW",
+                        status="SUCCESS"
+                    )
+                except Exception:
+                    pass
+
+                summary_title = f"Phishing Threat Analysis - {domain}" if is_phishing else f"Autonomous AI Security Report - {domain}"
                 Report.objects.create(
                     user=user,
                     scan=scan,
-                    title=f"Autonomous AI Security Report - {domain}",
+                    title=summary_title,
                     summary=ai_analysis.get("summary", "Complete security audit finished.")
                 )
 
-                if ai_severity in ['high', 'critical']:
+                if is_phishing or ai_severity in ['high', 'critical']:
+                    alert_title = f"🚨 Phishing Threat Detected: {domain}" if is_phishing else f"Critical Security Alert: {domain}"
                     Incident.objects.create(
                         user=user,
-                        title=f"Critical Security Alert: {domain}",
-                        description=f"Autonomous scan found high-risk vectors. AI Summary: {ai_analysis.get('summary')}",
-                        severity="HIGH" if ai_severity == 'high' else 'CRITICAL',
+                        title=alert_title,
+                        description=f"Autonomous scan found active malicious/phishing vectors. AI Summary: {ai_analysis.get('summary')}",
+                        severity="CRITICAL" if (is_phishing or ai_severity == 'critical') else 'HIGH',
                         status="OPEN"
                     )
 
@@ -520,11 +579,12 @@ class AnalyzeTargetView(APIView):
                     risk_score=score
                 )
 
+                notif_title = f"🚨 Phishing Alert: {domain}" if is_phishing else f"Autonomous Scan Finished: {domain}"
                 Notification.objects.create(
                     user=user,
-                    title=f"Autonomous Scan Finished: {domain}",
-                    message=f"Security Score: {score}/100 with severity {ai_severity.upper()}.",
-                    notification_type="SECURITY"
+                    title=notif_title,
+                    message=f"Target: {domain} | Security Score: {score}/100 | Severity: {ai_severity.upper()}.",
+                    notification_type="CRITICAL" if (is_phishing or ai_severity == 'critical') else "SECURITY"
                 )
 
             return Response(results)

@@ -22,6 +22,14 @@ export default function AdminSidebar({ children }) {
 
   const [incidents, setIncidents] = useState([]);
   const [activeIncidentCount, setActiveIncidentCount] = useState(0);
+  const [seenIncidentIds, setSeenIncidentIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('admin_seen_incident_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -33,6 +41,38 @@ export default function AdminSidebar({ children }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchSelectedIndex, setSearchSelectedIndex] = useState(0);
+
+  const activeIncidents = incidents.filter(
+    i => !['RESOLVED', 'CLOSED'].includes(String(i.status).toUpperCase())
+  );
+  const unseenCount = activeIncidents.filter(
+    i => !seenIncidentIds.includes(i.id)
+  ).length;
+
+  const handleToggleNotifications = () => {
+    const nextOpen = !notificationsOpen;
+    setNotificationsOpen(nextOpen);
+    if (nextOpen && activeIncidents.length > 0) {
+      const activeIds = activeIncidents.map(i => i.id);
+      const updated = Array.from(new Set([...seenIncidentIds, ...activeIds]));
+      setSeenIncidentIds(updated);
+      try {
+        localStorage.setItem('admin_seen_incident_ids', JSON.stringify(updated));
+      } catch (e) {}
+    }
+  };
+
+  const handleAlertItemClick = (inc) => {
+    const updated = Array.from(new Set([...seenIncidentIds, inc.id]));
+    setSeenIncidentIds(updated);
+    try {
+      localStorage.setItem('admin_seen_incident_ids', JSON.stringify(updated));
+    } catch (e) {}
+    setNotificationsOpen(false);
+    navigate(`/admin/incidents?id=${inc.id}`, {
+      state: { selectedIncident: inc, targetId: inc.id }
+    });
+  };
 
   const navRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -136,10 +176,23 @@ export default function AdminSidebar({ children }) {
         fetchIncidentAlerts();
       }
     });
-    const interval = setInterval(fetchIncidentAlerts, 20000);
+
+    // Live polling every 8s
+    const interval = setInterval(fetchIncidentAlerts, 8000);
+
+    const handleFocus = () => fetchIncidentAlerts();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchIncidentAlerts();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       unsubscribe();
       clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [authTokens?.access]);
 
@@ -946,7 +999,7 @@ export default function AdminSidebar({ children }) {
           {/* Notification Bell with Live Dynamic Incident Badge */}
           <div ref={notifMenuRef} style={{ position: 'relative' }}>
             <button
-              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              onClick={handleToggleNotifications}
               style={{
                 background: 'none',
                 border: 'none',
@@ -962,10 +1015,10 @@ export default function AdminSidebar({ children }) {
               }}
               onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f1f5f9'}
               onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-              title={activeIncidentCount > 0 ? `${activeIncidentCount} Active Security Incidents` : "Security Alerts (0 active)"}
+              title={unseenCount > 0 ? `${unseenCount} New Incident Alerts (${activeIncidents.length} active)` : `Security Alerts (${activeIncidents.length} active)`}
             >
               <Bell size={18} />
-              {activeIncidentCount > 0 && (
+              {unseenCount > 0 && (
                 <span style={{
                   position: 'absolute',
                   top: '5px',
@@ -984,7 +1037,7 @@ export default function AdminSidebar({ children }) {
                   boxShadow: '0 0 0 2px ' + (isDark ? '#1e293b' : '#ffffff'),
                   lineHeight: 1
                 }}>
-                  {activeIncidentCount > 99 ? '99+' : activeIncidentCount}
+                  {unseenCount > 99 ? '99+' : unseenCount}
                 </span>
               )}
             </button>
@@ -1018,56 +1071,64 @@ export default function AdminSidebar({ children }) {
                   </div>
                   <span style={{
                     fontSize: '0.68rem',
-                    color: activeIncidentCount > 0 ? '#ef4444' : '#10b981',
-                    backgroundColor: activeIncidentCount > 0
+                    color: activeIncidents.length > 0 ? '#ef4444' : '#10b981',
+                    backgroundColor: activeIncidents.length > 0
                       ? (isDark ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2')
                       : (isDark ? 'rgba(16, 185, 129, 0.18)' : '#ecfdf5'),
                     padding: '2px 8px',
                     borderRadius: '6px',
                     fontWeight: 700
                   }}>
-                    {activeIncidentCount > 0 ? `${activeIncidentCount} Active` : 'All Clear'}
+                    {activeIncidents.length > 0 ? `${activeIncidents.length} Active` : 'All Clear'}
                   </span>
                 </div>
 
                 <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
-                  {incidents.filter(i => !['RESOLVED', 'CLOSED'].includes(String(i.status).toUpperCase())).length > 0 ? (
-                    incidents
-                      .filter(i => !['RESOLVED', 'CLOSED'].includes(String(i.status).toUpperCase()))
-                      .slice(0, 5)
+                  {activeIncidents.length > 0 ? (
+                    activeIncidents
                       .map((inc) => {
                         const sevColor = inc.severity === 'CRITICAL' ? '#ef4444'
                           : inc.severity === 'HIGH' ? '#f97316'
                           : inc.severity === 'MEDIUM' ? '#f59e0b' : '#10b981';
+                        const isUnseen = !seenIncidentIds.includes(inc.id);
 
                         return (
                           <div
                             key={inc.id}
-                            onClick={() => {
-                              setNotificationsOpen(false);
-                              navigate(`/admin/incidents?id=${inc.id}`);
-                            }}
+                            onClick={() => handleAlertItemClick(inc)}
                             style={{
                               padding: '0.7rem 1rem',
                               borderBottom: `1px solid ${isDark ? '#334155' : '#f1f5f9'}`,
                               cursor: 'pointer',
                               transition: 'background 0.15s ease',
+                              backgroundColor: isUnseen ? (isDark ? 'rgba(99, 102, 241, 0.08)' : '#f8faff') : 'transparent'
                             }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? '#26334d' : '#f8fafc'}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? '#26334d' : '#f1f5f9'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = isUnseen ? (isDark ? 'rgba(99, 102, 241, 0.08)' : '#f8faff') : 'transparent'}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                              <span style={{
-                                fontWeight: 600,
-                                fontSize: '0.8rem',
-                                color: isDark ? '#f8fafc' : '#0f172a',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                maxWidth: '190px'
-                              }}>
-                                #{inc.id} {inc.title}
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                                {isUnseen && (
+                                  <span style={{
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#ef4444',
+                                    flexShrink: 0
+                                  }} />
+                                )}
+                                <span style={{
+                                  fontWeight: isUnseen ? 700 : 600,
+                                  fontSize: '0.8rem',
+                                  color: isDark ? '#f8fafc' : '#0f172a',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  maxWidth: isUnseen ? '175px' : '190px'
+                                }}>
+                                  #{inc.id} {inc.title}
+                                </span>
+                              </div>
                               <span style={{
                                 fontSize: '0.65rem',
                                 fontWeight: 700,
@@ -1076,7 +1137,8 @@ export default function AdminSidebar({ children }) {
                                 color: sevColor,
                                 backgroundColor: `${sevColor}18`,
                                 border: `1px solid ${sevColor}40`,
-                                textTransform: 'uppercase'
+                                textTransform: 'uppercase',
+                                flexShrink: 0
                               }}>
                                 {inc.severity}
                               </span>

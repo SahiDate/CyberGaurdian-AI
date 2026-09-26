@@ -4,7 +4,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from .views import (
-    RegisterView, VerifyRegistrationView, LoginInitiateView, VerifyLoginView,
+    RegisterView, VerifyRegistrationView, ResendRegistrationOTPView, LoginInitiateView, VerifyLoginView,
     AdminLoginInitiateView, AdminVerifyLoginView, ForgotPasswordView, ResetPasswordView,
     UserProfileView, UserSettingsView, UserDashboardKPIView, UserScansListView, UserScanDetailView,
     UserReportsListView, UserReportDetailView, UserThreatsListView, UserIncidentsListView,
@@ -48,6 +48,7 @@ urlpatterns = [
     # User Auth
     path('api/register/', RegisterView.as_view(), name='auth_register'),
     path('api/verify-registration/', VerifyRegistrationView.as_view(), name='verify_registration'),
+    path('api/resend-registration-otp/', ResendRegistrationOTPView.as_view(), name='resend_registration_otp'),
     path('api/login/', LoginInitiateView.as_view(), name='login_initiate'),
     path('api/verify-login/', VerifyLoginView.as_view(), name='verify_login'),
     path('api/forgot-password/', ForgotPasswordView.as_view(), name='forgot_password'),

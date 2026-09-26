@@ -138,37 +138,86 @@ export const AuthProvider = ({ children }) => {
   // User Registration Flow (USER role only)
   const registerUser = async (username, email, password, phone_number) => {
     try {
+      const cleanUsername = (username || '').trim();
+      const cleanEmail = (email || '').trim().toLowerCase();
+      const cleanPhone = (phone_number || '').trim();
+
       const response = await fetch('http://localhost:8000/api/register/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password, phone_number }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ 
+          username: cleanUsername, 
+          email: cleanEmail, 
+          password, 
+          phone_number: cleanPhone 
+        }),
       });
       const data = await response.json();
       if (response.status === 201) {
-        return { success: true };
+        return { success: true, username: data.username || cleanUsername, data };
       } else {
-        return { success: false, error: typeof data === 'object' ? JSON.stringify(data) : data };
+        let errMsg = data.error;
+        if (!errMsg && data.details) {
+          const detailVals = Object.values(data.details).flat();
+          errMsg = detailVals.join(' ');
+        }
+        if (!errMsg && typeof data === 'object') {
+          const firstVal = Object.values(data)[0];
+          errMsg = Array.isArray(firstVal) ? firstVal[0] : (typeof firstVal === 'string' ? firstVal : JSON.stringify(data));
+        }
+        return { success: false, error: errMsg || 'Registration failed. Please check your inputs.' };
       }
     } catch (err) {
-      return { success: false, error: 'Network error during registration.' };
+      return { success: false, error: 'Network error during registration. Ensure backend server is running.' };
     }
   };
 
   const verifyRegistration = async (username, otp) => {
     try {
+      const cleanUsername = (username || '').trim();
+      const cleanOtp = (otp || '').trim();
+
       const response = await fetch('http://localhost:8000/api/verify-registration/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, otp }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ username: cleanUsername, otp: cleanOtp }),
       });
       const data = await response.json();
       if (response.status === 200) {
-        return { success: true };
+        return { success: true, message: data.message };
       } else {
-        return { success: false, error: data.error || 'Verification failed' };
+        return { success: false, error: data.error || 'Verification failed. Please check the OTP.' };
       }
     } catch (err) {
       return { success: false, error: 'Network error during registration verification.' };
+    }
+  };
+
+  const resendRegistrationOTP = async (username) => {
+    try {
+      const cleanUsername = (username || '').trim();
+      const response = await fetch('http://localhost:8000/api/resend-registration-otp/', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ username: cleanUsername }),
+      });
+      const data = await response.json();
+      if (response.status === 200) {
+        return { success: true, message: data.message };
+      } else {
+        return { success: false, error: data.error || 'Failed to resend verification code.' };
+      }
+    } catch (err) {
+      return { success: false, error: 'Network error resending OTP.' };
     }
   };
 
@@ -227,6 +276,7 @@ export const AuthProvider = ({ children }) => {
       verifyAdminLogin,
       registerUser,
       verifyRegistration,
+      resendRegistrationOTP,
       forgotPassword,
       resetPassword,
       logoutUser

@@ -60,8 +60,10 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   if (!results) return null;
 
-  const { security_headers, ssl, open_ports, threat_intel, ai_analysis } = results;
+  const { security_headers, ssl, open_ports, threat_intel, ai_analysis, is_phishing, phishing_indicators } = results;
   const displayTarget = target || results.target || 'Target';
+  const isPhishing = Boolean(is_phishing || ai_analysis?.is_phishing || threat_intel?.status === 'Malicious' || threat_intel?.category?.includes('Phishing'));
+  const indicators = phishing_indicators || threat_intel?.indicators || [];
 
   const handleDownloadPdf = async () => {
     setDownloadingPdf(true);
@@ -73,7 +75,9 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
         ssl,
         open_ports,
         threat_intel,
-        severity: ai_analysis?.severity || 'LOW'
+        severity: ai_analysis?.severity || 'LOW',
+        is_phishing: isPhishing,
+        indicators
       };
       const res = await fetch('http://localhost:8000/api/reports/quick-pdf/', {
         method: 'POST',
@@ -178,6 +182,50 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
           </button>
         </div>
       </div>
+
+      {/* Prominent Phishing Warning Banner */}
+      {isPhishing && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(185, 28, 28, 0.15) 100%)',
+          border: '2px solid #ef4444',
+          borderRadius: 'var(--radius-sm)',
+          padding: '1.25rem 1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.85rem',
+          boxShadow: '0 6px 28px rgba(239, 68, 68, 0.3)',
+          animation: 'pulse 2s infinite'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <span style={{ fontSize: '2rem' }}>🚨</span>
+            <div>
+              <h3 style={{ margin: 0, color: '#f87171', fontSize: '1.3rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
+                MALICIOUS PHISHING THREAT DETECTED
+              </h3>
+              <p style={{ margin: '0.25rem 0 0 0', color: '#fee2e2', fontSize: '0.92rem' }}>
+                CyberGuardian AI flagged this target as an active credential theft or brand impersonation campaign. DO NOT enter passwords or submit sensitive data!
+              </p>
+            </div>
+          </div>
+          {indicators.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
+              {indicators.map((ind, idx) => (
+                <span key={idx} style={{
+                  background: 'rgba(239, 68, 68, 0.3)',
+                  border: '1px solid rgba(248, 113, 113, 0.6)',
+                  color: '#ffffff',
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '999px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600
+                }}>
+                  ⚠️ {ind}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* AI Analysis Main Summary Card */}
       <div className="glass-panel" style={{ padding: 'var(--space-24)', borderLeft: `5px solid ${getSeverityColor(ai_analysis?.severity)}` }}>

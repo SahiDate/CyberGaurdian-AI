@@ -31,6 +31,9 @@ export default function AdminSSLScanner() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [sevFilter, setSevFilter] = useState('ALL');
   const [selectedScan, setSelectedScan] = useState(null);
+  const [newTarget, setNewTarget] = useState('');
+  const [inspecting, setInspecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -39,6 +42,49 @@ export default function AdminSSLScanner() {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleSyncUserActions = async () => {
+    setSyncing(true);
+    try {
+      await fetch(`${API}/api/admin/ssl-scanner/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authTokens?.access}`,
+        },
+        body: JSON.stringify({ action: 'sync_user_actions' })
+      });
+      await fetchData();
+    } catch (e) {
+      console.error("Error syncing user actions:", e);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleAdminScan = async (e) => {
+    if (e) e.preventDefault();
+    if (!newTarget.trim()) return;
+    setInspecting(true);
+    try {
+      const res = await fetch(`${API}/api/admin/ssl-scanner/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authTokens?.access}`,
+        },
+        body: JSON.stringify({ target: newTarget.trim(), port: 443 })
+      });
+      if (res.ok) {
+        setNewTarget('');
+        await fetchData();
+      }
+    } catch (e) {
+      console.error("Error running admin SSL scan:", e);
+    } finally {
+      setInspecting(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -88,22 +134,41 @@ export default function AdminSSLScanner() {
               Platform-wide TLS certificate posture, expiration telemetry, and cryptographic vulnerabilities.
             </p>
           </div>
-          <button
-            onClick={fetchData}
-            className="glass-panel"
-            style={{
-              padding: '0.55rem 1.1rem',
-              background: 'rgba(56,139,253,0.15)',
-              border: '1px solid var(--accent-color)',
-              color: 'var(--accent-color)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: '0.82rem'
-            }}
-          >
-            🔄 Refresh Analytics
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button
+              onClick={handleSyncUserActions}
+              disabled={syncing}
+              className="glass-panel"
+              style={{
+                padding: '0.55rem 1.1rem',
+                background: 'rgba(57,211,83,0.15)',
+                border: '1px solid var(--success-color)',
+                color: 'var(--success-color)',
+                borderRadius: '8px',
+                cursor: syncing ? 'not-allowed' : 'pointer',
+                fontWeight: 700,
+                fontSize: '0.82rem'
+              }}
+            >
+              {syncing ? '⏳ Syncing Users...' : '⚡ Ingest User Telemetry'}
+            </button>
+            <button
+              onClick={fetchData}
+              className="glass-panel"
+              style={{
+                padding: '0.55rem 1.1rem',
+                background: 'rgba(56,139,253,0.15)',
+                border: '1px solid var(--accent-color)',
+                color: 'var(--accent-color)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '0.82rem'
+              }}
+            >
+              🔄 Refresh Analytics
+            </button>
+          </div>
         </div>
 
         {/* Real DB Analytics Stats Cards */}
@@ -140,6 +205,44 @@ export default function AdminSSLScanner() {
             </div>
           </div>
         )}
+
+        {/* Admin Live Target Inspector Bar */}
+        <form onSubmit={handleAdminScan} style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            placeholder="Inspect any target domain (e.g. google.com or badssl.com)..."
+            value={newTarget}
+            onChange={(e) => setNewTarget(e.target.value)}
+            className="glass-panel"
+            style={{
+              flex: '1 1 320px',
+              padding: '0.7rem 1.1rem',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              color: 'var(--text-main)',
+              fontSize: '0.88rem',
+              outline: 'none'
+            }}
+          />
+          <button
+            type="submit"
+            disabled={inspecting || !newTarget.trim()}
+            style={{
+              padding: '0.7rem 1.5rem',
+              background: 'var(--accent-color)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: inspecting || !newTarget.trim() ? 'not-allowed' : 'pointer',
+              opacity: inspecting || !newTarget.trim() ? 0.6 : 1
+            }}
+          >
+            {inspecting ? '🔍 Inspecting TLS...' : '🚀 Inspect SSL Target'}
+          </button>
+        </form>
 
         {/* Filter Controls */}
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
