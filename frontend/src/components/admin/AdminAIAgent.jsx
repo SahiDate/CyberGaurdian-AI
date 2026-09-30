@@ -4,7 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Bot, RotateCw, Search, X, Eye } from 'lucide-react';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 const PAGE_SIZE = 15;
 
 const StatusBadge = ({ status }) => {

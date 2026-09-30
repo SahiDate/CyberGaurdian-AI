@@ -10,6 +10,7 @@ from scanner.validators import validate_target_format, detect_target_type, Valid
 from scanner.services.threat_intel.virustotal import VirusTotalProvider
 from scanner.services.threat_intel.abuseipdb import AbuseIPDBProvider
 from scanner.services.threat_intel.urlscan import URLScanProvider
+from scanner.services.threat_intel.phishtank import PhishTankProvider
 from scanner.services.threat_intel.scoring import calculate_threat_score_and_severity
 from scanner.services.threat_intel.service import ThreatIntelligenceService
 
@@ -115,6 +116,69 @@ class ProviderAdapterTests(TestCase):
         self.assertEqual(res["raw_summary"]["abuseConfidenceScore"], 85)
         self.assertEqual(res["malicious"], 1)
 
+    @patch("requests.post")
+    def test_phishtank_verified_url(self, mock_post):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "results": {
+                "url": "http://example.com/phish",
+                "in_database": True,
+                "phish_id": 8765432,
+                "phish_detail_page": "https://phishtank.org/phish_detail.php?phish_id=8765432",
+                "verified": True,
+                "valid": True
+            }
+        }
+        mock_post.return_value = mock_resp
+
+        pt = PhishTankProvider(api_key="mock_pt_key")
+        res = pt.scan("http://example.com/phish", "URL")
+
+        self.assertEqual(res["status"], "SUCCESS")
+        self.assertEqual(res["malicious"], 1)
+        self.assertEqual(res["suspicious"], 0)
+        self.assertEqual(res["harmless"], 0)
+        self.assertEqual(res["raw_summary"]["phish_id"], 8765432)
+        self.assertTrue(res["raw_summary"]["verified"])
+
+    @patch("requests.post")
+    def test_phishtank_domain_and_ip_target(self, mock_post):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "results": {
+                "in_database": False
+            }
+        }
+        mock_post.return_value = mock_resp
+
+        pt = PhishTankProvider(api_key="mock_pt_key")
+        res_dom = pt.scan("example.com", "DOMAIN")
+        self.assertEqual(res_dom["status"], "SUCCESS")
+        self.assertEqual(res_dom["harmless"], 1)
+        self.assertEqual(res_dom["raw_summary"]["checked_url"], "http://example.com")
+
+        res_ip = pt.scan("198.51.100.1", "IP")
+        self.assertEqual(res_ip["status"], "SUCCESS")
+        self.assertEqual(res_ip["harmless"], 1)
+        self.assertEqual(res_ip["raw_summary"]["checked_url"], "http://198.51.100.1")
+
+    def test_phishtank_not_applicable_for_hash(self):
+        pt = PhishTankProvider(api_key="mock_pt_key")
+        res = pt.scan("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "FILE_HASH")
+        self.assertEqual(res["status"], "NOT_APPLICABLE")
+
+    @patch("requests.post")
+    def test_phishtank_rate_limited(self, mock_post):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 429
+        mock_post.return_value = mock_resp
+
+        pt = PhishTankProvider(api_key="mock_pt_key")
+        res = pt.scan("http://example.com", "URL")
+        self.assertEqual(res["status"], "RATE_LIMITED")
+
 
 class ScoringAndServiceTests(TestCase):
     """Test deterministic threat scoring & service execution (Steps 9, 10, 11)."""
@@ -133,21 +197,61 @@ class ScoringAndServiceTests(TestCase):
         self.assertEqual(severity, "CRITICAL")
         self.assertGreaterEqual(confidence, 85)
 
+    def test_scoring_with_phishtank_verified(self):
+        provider_data = [
+            {
+                "provider": "PhishTank",
+                "status": "SUCCESS",
+                "malicious": 1,
+                "suspicious": 0,
+                "harmless": 0,
+                "undetected": 0,
+                "raw_summary": {"in_database": True, "verified": True, "phish_id": 99999}
+            }
+        ]
+        score, severity, confidence, summary = calculate_threat_score_and_severity(provider_data)
+        self.assertGreaterEqual(score, 75)
+        self.assertEqual(severity, "CRITICAL")
+        self.assertTrue(any("PhishTank" in sig and "verified" in sig.lower() for sig in summary["signals"]))
+
     @patch.object(VirusTotalProvider, "scan")
     @patch.object(AbuseIPDBProvider, "scan")
     @patch.object(URLScanProvider, "scan")
-    def test_threat_intel_service_persists(self, mock_urlscan, mock_abuse, mock_vt):
+    @patch.object(PhishTankProvider, "scan")
+    def test_threat_intel_service_persists(self, mock_pt, mock_urlscan, mock_abuse, mock_vt):
         mock_vt.return_value = {"provider": "VirusTotal", "status": "SUCCESS", "malicious": 0, "suspicious": 0, "harmless": 80, "undetected": 0, "raw_summary": {}}
         mock_abuse.return_value = {"provider": "AbuseIPDB", "status": "NOT_APPLICABLE", "malicious": 0, "suspicious": 0, "harmless": 0, "undetected": 0, "raw_summary": {}}
         mock_urlscan.return_value = {"provider": "urlscan.io", "status": "SUCCESS", "malicious": 0, "suspicious": 0, "harmless": 2, "undetected": 0, "raw_summary": {}}
+        mock_pt.return_value = {"provider": "PhishTank", "status": "SUCCESS", "malicious": 0, "suspicious": 0, "harmless": 1, "undetected": 0, "raw_summary": {"in_database": False}}
 
-        service = ThreatIntelligenceService(providers=[VirusTotalProvider(), AbuseIPDBProvider(), URLScanProvider()])
+        service = ThreatIntelligenceService(providers=[VirusTotalProvider(), AbuseIPDBProvider(), URLScanProvider(), PhishTankProvider()])
         record = service.execute_scan(target="safe-domain.org", target_type="DOMAIN", user=self.user, bypass_cache=True)
 
         self.assertEqual(record.user, self.user)
         self.assertEqual(record.target, "safe-domain.org")
         self.assertEqual(record.severity, "LOW")
         self.assertIn(record.status, ["SUCCESS", "PARTIAL_SUCCESS"])
+
+    @patch("requests.post")
+    def test_core_engine_check_phishtank(self, mock_post):
+        from core_engine.threat_intel import check_phishtank
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "results": {
+                "in_database": True,
+                "verified": True,
+                "valid": True,
+                "phish_id": 112233,
+                "phish_detail_page": "http://phishtank.org/112233"
+            }
+        }
+        mock_post.return_value = mock_resp
+
+        result = check_phishtank("http://fake-paypal-verify.com")
+        self.assertEqual(result["status"], "Verified Phishing")
+        self.assertEqual(result["severity"], "Critical")
+        self.assertEqual(result["phish_id"], 112233)
 
 
 class SecurityAndIsolationAPITests(TestCase):

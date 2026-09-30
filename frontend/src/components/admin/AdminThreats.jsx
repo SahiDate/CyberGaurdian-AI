@@ -31,8 +31,8 @@ export default function AdminThreats() {
     try {
       const h = { Authorization: `Bearer ${authTokens?.access}` };
       const [tRes, aRes] = await Promise.all([
-        fetch('http://localhost:8000/api/admin/threats/', { headers: h }),
-        fetch('http://localhost:8000/api/admin/threats/analytics/', { headers: h }),
+        fetch(`${API_BASE}/api/admin/threats/`, { headers: h }),
+        fetch(`${API_BASE}/api/admin/threats/analytics/`, { headers: h }),
       ]);
       if (tRes.ok) {
         const tData = await tRes.json();

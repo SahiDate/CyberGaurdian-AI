@@ -3,7 +3,7 @@ import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const SeverityBadge = ({ severity }) => {
   const cfg = {
@@ -230,7 +230,7 @@ export default function UserReports() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-main)', fontFamily: "'Inter', sans-serif" }}>
       <Navbar />
 
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem 1.25rem 3rem' }}>
+      <main className="responsive-page-container" style={{ margin: '0 auto', padding: '1.5rem clamp(1rem, 3vw, 2rem) 3rem' }}>
         {/* Page Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
           <div>
@@ -244,8 +244,10 @@ export default function UserReports() {
 
           <button
             onClick={() => setShowGenModal(true)}
+            className="btn-full-mobile"
             style={{
               padding: '0.65rem 1.3rem',
+              minHeight: '44px',
               background: 'var(--accent-color)',
               color: '#fff',
               border: 'none',
@@ -255,6 +257,7 @@ export default function UserReports() {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '0.5rem'
             }}
           >
@@ -263,21 +266,23 @@ export default function UserReports() {
         </div>
 
         {/* Filters and Search Bar */}
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem', alignItems: 'center' }}>
           <input
             placeholder="Search by target or report ID..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{
-              flex: 1,
-              minWidth: '240px',
+              flex: '1 1 220px',
+              minWidth: 0,
+              width: '100%',
               padding: '0.65rem 1rem',
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid var(--border-color)',
               borderRadius: '8px',
               color: '#fff',
               fontSize: '0.875rem',
-              outline: 'none'
+              outline: 'none',
+              boxSizing: 'border-box'
             }}
           />
 
@@ -285,13 +290,16 @@ export default function UserReports() {
             value={severityFilter}
             onChange={e => setSeverityFilter(e.target.value)}
             style={{
+              flex: '1 1 140px',
+              minWidth: 0,
               padding: '0.65rem 1rem',
               background: '#161b22',
               border: '1px solid var(--border-color)',
               borderRadius: '8px',
               color: '#fff',
               fontSize: '0.85rem',
-              outline: 'none'
+              outline: 'none',
+              boxSizing: 'border-box'
             }}
           >
             <option value="ALL">All Severities</option>
@@ -305,13 +313,16 @@ export default function UserReports() {
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
             style={{
+              flex: '1 1 140px',
+              minWidth: 0,
               padding: '0.65rem 1rem',
               background: '#161b22',
               border: '1px solid var(--border-color)',
               borderRadius: '8px',
               color: '#fff',
               fontSize: '0.85rem',
-              outline: 'none'
+              outline: 'none',
+              boxSizing: 'border-box'
             }}
           >
             <option value="ALL">All Statuses</option>
@@ -350,7 +361,7 @@ export default function UserReports() {
             </div>
           ) : (
             <div className="table-responsive-container">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <table style={{ width: '100%', minWidth: '750px', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid var(--border-color)' }}>
                     {['Report ID', 'Target', 'Type', 'Status', 'SOC Risk', 'Severity', 'Confidence', 'Date', 'Exports', ''].map(h => (
@@ -455,15 +466,16 @@ export default function UserReports() {
         {/* Generate Report Modal */}
         {showGenModal && (
           <div style={{
-            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            position: 'fixed', inset: 0, width: '100%', height: '100dvh',
             background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(0.75rem, 3vw, 1.5rem)', boxSizing: 'border-box'
           }}>
             <div style={{
               background: isDark ? '#0d1117' : 'var(--panel-solid-bg, #ffffff)',
               border: '1px solid var(--border-color)',
               borderRadius: '12px',
-              maxWidth: '520px', width: '100%', padding: '1.75rem', boxSizing: 'border-box',
+              maxWidth: 'min(92vw, 520px)', width: '100%', maxHeight: '90vh', overflowY: 'auto',
+              padding: 'clamp(1rem, 3vw, 1.75rem)', boxSizing: 'border-box',
               boxShadow: 'var(--panel-shadow)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -515,7 +527,7 @@ export default function UserReports() {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     onClick={() => setShowGenModal(false)}
@@ -542,30 +554,30 @@ export default function UserReports() {
         {/* Detailed Interactive Report Modal */}
         {selectedReport && (
           <div style={{
-            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            position: 'fixed', inset: 0, width: '100%', height: '100dvh',
             background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(0.75rem, 3vw, 1.5rem)', boxSizing: 'border-box'
           }}>
             <div style={{
               background: isDark ? '#0d1117' : 'var(--panel-solid-bg, #ffffff)',
               border: '1px solid var(--border-color)',
               borderRadius: '12px',
-              maxWidth: '900px', width: '100%', maxHeight: '90vh', overflowY: 'auto',
-              padding: '1.75rem', boxSizing: 'border-box',
+              maxWidth: 'min(94vw, 900px)', width: '100%', maxHeight: '90vh', overflowY: 'auto',
+              padding: 'clamp(1rem, 3vw, 1.75rem)', boxSizing: 'border-box',
               boxShadow: 'var(--panel-shadow)'
             }}>
               {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
-                <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ maxWidth: '100%', wordBreak: 'break-word' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--accent-color)', fontWeight: 700, textTransform: 'uppercase' }}>
                     {selectedReport.report_id} — {selectedReport.report_type}
                   </div>
-                  <h2 style={{ margin: '0.2rem 0 0', fontSize: '1.35rem', color: 'var(--text-main)' }}>
+                  <h2 style={{ margin: '0.2rem 0 0', fontSize: '1.35rem', color: 'var(--text-main)', wordBreak: 'break-word' }}>
                     {selectedReport.title || `Security Report for ${selectedReport.target}`}
                   </h2>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                   <button onClick={() => downloadReportFile(selectedReport.id, 'pdf')} style={{ padding: '0.35rem 0.75rem', background: 'rgba(248,81,73,0.15)', border: '1px solid #f85149', color: '#f85149', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
                     PDF
                   </button>

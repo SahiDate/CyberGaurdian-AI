@@ -27,7 +27,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 // Real existing modules catalog
 const ALL_MODULES = [
@@ -279,10 +279,10 @@ export default function AllModules() {
       {/* Existing Persistent Top Navigation */}
       <Navbar />
 
-      <main style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 1.5rem' }}>
+      <main className="responsive-page-container" style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 clamp(0.5rem, 2.5vw, 1.5rem)', boxSizing: 'border-box' }}>
         
         {/* Navigation Breadcrumb / Back to Dashboard */}
-        <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
           <button
             onClick={() => navigate('/dashboard')}
             id="back-to-dashboard-btn"
@@ -335,7 +335,7 @@ export default function AllModules() {
         {/* Page Hero Header */}
         <div style={{
           marginBottom: '2rem',
-          padding: '2rem 2.25rem',
+          padding: 'clamp(1.2rem, 3vw, 2rem) clamp(1rem, 3vw, 2.25rem)',
           borderRadius: '16px',
           background: isDark
             ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%)'
@@ -385,7 +385,7 @@ export default function AllModules() {
 
             <h1 style={{
               margin: '0 0 0.5rem 0',
-              fontSize: '2.1rem',
+              fontSize: 'clamp(1.4rem, 3.5vw, 2.1rem)',
               fontWeight: 800,
               color: 'var(--text-main, #0f172a)',
               letterSpacing: '-0.02em',
@@ -430,7 +430,7 @@ export default function AllModules() {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
               gap: '1rem'
             }}>
               {recentModules.map((item) => {
@@ -669,7 +669,7 @@ export default function AllModules() {
         {filteredModules.length > 0 ? (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
             gap: '1.25rem'
           }}>
             {filteredModules.map((module) => {
@@ -682,7 +682,7 @@ export default function AllModules() {
                     backgroundColor: isDark ? 'rgba(30, 41, 59, 0.65)' : '#ffffff',
                     border: '1px solid var(--border-color)',
                     borderRadius: '12px',
-                    padding: '1.5rem',
+                    padding: 'clamp(1rem, 2.5vw, 1.5rem)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',

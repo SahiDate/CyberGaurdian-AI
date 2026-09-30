@@ -37,7 +37,9 @@ from .views import (
     CertificateListView, CertificateDetailView, CertificateEligibilityCheckView,
     CertificateGenerateView, CertificateDownloadPDFView, CertificatePreviewView,
     PublicCertificateVerifyView, AdminCertificateRevokeView, AdminCertificateAnalyticsView,
-    AdminCertificateAuditView, UserEligibleAssessmentsView
+    AdminCertificateAuditView, UserEligibleAssessmentsView,
+    AIRecommendationsListView, AIRecommendationActionView,
+    FirewallBlockIPView, FirewallRulesListView, SSLRenewView
 )
 
 urlpatterns = [
@@ -217,6 +219,14 @@ urlpatterns = [
     path('api/admin/certificates/analytics/', AdminCertificateAnalyticsView.as_view(), name='admin_certificates_analytics'),
     path('api/admin/certificates/<str:certificate_id>/', CertificateDetailView.as_view(), name='admin_certificate_detail'),
     path('api/admin/certificates/<str:certificate_id>/audit/', AdminCertificateAuditView.as_view(), name='admin_certificate_audit'),
+
+    # Phase 12 AI Recommendations & Firewall Endpoints
+    path('api/user/recommendations/', AIRecommendationsListView.as_view(), name='user_ai_recommendations'),
+    path('api/user/recommendations/action/', AIRecommendationActionView.as_view(), name='user_ai_recommendation_action'),
+    path('api/firewall/block-ip/', FirewallBlockIPView.as_view(), name='firewall_block_ip'),
+    path('api/firewall/unblock-ip/', FirewallBlockIPView.as_view(), name='firewall_unblock_ip'),
+    path('api/firewall/rules/', FirewallRulesListView.as_view(), name='firewall_rules_list'),
+    path('api/ssl-scanner/renew/', SSLRenewView.as_view(), name='ssl_renew'),
 ]
 
 

@@ -3,7 +3,7 @@ import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
 import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const CERT_STATUS_STYLES = {
   VALID:             { color: '#39d353', bg: 'rgba(57,211,83,0.15)', border: '#39d353' },

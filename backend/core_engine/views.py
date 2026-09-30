@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from users.authentication import GracefulJWTAuthentication
 from .ai_agent import run_autonomous_analysis, run_log_analysis_ai
+from .log_parser import LogParser
 from scanner.models import (
     ScanResult, Report, ThreatIntelResult, FileAnalysis, Incident, AIActivity, SOCAnalysis,
     SSLScanResult, URLScanResult, PortScanResult, WhoisLookupResult

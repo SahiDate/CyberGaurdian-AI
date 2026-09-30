@@ -149,7 +149,7 @@ export default function AdminSidebar({ children }) {
     try {
       const token = authTokens?.access || (localStorage.getItem('authTokens') ? JSON.parse(localStorage.getItem('authTokens')).access : null);
       if (!token) return;
-      const res = await fetch('http://localhost:8000/api/admin/incidents/', {
+      const res = await fetch(`${API_BASE}/api/admin/incidents/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -171,14 +171,17 @@ export default function AdminSidebar({ children }) {
         event?.type === 'INCIDENT_UPDATED' ||
         event?.type === 'INCIDENT_CREATED' ||
         event?.type === 'SCAN_COMPLETED' ||
+        event?.type === 'FIREWALL_RULE_UPDATED' ||
+        event?.type === 'SSL_CERTIFICATE_RENEWED' ||
+        event?.type === 'SECURITY_EVENT' ||
         event?.type === 'TAB_FOCUSED'
       ) {
         fetchIncidentAlerts();
       }
     });
 
-    // Live polling every 8s
-    const interval = setInterval(fetchIncidentAlerts, 8000);
+    // Live polling every 5s to keep incident alerts in real-time sync
+    const interval = setInterval(fetchIncidentAlerts, 5000);
 
     const handleFocus = () => fetchIncidentAlerts();
     const handleVisibility = () => {
@@ -471,6 +474,15 @@ export default function AdminSidebar({ children }) {
       category: 'Dashboard Section',
       description: 'Jump to User Growth & Scanning Volume 7-day bar chart',
       keywords: 'user growth trend bar chart monthly scans volume dashboard 7 days'
+    },
+    {
+      type: 'Section',
+      label: 'Dashboard: Live Incident Management',
+      path: '/admin/dashboard#admin-live-incidents',
+      icon: Flame,
+      category: 'Dashboard Section',
+      description: 'Jump to Live Incident Management & Triage Monitor (active count & triage actions)',
+      keywords: 'incident management live count open triage alert flame soc threats dashboard monitor'
     },
     {
       type: 'Section',

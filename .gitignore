@@ -32,6 +32,8 @@ db.sqlite3-journal
 media/
 reports/
 backend/reports/
+staticfiles/
+backend/staticfiles/
 
 # Environment Variables
 .env
@@ -48,12 +50,18 @@ pnpm-debug.log*
 frontend/dist/
 frontend/dist-ssr/
 frontend/*.local
+*.timestamp-*.mjs
 
-# IDE & Editor files
+# IDE, Editor & Temporary files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.bak
 .DS_Store
 Thumbs.db
+
+# AI Models & Large Weights (Keep Modelfiles, ignore multi-GB GGUF and LoRA adapter weights)
+ai_model/CustomModel/*.gguf
+ai_model/Adapters/

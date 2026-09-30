@@ -3,7 +3,7 @@ import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
 import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const SEVERITY_STYLES = {
   CRITICAL: { color: '#f85149', bg: 'rgba(248,81,73,0.12)', border: '#f85149' },

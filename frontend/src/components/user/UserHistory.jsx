@@ -9,7 +9,7 @@ import {
   Eye, Calendar, FileText, Activity, Lock, Unlock, X
 } from 'lucide-react';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 export default function UserHistory() {
   const navigate = useNavigate();
@@ -227,12 +227,12 @@ export default function UserHistory() {
     <div style={{ minHeight: '100vh', backgroundColor: theme.bg, color: theme.textMain, transition: 'background-color 0.2s ease' }}>
       <Navbar />
 
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1.5rem 4rem 1.5rem' }}>
+      <main className="responsive-page-container" style={{ margin: '0 auto', padding: '1.5rem clamp(1rem, 3vw, 2rem) 4rem' }}>
 
         {/* Top Header & Breadcrumbs */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
               <button
                 onClick={() => navigate('/dashboard')}
                 style={{
@@ -263,7 +263,7 @@ export default function UserHistory() {
               </span>
             </div>
 
-            <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: '800', letterSpacing: '-0.02em', color: theme.textMain }}>
+            <h1 style={{ margin: 0, fontSize: 'clamp(1.4rem, 4vw, 1.85rem)', fontWeight: '800', letterSpacing: '-0.02em', color: theme.textMain }}>
               Security Operations History
             </h1>
             <p style={{ margin: '0.35rem 0 0 0', color: theme.textMuted, fontSize: '0.95rem' }}>
@@ -274,11 +274,14 @@ export default function UserHistory() {
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => { fetchDomainScans(); fetchSocHistory(); }}
+              className="btn-full-mobile"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '0.45rem',
                 padding: '0.55rem 1.1rem',
+                minHeight: '40px',
                 borderRadius: '8px',
                 background: theme.cardBg,
                 border: `1px solid ${theme.cardBorder}`,
@@ -298,7 +301,7 @@ export default function UserHistory() {
         {/* Tenant Activity Metrics */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
           gap: '1rem',
           marginBottom: '2rem'
         }}>
@@ -383,6 +386,7 @@ export default function UserHistory() {
         <div style={{
           display: 'flex',
           gap: '0.5rem',
+          flexWrap: 'wrap',
           borderBottom: `1px solid ${theme.cardBorder}`,
           marginBottom: '1.5rem',
           paddingBottom: '0.25rem'
@@ -393,7 +397,7 @@ export default function UserHistory() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.6rem',
-              padding: '0.75rem 1.4rem',
+              padding: '0.75rem clamp(0.75rem, 2vw, 1.4rem)',
               background: activeTab === 'domain' ? (isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(14, 165, 233, 0.08)') : 'transparent',
               border: 'none',
               borderBottom: activeTab === 'domain' ? '3px solid #0284c7' : '3px solid transparent',
@@ -534,8 +538,8 @@ export default function UserHistory() {
                 </button>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+              <div className="table-responsive-container">
+                <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${theme.cardBorder}`, color: theme.textMuted, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       <th style={{ padding: '0.75rem 1rem' }}>Target Domain</th>
@@ -752,8 +756,8 @@ export default function UserHistory() {
                 </button>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+              <div className="table-responsive-container">
+                <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${theme.cardBorder}`, color: theme.textMuted, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       <th style={{ padding: '0.75rem 1rem' }}>Target / File</th>
@@ -903,13 +907,14 @@ export default function UserHistory() {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
-            padding: '1rem'
+            padding: 'clamp(0.75rem, 3vw, 1.25rem)',
+            boxSizing: 'border-box'
           }}>
             <div style={{
               background: theme.cardBg,
               border: `1px solid ${theme.cardBorder}`,
               borderRadius: '16px',
-              maxWidth: '680px',
+              maxWidth: 'min(92vw, 680px)',
               width: '100%',
               maxHeight: '85vh',
               overflowY: 'auto',
@@ -919,11 +924,13 @@ export default function UserHistory() {
             }}>
               {/* Modal Header */}
               <div style={{
-                padding: '1.25rem 1.5rem',
+                padding: 'clamp(1rem, 2.5vw, 1.5rem)',
                 borderBottom: `1px solid ${theme.cardBorder}`,
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   {recordType === 'domain' ? <Globe size={20} color="#38bdf8" /> : <Shield size={20} color="#c084fc" />}
@@ -952,7 +959,7 @@ export default function UserHistory() {
               </div>
 
               {/* Modal Body */}
-              <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ padding: 'clamp(1rem, 2.5vw, 1.5rem)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 {/* Target Information */}
                 <div>
                   <div style={{ fontSize: '0.8rem', color: theme.textMuted, textTransform: 'uppercase', fontWeight: '700', marginBottom: '0.35rem' }}>
@@ -965,11 +972,12 @@ export default function UserHistory() {
                     border: `1px solid ${theme.cardBorder}`,
                     fontSize: '0.95rem',
                     fontWeight: '700',
-                    color: theme.textMain
+                    color: theme.textMain,
+                    wordBreak: 'break-all'
                   }}>
                     {selectedRecord.domain || selectedRecord.target}
                     {selectedRecord.url && (
-                      <div style={{ fontSize: '0.8rem', color: theme.textMuted, fontWeight: '400', marginTop: '0.2rem' }}>
+                      <div style={{ fontSize: '0.8rem', color: theme.textMuted, fontWeight: '400', marginTop: '0.2rem', wordBreak: 'break-all' }}>
                         {selectedRecord.url}
                       </div>
                     )}
@@ -977,7 +985,7 @@ export default function UserHistory() {
                 </div>
 
                 {/* Score & Risk Badges */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '1rem' }}>
                   <div style={{
                     padding: '0.85rem',
                     background: isDark ? 'rgba(15, 23, 42, 0.6)' : '#f8fafc',
@@ -1067,6 +1075,7 @@ export default function UserHistory() {
                 borderTop: `1px solid ${theme.cardBorder}`,
                 display: 'flex',
                 justifyContent: 'flex-end',
+                flexWrap: 'wrap',
                 gap: '0.75rem',
                 background: isDark ? 'rgba(15, 23, 42, 0.4)' : '#f8fafc'
               }}>

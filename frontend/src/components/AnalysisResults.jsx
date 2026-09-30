@@ -79,7 +79,7 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
         is_phishing: isPhishing,
         indicators
       };
-      const res = await fetch('http://localhost:8000/api/reports/quick-pdf/', {
+      const res = await fetch(`${API_BASE}/api/reports/quick-pdf/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -138,34 +138,34 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
         padding: '14px 20px',
         borderRadius: 'var(--radius-sm)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', maxWidth: '100%' }}>
           <div style={{
             fontSize: '0.9rem',
             color: 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            maxWidth: '560px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
+            maxWidth: '100%',
+            wordBreak: 'break-all'
           }}>
-            <span style={{ fontWeight: '500' }}>Target:</span>
-            <strong style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontSize: '0.95rem' }}>{displayTarget}</strong>
+            <span style={{ fontWeight: '500', flexShrink: 0 }}>Target:</span>
+            <strong style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontSize: '0.95rem', wordBreak: 'break-all' }}>{displayTarget}</strong>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', width: 'auto' }}>
           <button
             type="button"
             onClick={handleDownloadPdf}
             disabled={downloadingPdf}
-            className="btn-fluid"
+            className="btn-full-mobile"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '8px',
               padding: '9px 18px',
+              minHeight: '44px',
               background: 'rgba(56, 189, 248, 0.15)',
               border: '1px solid #38bdf8',
               borderRadius: 'var(--radius-sm)',
@@ -254,7 +254,7 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
       </div>
 
       {/* Grid of Intel Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-24)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: 'var(--space-24)' }}>
         
         {/* Threat Intelligence */}
         <div className="glass-panel" style={{ padding: 'var(--space-24)' }}>
@@ -264,7 +264,7 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
           </div>
           <p style={{ margin: '0 0 8px 0', color: 'var(--text-main)' }}><strong>Status:</strong> {threat_intel?.status}</p>
           <p style={{ margin: '0 0 8px 0', color: 'var(--text-main)' }}><strong>Positives:</strong> {threat_intel?.positives} / {threat_intel?.total}</p>
-          <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem' }}>{threat_intel?.details}</p>
+          <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem', wordBreak: 'break-all' }}>{threat_intel?.details}</p>
         </div>
 
         {/* SSL Certificate */}
@@ -274,9 +274,9 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
             <span className="chip-badge chip-accent"><LockIcon /> SSL/TLS</span>
           </div>
           <p style={{ margin: '0 0 8px 0', color: 'var(--text-main)' }}><strong>Status:</strong> {ssl?.status}</p>
-          {ssl?.issuer && <p style={{ margin: '0 0 8px 0', color: 'var(--text-main)' }}><strong>Issuer:</strong> {ssl?.issuer}</p>}
+          {ssl?.issuer && <p style={{ margin: '0 0 8px 0', color: 'var(--text-main)', wordBreak: 'break-all' }}><strong>Issuer:</strong> {ssl?.issuer}</p>}
           {ssl?.expires && <p style={{ margin: '0 0 8px 0', color: 'var(--text-main)' }}><strong>Expires:</strong> {ssl?.expires}</p>}
-          {ssl?.error && <p style={{ color: 'var(--danger-color)', margin: 0 }}>{ssl.error}</p>}
+          {ssl?.error && <p style={{ color: 'var(--danger-color)', margin: 0, wordBreak: 'break-all' }}>{ssl.error}</p>}
         </div>
 
         {/* Security Headers */}
@@ -285,7 +285,7 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
             <h3 style={{ color: 'var(--accent-color)', margin: 0, fontSize: '1.1rem' }}>Security Headers</h3>
             <span className="chip-badge chip-accent"><ShieldIcon /> Headers</span>
           </div>
-          <ul style={{ paddingLeft: '1.25rem', margin: 0, fontSize: '0.9rem', lineHeight: '1.6', color: 'var(--text-main)' }}>
+          <ul style={{ paddingLeft: '1.25rem', margin: 0, fontSize: '0.9rem', lineHeight: '1.6', color: 'var(--text-main)', wordBreak: 'break-all' }}>
             {security_headers && Object.entries(security_headers).map(([k, v]) => (
               <li key={k}><strong>{k}:</strong> {v}</li>
             ))}
@@ -316,12 +316,14 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
           <button
             type="button"
             onClick={onBack}
-            className="glass-panel btn-fluid"
+            className="glass-panel btn-full-mobile"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '8px',
               padding: '10px 20px',
+              minHeight: '44px',
               background: 'var(--panel-bg)',
               border: '1px solid var(--border-color)',
               borderRadius: 'var(--radius-sm)',
@@ -342,12 +344,14 @@ export default function AnalysisResults({ results, onBack, onRefresh, loading, t
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="btn-fluid"
+            className="btn-full-mobile"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '8px',
               padding: '10px 20px',
+              minHeight: '44px',
               background: loading ? 'rgba(37, 99, 235, 0.7)' : 'var(--accent-color)',
               border: 'none',
               borderRadius: 'var(--radius-sm)',

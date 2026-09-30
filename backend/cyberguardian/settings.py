@@ -39,20 +39,33 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+]
+
+try:
+    import whitenoise
+    MIDDLEWARE.append('whitenoise.middleware.WhiteNoiseMiddleware')
+except ImportError:
+    pass
+
+MIDDLEWARE.extend([
+    'cyberguardian.security_middleware.SecurityHeadersMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
+])
+
 
 ROOT_URLCONF = 'cyberguardian.urls'
+
+FRONTEND_DIST = BASE_DIR.parent / 'frontend' / 'dist'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [FRONTEND_DIST] if FRONTEND_DIST.exists() else [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -67,41 +80,66 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'cyberguardian.wsgi.application'
 
-DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.mysql')
-use_sqlite = DB_ENGINE == 'django.db.backends.sqlite3' or os.environ.get('USE_SQLITE', 'False') == 'True' or 'test' in sys.argv
-
-if not use_sqlite:
-    import socket
-    mysql_host = os.environ.get('DB_HOST', '127.0.0.1')
-    mysql_port = int(os.environ.get('DB_PORT', '3306'))
+# Database Configuration: Check Antideploy PostgreSQL DATABASE_URL first
+if os.environ.get('DATABASE_URL'):
     try:
-        with socket.create_connection((mysql_host, mysql_port), timeout=0.5):
-            pass
-    except (socket.error, socket.timeout, OSError):
-        use_sqlite = True
+        import dj_database_url
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=os.environ.get('DATABASE_URL'),
+                conn_max_age=600,
+            )
+        }
+    except ImportError:
+        from urllib.parse import urlparse
+        _db_url = urlparse(os.environ['DATABASE_URL'])
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': _db_url.path.lstrip('/'),
+                'USER': _db_url.username,
+                'PASSWORD': _db_url.password,
+                'HOST': _db_url.hostname,
+                'PORT': _db_url.port or 5432,
+            }
+        }
 
-if use_sqlite:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
 else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.environ.get('DB_NAME', 'CyberDB'),
-            'USER': os.environ.get('DB_USER', 'root'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-            'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
-            'PORT': os.environ.get('DB_PORT', '3306'),
-            'OPTIONS': {
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-                'charset': 'utf8mb4',
-            },
+    DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.mysql')
+    use_sqlite = DB_ENGINE == 'django.db.backends.sqlite3' or os.environ.get('USE_SQLITE', 'False') == 'True' or 'test' in sys.argv
+
+    if not use_sqlite:
+        import socket
+        mysql_host = os.environ.get('DB_HOST', '127.0.0.1')
+        mysql_port = int(os.environ.get('DB_PORT', '3306'))
+        try:
+            with socket.create_connection((mysql_host, mysql_port), timeout=0.5):
+                pass
+        except (socket.error, socket.timeout, OSError):
+            use_sqlite = True
+
+    if use_sqlite:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
         }
-    }
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.mysql',
+                'NAME': os.environ.get('DB_NAME', 'CyberDB'),
+                'USER': os.environ.get('DB_USER', 'root'),
+                'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+                'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
+                'PORT': os.environ.get('DB_PORT', '3306'),
+                'OPTIONS': {
+                    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                    'charset': 'utf8mb4',
+                },
+            }
+        }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
@@ -115,7 +153,16 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_DIRS = []
+if (FRONTEND_DIST / 'assets').exists():
+    STATICFILES_DIRS.append(FRONTEND_DIST / 'assets')
+if FRONTEND_DIST.exists():
+    STATICFILES_DIRS.append(FRONTEND_DIST)
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'

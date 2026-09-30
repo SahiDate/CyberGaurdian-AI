@@ -17,9 +17,9 @@ export default function UserSettings() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-main)', paddingBottom: '3rem', transition: 'background-color 0.25s ease, color 0.25s ease' }}>
       <Navbar />
 
-      <main style={{ maxWidth: '700px', margin: '0 auto', padding: '0 1.5rem' }}>
-        <div className="glass-panel" style={{ padding: '2.5rem', borderRadius: '12px' }}>
-          <h2 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-color)' }}>⚙️ User Settings</h2>
+      <main className="responsive-page-container" style={{ maxWidth: '700px', margin: '0 auto', padding: '0 clamp(1rem, 3vw, 1.5rem)' }}>
+        <div className="glass-panel" style={{ padding: 'clamp(1.25rem, 3vw, 2.5rem)', borderRadius: '12px', boxSizing: 'border-box' }}>
+          <h2 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-color)', fontSize: 'clamp(1.25rem, 3vw, 1.5rem)' }}>⚙️ User Settings</h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
             Customize notification preferences, 2FA settings, and scanner defaults.
           </p>
@@ -27,7 +27,7 @@ export default function UserSettings() {
           {msg && <div style={{ color: 'var(--success-color)', marginBottom: '1rem', background: 'rgba(57,211,83,0.1)', padding: '0.75rem', borderRadius: '6px' }}>{msg}</div>}
 
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--border-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--border-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
               <div>
                 <div style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>Email Threat Notifications</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Receive email alerts when critical vulnerabilities are detected.</div>
@@ -36,11 +36,11 @@ export default function UserSettings() {
                 type="checkbox"
                 checked={emailAlerts}
                 onChange={(e) => setEmailAlerts(e.target.checked)}
-                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                style={{ width: '22px', height: '22px', cursor: 'pointer', flexShrink: 0 }}
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--border-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--border-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
               <div>
                 <div style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>SMS Security Alerts</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Receive OTP codes and instant SMS security warnings.</div>
@@ -49,12 +49,13 @@ export default function UserSettings() {
                 type="checkbox"
                 checked={smsAlerts}
                 onChange={(e) => setSmsAlerts(e.target.checked)}
-                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                style={{ width: '22px', height: '22px', cursor: 'pointer', flexShrink: 0 }}
               />
             </div>
 
-            <button type="submit" style={{
+            <button type="submit" className="btn-full-mobile" style={{
               padding: '0.85rem',
+              minHeight: '44px',
               background: 'var(--accent-color)',
               color: '#fff',
               border: 'none',

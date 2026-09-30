@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const SEVERITY_STYLES = {
   CRITICAL: { color: '#f85149', bg: 'rgba(248,81,73,0.12)', border: '#f85149' },
@@ -169,7 +169,7 @@ export default function FileAnalyzer() {
     <div style={{ minHeight: '100vh', color: 'var(--text-main)', fontFamily: "'Inter', sans-serif" }}>
       <Navbar />
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+      <div className="responsive-page-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: 'clamp(1rem, 2.5vw, 2rem) clamp(0.5rem, 2vw, 1.5rem)', boxSizing: 'border-box' }}>
         
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
@@ -208,13 +208,30 @@ export default function FileAnalyzer() {
             />
 
             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📦</div>
-            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: '1.05rem' }}>
+            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: '1.05rem', wordBreak: 'break-all' }}>
               {selectedFile ? selectedFile.name : 'Drag & Drop file here, or click to browse'}
             </div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
               {selectedFile
                 ? `Size: ${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`
                 : 'Supports PE (.exe, .dll), Scripts (.js, .ps1, .py), Docs (.pdf, .docx), Archives (.zip). Max 25 MB.'}
+            </div>
+            <div style={{ marginTop: '0.85rem' }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 16px',
+                  borderRadius: '6px',
+                  background: 'var(--accent-color)',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  fontSize: '0.85rem'
+                }}
+              >
+                📁 Choose File
+              </span>
             </div>
           </div>
 
@@ -224,11 +241,12 @@ export default function FileAnalyzer() {
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.25rem' }}>
+          <div className="form-row-responsive" style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
             {selectedFile && (
               <button
                 onClick={() => setSelectedFile(null)}
-                style={{ padding: '0.6rem 1.2rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)', borderRadius: '6px', cursor: 'pointer' }}
+                className="btn-full-mobile"
+                style={{ padding: '0.6rem 1.2rem', minHeight: '44px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)', borderRadius: '6px', cursor: 'pointer' }}
               >
                 Clear
               </button>
@@ -237,8 +255,11 @@ export default function FileAnalyzer() {
             <button
               onClick={handleAnalyze}
               disabled={!selectedFile || analyzing}
+              className="btn-full-mobile"
               style={{
                 padding: '0.6rem 1.5rem',
+                minHeight: '44px',
+                justifyContent: 'center',
                 background: selectedFile && !analyzing ? 'var(--accent-color)' : 'rgba(128,128,128,0.15)',
                 border: 'none',
                 color: selectedFile && !analyzing ? '#fff' : 'var(--text-muted)',
@@ -262,14 +283,14 @@ export default function FileAnalyzer() {
             
             {/* Top Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div>
+              <div style={{ maxWidth: '100%', flex: '1 1 260px', minWidth: 0 }}>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
                   FILE ANALYSIS RESULT
                 </div>
-                <h2 style={{ margin: '0.2rem 0 0', color: 'var(--text-main)', fontSize: '1.35rem', fontWeight: 800 }}>
+                <h2 style={{ margin: '0.2rem 0 0', color: 'var(--text-main)', fontSize: '1.35rem', fontWeight: 800, wordBreak: 'break-all' }}>
                   {currentResult.original_filename || currentResult.filename || 'Analyzed File'}
                 </h2>
-                <div style={{ fontSize: '0.8rem', color: 'var(--accent-color)', marginTop: '0.2rem', fontFamily: 'monospace' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--accent-color)', marginTop: '0.2rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                   SHA-256: {currentResult.sha256 || currentResult.file_hash || 'N/A'}
                 </div>
               </div>
@@ -396,13 +417,13 @@ export default function FileAnalyzer() {
             </select>
           </div>
 
-          <div className="glass-panel" style={{ borderRadius: '10px', overflow: 'hidden' }}>
+          <div className="glass-panel table-responsive-container" style={{ borderRadius: '10px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             {historyLoading ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading file analysis history...</div>
             ) : filteredHistory.length === 0 ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No previous file analyses recorded.</div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+              <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                     {['Filename', 'Type', 'Size', 'SHA-256', 'Score', 'Severity', 'Analyzed At', 'Action'].map(h => (

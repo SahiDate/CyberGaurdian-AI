@@ -8,7 +8,7 @@ import {
   CheckCircle2, XCircle, Clock, AlertCircle, FileText, ChevronRight, X, ArrowLeft
 } from 'lucide-react';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 export default function UserCertificates() {
   const navigate = useNavigate();
@@ -193,7 +193,7 @@ export default function UserCertificates() {
     }}>
       <Navbar />
 
-      <main style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 1.25rem' }}>
+      <main className="responsive-page-container" style={{ margin: '0 auto', padding: '0 clamp(1rem, 3vw, 2rem)' }}>
         {/* Navigation & Back Button */}
         <div style={{ marginBottom: '1.25rem' }}>
           <button
@@ -233,7 +233,7 @@ export default function UserCertificates() {
           <div>
             <h1 style={{
               margin: '0 0 0.35rem',
-              fontSize: '1.75rem',
+              fontSize: 'clamp(1.4rem, 4vw, 1.85rem)',
               fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
@@ -251,11 +251,14 @@ export default function UserCertificates() {
           <button
             onClick={fetchData}
             disabled={loading}
+            className="btn-full-mobile"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '0.45rem',
               padding: '0.55rem 1.1rem',
+              minHeight: '40px',
               background: navBtnBg,
               border: navBtnBorder,
               borderRadius: '8px',
@@ -293,7 +296,7 @@ export default function UserCertificates() {
         {/* Top Summary Stat Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
           gap: '1rem',
           marginBottom: '2rem'
         }}>
@@ -359,13 +362,14 @@ export default function UserCertificates() {
         <div style={{
           display: 'flex',
           gap: '0.5rem',
+          flexWrap: 'wrap',
           borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
           marginBottom: '1.5rem'
         }}>
           <button
             onClick={() => setActiveTab('certificates')}
             style={{
-              padding: '0.65rem 1.25rem',
+              padding: '0.65rem clamp(0.75rem, 2vw, 1.25rem)',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'certificates' ? '2px solid #00c9a7' : '2px solid transparent',
@@ -380,7 +384,7 @@ export default function UserCertificates() {
           <button
             onClick={() => setActiveTab('eligibility')}
             style={{
-              padding: '0.65rem 1.25rem',
+              padding: '0.65rem clamp(0.75rem, 2vw, 1.25rem)',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'eligibility' ? '2px solid #00c9a7' : '2px solid transparent',
@@ -427,7 +431,7 @@ export default function UserCertificates() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '1.25rem' }}>
                 {certificates.map(cert => {
                   const isValid = cert.status === 'VALID';
                   const isDownloading = downloadingCertId === cert.certificate_id;
@@ -819,28 +823,27 @@ export default function UserCertificates() {
         {selectedCert && (
           <div style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
+            inset: 0,
+            width: '100%',
+            height: '100dvh',
             background: 'rgba(0, 0, 0, 0.85)',
             backdropFilter: 'blur(8px)',
             zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1.5rem',
+            padding: 'clamp(0.75rem, 3vw, 1.5rem)',
             boxSizing: 'border-box'
           }}>
             <div style={{
               background: cardBg,
               border: cardBorder,
               borderRadius: '16px',
-              maxWidth: '920px',
+              maxWidth: 'min(94vw, 920px)',
               width: '100%',
               maxHeight: '92vh',
               overflowY: 'auto',
-              padding: '2rem',
+              padding: 'clamp(1.2rem, 3vw, 2rem)',
               boxSizing: 'border-box',
               position: 'relative',
               boxShadow: '0 25px 60px rgba(0,0,0,0.5)'
@@ -877,7 +880,7 @@ export default function UserCertificates() {
               {/* Embedded PDF Canvas Preview Frame */}
               <div style={{
                 width: '100%',
-                height: '480px',
+                height: 'clamp(280px, 50vh, 480px)',
                 borderRadius: '10px',
                 overflow: 'hidden',
                 border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid #cbd5e1',
@@ -904,7 +907,7 @@ export default function UserCertificates() {
               {/* Modal Footer Controls */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700, fontFamily: 'monospace', color: '#0284c7' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, fontFamily: 'monospace', color: '#0284c7', wordBreak: 'break-all' }}>
                     {selectedCert.certificate_id}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: textSub }}>
@@ -912,7 +915,7 @@ export default function UserCertificates() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <Link
                     to={`/verify/certificate/${selectedCert.certificate_id}`}
                     target="_blank"

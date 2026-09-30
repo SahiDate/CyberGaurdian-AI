@@ -11,7 +11,7 @@ import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
   Users, Radio, ShieldAlert, Cpu, Plus, RotateCw, Download,
   Settings, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle,
-  Clock, Shield, ExternalLink, Activity
+  Clock, Shield, ExternalLink, Activity, Flame
 } from 'lucide-react';
 import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
@@ -20,74 +20,165 @@ ChartJS.register(
   BarElement, ArcElement, Title, Tooltip, Legend, Filler
 );
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
-// ── Metis Stat Card ──────────────────────────────────────────────────────────
-const MetisStatCard = ({ label, value, icon: Icon, iconBg, iconColor, trend, isPositive, sub }) => (
-  <div className="admin-card" style={{
-    padding: '1.25rem 1.5rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '1rem',
-    minHeight: '108px',
-  }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1.15rem' }}>
-      {/* Pastel Rounded Square Icon */}
-      <div style={{
-        width: '48px',
-        height: '48px',
-        borderRadius: '12px',
-        backgroundColor: iconBg,
-        color: iconColor,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0
-      }}>
-        <Icon size={24} />
-      </div>
+// ── Metis Stat Card with Live Pulse Radar ────────────────────────────────────
+// ── Metis Stat Card with Live Pulse Radar ────────────────────────────────────
+const MetisStatCard = ({ label, value, icon: Icon, iconBg, iconColor, trend, isPositive, sub, isLive, badge, onClick }) => (
+  <div
+    className="admin-card"
+    onClick={onClick}
+    style={{
+      padding: '1.25rem 1.25rem 1.15rem',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      minHeight: '138px',
+      cursor: onClick ? 'pointer' : 'default',
+      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+      position: 'relative',
+      overflow: 'hidden'
+    }}
+    onMouseEnter={(e) => {
+      if (onClick) {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.12)';
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (onClick) {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '';
+      }
+    }}
+  >
+    {/* Top Row: Icon with Live Pulse Beacon on Left | Trend / Badge Pill on Right */}
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: '0.5rem',
+      marginBottom: '0.75rem'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{
+          width: '42px',
+          height: '42px',
+          borderRadius: '10px',
+          backgroundColor: iconBg,
+          color: iconColor,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          position: 'relative'
+        }}>
+          <Icon size={21} />
+          {isLive && (
+            <span style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-2px',
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: iconColor,
+              border: '2px solid var(--admin-card-bg, #ffffff)',
+              animation: 'pulseLive 1.6s infinite ease-in-out'
+            }} />
+          )}
+        </div>
 
-      <div>
-        <div style={{
-          fontSize: '0.82rem',
-          fontWeight: 500,
-          color: 'var(--admin-text-muted, #64748b)',
-          marginBottom: '0.2rem'
-        }}>
-          {label}
-        </div>
-        <div style={{
-          fontSize: '1.75rem',
-          fontWeight: 700,
-          color: 'var(--admin-text-main, #0f172a)',
-          lineHeight: 1.15
-        }}>
-          {value ?? '—'}
-        </div>
-        {sub && (
-          <div style={{ fontSize: '0.72rem', color: 'var(--admin-text-muted, #64748b)', marginTop: '2px' }}>
-            {sub}
-          </div>
+        {isLive && (
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            fontSize: '0.62rem',
+            fontWeight: 800,
+            color: iconColor,
+            backgroundColor: iconBg,
+            padding: '2px 7px',
+            borderRadius: '9999px',
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap'
+          }}>
+            <span style={{
+              width: '5px',
+              height: '5px',
+              borderRadius: '50%',
+              backgroundColor: iconColor
+            }} />
+            LIVE
+          </span>
         )}
       </div>
+
+      {/* Right Trend Pill or Badge */}
+      {badge ? (
+        <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{badge}</div>
+      ) : trend ? (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          fontSize: '0.72rem',
+          fontWeight: 700,
+          color: isPositive ? '#10b981' : '#ef4444',
+          backgroundColor: isPositive
+            ? 'rgba(16, 185, 129, 0.12)'
+            : 'rgba(239, 68, 68, 0.12)',
+          border: isPositive
+            ? '1px solid rgba(16, 185, 129, 0.25)'
+            : '1px solid rgba(239, 68, 68, 0.25)',
+          padding: '2px 8px',
+          borderRadius: '9999px',
+          flexShrink: 0,
+          whiteSpace: 'nowrap'
+        }}>
+          {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+          <span>{trend}</span>
+        </div>
+      ) : null}
     </div>
 
-    {/* Trend Pill */}
-    {trend && (
+    {/* Bottom Section: Stat Value, Full Width Label, and Subtitle */}
+    <div>
       <div style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '3px',
-        fontSize: '0.75rem',
-        fontWeight: 600,
-        color: isPositive ? '#10b981' : '#ef4444',
-        alignSelf: 'flex-start'
+        fontSize: '1.85rem',
+        fontWeight: 800,
+        color: 'var(--admin-text-main, #0f172a)',
+        lineHeight: 1.1,
+        letterSpacing: '-0.02em',
+        marginBottom: '0.25rem'
       }}>
-        {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-        <span>{trend}</span>
+        {value ?? '—'}
       </div>
-    )}
+      <div style={{
+        fontSize: '0.84rem',
+        fontWeight: 600,
+        color: 'var(--admin-text-muted, #64748b)',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
+      }}>
+        {label}
+      </div>
+      {sub && (
+        <div style={{
+          fontSize: '0.72rem',
+          color: 'var(--admin-text-muted, #94a3b8)',
+          marginTop: '2px',
+          fontWeight: 500,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {sub}
+        </div>
+      )}
+    </div>
   </div>
 );
 
@@ -135,32 +226,85 @@ export default function AdminDashboard() {
 
   const [dash, setDash] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+  const [liveIncidents, setLiveIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTimeFilter, setActiveTimeFilter] = useState('30D');
+  const [lastSyncTime, setLastSyncTime] = useState(new Date());
 
-  useEffect(() => {
-    fetchData();
-    const unsubscribe = subscribeSecurityEvents(() => {
-      fetchData();
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const h = { Authorization: `Bearer ${authTokens?.access}` };
-      const [dRes, aRes] = await Promise.all([
+      const [dRes, aRes, incRes] = await Promise.all([
         fetch(`${API}/api/admin/dashboard/`, { headers: h }),
         fetch(`${API}/api/admin/analytics/`, { headers: h }),
+        fetch(`${API}/api/admin/incidents/`, { headers: h }),
       ]);
       if (dRes.ok) setDash(await dRes.json());
       if (aRes.ok) setAnalytics(await aRes.json());
+      if (incRes.ok) {
+        const incData = await incRes.json();
+        const list = Array.isArray(incData) ? incData : (incData.results || []);
+        setLiveIncidents(list);
+      }
+      setLastSyncTime(new Date());
     } catch (e) {
-      console.error(e);
+      console.error('Failed to fetch admin dashboard telemetry:', e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+    const unsubscribe = subscribeSecurityEvents((event) => {
+      fetchData(true);
+    });
+
+    // Real-time live polling every 5s for live incident count & telemetry
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 5000);
+
+    const handleFocus = () => fetchData(true);
+    const handleVisibility = () => {
+      if (!document.hidden) fetchData(true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [authTokens?.access]);
+
+  // Real-time memoized Incident Management metrics
+  const activeIncidents = useMemo(() => {
+    return liveIncidents.filter(i => !['RESOLVED', 'CLOSED'].includes(String(i.status).toUpperCase()));
+  }, [liveIncidents]);
+
+  const activeIncidentCount = useMemo(() => {
+    if (liveIncidents.length > 0) return activeIncidents.length;
+    return (dash?.incidents?.open ?? 0) + (dash?.incidents?.investigating ?? 0);
+  }, [liveIncidents, activeIncidents, dash]);
+
+  const openIncidentCount = useMemo(() => {
+    const fromList = liveIncidents.filter(i => String(i.status).toUpperCase() === 'OPEN').length;
+    return (liveIncidents.length > 0) ? fromList : (dash?.incidents?.open ?? 0);
+  }, [liveIncidents, dash]);
+
+  const investigatingIncidentCount = useMemo(() => {
+    const fromList = liveIncidents.filter(i => String(i.status).toUpperCase() === 'INVESTIGATING').length;
+    return (liveIncidents.length > 0) ? fromList : (dash?.incidents?.investigating ?? 0);
+  }, [liveIncidents, dash]);
+
+  const totalIncidentCount = useMemo(() => {
+    return (liveIncidents.length > 0) ? liveIncidents.length : (dash?.incidents?.total ?? 0);
+  }, [liveIncidents, dash]);
 
   // Spline Chart Options for Metis
   const splineChartOpts = useMemo(() => ({
@@ -446,12 +590,12 @@ export default function AdminDashboard() {
         ) : (
           <>
             {/* ═══════════════════════════════════════════════════════════════
-                KPI STAT CARDS (4 Cards Grid - Metis Style)
+                KPI STAT CARDS (5 Cards Grid with Live Incident Management)
                 ═══════════════════════════════════════════════════════════════ */}
             <div id="admin-kpi-stats" style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-              gap: '1.25rem',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '1rem',
               marginBottom: '1.5rem'
             }}>
               <MetisStatCard
@@ -462,6 +606,8 @@ export default function AdminDashboard() {
                 iconColor="#6366f1"
                 trend="+12.5%"
                 isPositive={true}
+                sub={`${dash?.users?.active ?? 0} Active Directory`}
+                onClick={() => navigate('/admin/users')}
               />
               <MetisStatCard
                 label="Platform Scans"
@@ -469,17 +615,34 @@ export default function AdminDashboard() {
                 icon={Radio}
                 iconBg={isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5'}
                 iconColor="#10b981"
+                isLive={true}
                 trend="+8.2%"
                 isPositive={true}
+                sub={`${dash?.scans?.today ?? 0} Scans Today`}
+                onClick={() => navigate('/admin/scans')}
+              />
+              <MetisStatCard
+                label="Incident Management"
+                value={activeIncidentCount.toLocaleString()}
+                icon={Flame}
+                iconBg={isDark ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2'}
+                iconColor="#ef4444"
+                isLive={true}
+                trend={activeIncidentCount > 0 ? `${activeIncidentCount} Active` : 'All Clear'}
+                isPositive={activeIncidentCount === 0}
+                sub={`${openIncidentCount} Open • ${investigatingIncidentCount} In Triage`}
+                onClick={() => navigate('/admin/incidents')}
               />
               <MetisStatCard
                 label="Active Threats"
-                value={((dash?.threats?.critical ?? 0) + (dash?.threats?.high ?? 0) + (dash?.incidents?.open ?? 0))?.toLocaleString() ?? '1,852'}
+                value={((dash?.threats?.critical ?? 0) + (dash?.threats?.high ?? 0))?.toLocaleString() ?? '1,852'}
                 icon={ShieldAlert}
                 iconBg={isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb'}
                 iconColor="#f59e0b"
                 trend="-2.1%"
                 isPositive={false}
+                sub="Critical & High Threats"
+                onClick={() => navigate('/admin/threats')}
               />
               <MetisStatCard
                 label="AI SOC Analysis"
@@ -489,6 +652,8 @@ export default function AdminDashboard() {
                 iconColor="#0ea5e9"
                 trend="+5.4%"
                 isPositive={true}
+                sub={`${dash?.ai_activity?.today ?? 0} Analyzed Today`}
+                onClick={() => navigate('/admin/soc-analysis')}
               />
             </div>
 
@@ -810,6 +975,316 @@ export default function AdminDashboard() {
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════
+                ROW 2.5: LIVE INCIDENT MANAGEMENT & TRIAGE MONITOR
+                ═══════════════════════════════════════════════════════════════ */}
+            <div id="admin-live-incidents" className="admin-card" style={{
+              padding: '1.5rem',
+              marginBottom: '1.5rem',
+              border: activeIncidentCount > 0 ? (isDark ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #fecaca') : undefined
+            }}>
+              {/* Header */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                marginBottom: '1.25rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2',
+                    color: '#ef4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative'
+                  }}>
+                    <Flame size={20} />
+                    <span style={{
+                      position: 'absolute',
+                      top: '-2px',
+                      right: '-2px',
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      backgroundColor: '#ef4444',
+                      border: '2px solid var(--admin-card-bg, #ffffff)',
+                      animation: 'pulseLive 1.6s infinite ease-in-out'
+                    }} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <h2 style={{
+                        margin: 0,
+                        fontSize: '1.05rem',
+                        fontWeight: 700,
+                        color: 'var(--admin-text-main, #0f172a)'
+                      }}>
+                        Live Incident Management & Triage
+                      </h2>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.04em',
+                        padding: '2px 8px',
+                        borderRadius: '9999px',
+                        backgroundColor: isDark ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2',
+                        color: '#ef4444',
+                        textTransform: 'uppercase'
+                      }}>
+                        <span style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          backgroundColor: '#ef4444',
+                          animation: 'pulseLive 1.2s infinite ease-in-out'
+                        }} />
+                        LIVE TELEMETRY
+                      </span>
+                    </div>
+                    <p style={{
+                      margin: '2px 0 0',
+                      fontSize: '0.75rem',
+                      color: 'var(--admin-text-muted, #64748b)'
+                    }}>
+                      Synchronizing active security incidents, SOC escalations, and automated containment actions in real time.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Status Counter Badges & Action Link */}
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: activeIncidentCount > 0 ? (isDark ? 'rgba(239, 68, 68, 0.2)' : '#fee2e2') : (isDark ? 'rgba(16, 185, 129, 0.2)' : '#ecfdf5'),
+                    color: activeIncidentCount > 0 ? '#ef4444' : '#10b981'
+                  }}>
+                    {activeIncidentCount} Active
+                  </span>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
+                    color: '#d97706'
+                  }}>
+                    {openIncidentCount} Open
+                  </span>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#dbeafe',
+                    color: '#2563eb'
+                  }}>
+                    {investigatingIncidentCount} Investigating
+                  </span>
+                  <button
+                    onClick={() => navigate('/admin/incidents')}
+                    className="admin-btn-secondary"
+                    style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      padding: '5px 12px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <span>View All Incidents</span>
+                    <ExternalLink size={13} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Incidents Table / Feed */}
+              {activeIncidents.length > 0 ? (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: '0.65rem 0.85rem' }}>INCIDENT</th>
+                        <th style={{ textAlign: 'left', padding: '0.65rem 0.85rem' }}>SEVERITY</th>
+                        <th style={{ textAlign: 'left', padding: '0.65rem 0.85rem' }}>STATUS</th>
+                        <th style={{ textAlign: 'left', padding: '0.65rem 0.85rem' }}>LOGGED</th>
+                        <th style={{ textAlign: 'right', padding: '0.65rem 0.85rem' }}>ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeIncidents.slice(0, 5).map(inc => {
+                        const sev = String(inc.severity || 'MEDIUM').toUpperCase();
+                        const stat = String(inc.status || 'OPEN').toUpperCase();
+                        const sevColor = sev === 'CRITICAL' ? '#ef4444' : sev === 'HIGH' ? '#f97316' : sev === 'MEDIUM' ? '#f59e0b' : '#10b981';
+                        const statColor = stat === 'OPEN' ? '#ef4444' : stat === 'INVESTIGATING' ? '#f59e0b' : '#3b82f6';
+
+                        return (
+                          <tr
+                            key={inc.id}
+                            style={{
+                              cursor: 'pointer',
+                              transition: 'background-color 0.15s ease'
+                            }}
+                            onClick={() => navigate(`/admin/incidents?id=${inc.id}`, { state: { selectedIncident: inc, targetId: inc.id } })}
+                          >
+                            <td style={{ padding: '0.75rem 0.85rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor: sevColor,
+                                  flexShrink: 0
+                                }} />
+                                <div>
+                                  <div style={{
+                                    fontWeight: 700,
+                                    color: 'var(--admin-text-main, #0f172a)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                  }}>
+                                    <span>#{inc.id}</span>
+                                    <span>{inc.title}</span>
+                                  </div>
+                                  {inc.description && (
+                                    <div style={{
+                                      fontSize: '0.72rem',
+                                      color: 'var(--admin-text-muted, #64748b)',
+                                      marginTop: '2px',
+                                      maxWidth: '520px',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      {inc.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.75rem 0.85rem' }}>
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2px 8px',
+                                borderRadius: '9999px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                backgroundColor: isDark ? `${sevColor}22` : `${sevColor}15`,
+                                color: sevColor
+                              }}>
+                                {sev}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.75rem 0.85rem' }}>
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2px 8px',
+                                borderRadius: '9999px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                backgroundColor: isDark ? `${statColor}22` : `${statColor}15`,
+                                color: statColor
+                              }}>
+                                <span style={{
+                                  width: '5px',
+                                  height: '5px',
+                                  borderRadius: '50%',
+                                  backgroundColor: statColor
+                                }} />
+                                {stat}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.75rem 0.85rem', color: 'var(--admin-text-muted, #64748b)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                              {inc.created_at ? new Date(inc.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Recently'}
+                            </td>
+                            <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right' }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/admin/incidents?id=${inc.id}`, { state: { selectedIncident: inc, targetId: inc.id } });
+                                }}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  color: '#6366f1',
+                                  fontWeight: 600,
+                                  fontSize: '0.75rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  transition: 'background-color 0.15s ease'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? 'rgba(99, 102, 241, 0.15)' : '#eef2ff'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                              >
+                                <span>Triage</span>
+                                <ExternalLink size={12} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '2rem 1.5rem',
+                  textAlign: 'center',
+                  backgroundColor: isDark ? 'rgba(16, 185, 129, 0.05)' : '#f0fdf4',
+                  border: isDark ? '1px dashed rgba(16, 185, 129, 0.2)' : '1px dashed #bbf7d0',
+                  borderRadius: '10px'
+                }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#dcfce7',
+                    color: '#10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 0.75rem'
+                  }}>
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--admin-text-main, #0f172a)' }}>
+                    All Systems Normal & Secure
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted, #64748b)', marginTop: '4px', maxWidth: '440px', margin: '4px auto 1rem' }}>
+                    Zero open security incidents currently awaiting triage. AI SOC scanner is actively monitoring network packets, firewall rules, and host integrity.
+                  </div>
+                  <button
+                    onClick={() => navigate('/admin/incidents')}
+                    className="admin-btn-secondary"
+                    style={{ fontSize: '0.78rem', padding: '5px 14px' }}
+                  >
+                    View Incident Log History
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════════════
                 ROW 3: RECENT SCANS TABLE (2/3) + SYSTEM HEALTH (1/3)
                 ═══════════════════════════════════════════════════════════════ */}
             <div style={{
@@ -1010,6 +1485,27 @@ export default function AdminDashboard() {
 
           </>
         )}
+
+        {/* Real-time Live Radar & Pulse Keyframes */}
+        <style>{`
+          @keyframes pulseLive {
+            0% {
+              transform: scale(0.92);
+              opacity: 0.85;
+              box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+            70% {
+              transform: scale(1.08);
+              opacity: 1;
+              box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+            100% {
+              transform: scale(0.92);
+              opacity: 0.85;
+              box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+          }
+        `}</style>
       </div>
     </AdminSidebar>
   );

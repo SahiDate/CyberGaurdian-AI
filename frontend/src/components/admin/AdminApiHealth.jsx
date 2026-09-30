@@ -17,7 +17,7 @@ export default function AdminApiHealth() {
   const fetchApiHealth = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/admin/api-health/', {
+      const response = await fetch(`${API_BASE}/api/admin/api-health/`, {
         headers: { 'Authorization': `Bearer ${authTokens?.access}` }
       });
       if (response.ok) {

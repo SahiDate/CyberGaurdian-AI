@@ -16,7 +16,7 @@ export default function UserScanner() {
     setResults(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/analyze/', {
+      const response = await fetch(`${API_BASE}/api/analyze/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,9 +38,9 @@ export default function UserScanner() {
     <div style={{ minHeight: '100vh', background: '#0a0d12', color: '#fff', paddingBottom: '3rem' }}>
       <Navbar />
 
-      <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 1.5rem' }}>
-        <div className="glass-panel" style={{ padding: '2rem', borderRadius: '12px', marginBottom: '2rem' }}>
-          <h2 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-color)' }}>🌐 Website Security Scanner</h2>
+      <main className="responsive-page-container" style={{ margin: '0 auto', padding: '0 clamp(1rem, 3vw, 1.5rem)' }}>
+        <div className="glass-panel" style={{ padding: 'clamp(1.25rem, 3vw, 2rem)', borderRadius: '12px', marginBottom: '2rem' }}>
+          <h2 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-color)', fontSize: 'clamp(1.25rem, 3vw, 1.5rem)' }}>🌐 Website Security Scanner</h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
             Enter a domain, IP address, or URL to analyze HTTP security headers, SSL certificate integrity, and port status.
           </p>
@@ -52,18 +52,22 @@ export default function UserScanner() {
               onChange={(e) => setTarget(e.target.value)}
               placeholder="e.g. example.com or https://cyberguardian.io"
               style={{
-                flex: 1,
+                flex: '1 1 240px',
+                minWidth: 0,
+                width: '100%',
                 padding: '0.9rem 1.2rem',
                 fontSize: '1.05rem',
                 background: 'rgba(0,0,0,0.4)',
                 border: '1px solid var(--border-color)',
                 color: '#fff',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                boxSizing: 'border-box'
               }}
               required
             />
-            <button type="submit" disabled={loading} style={{
+            <button type="submit" disabled={loading} className="btn-full-mobile" style={{
               padding: '0.9rem 2rem',
+              minHeight: '44px',
               fontSize: '1rem',
               background: 'var(--accent-color)',
               color: '#fff',

@@ -152,7 +152,7 @@ function LogAnalyzerInner() {
       if (authTokens?.access) {
         headers['Authorization'] = `Bearer ${authTokens.access}`;
       }
-      const res = await fetch('http://localhost:8000/api/soc/history/', { headers });
+      const res = await fetch(`${API_BASE}/api/soc/history/`, { headers });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -362,7 +362,7 @@ function LogAnalyzerInner() {
         formData.append('analysis_type', 'log');
         formData.append('source', 'user_upload');
 
-        response = await fetch('http://localhost:8000/api/soc/analyze/', {
+        response = await fetch(`${API_BASE}/api/soc/analyze/`, {
           method: 'POST',
           headers, // Do NOT set Content-Type header; browser assigns boundary
           body: formData
@@ -370,7 +370,7 @@ function LogAnalyzerInner() {
       } else {
         // Case B: Pasting Raw Log Text via JSON
         headers['Content-Type'] = 'application/json';
-        response = await fetch('http://localhost:8000/api/soc/analyze/', {
+        response = await fetch(`${API_BASE}/api/soc/analyze/`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -442,7 +442,7 @@ function LogAnalyzerInner() {
         } catch (e) {}
       }
 
-      const res = await fetch(`http://localhost:8000/api/assessments/${encodeURIComponent(assessmentId)}/certificate/generate/`, {
+      const res = await fetch(`${API_BASE}/api/assessments/${encodeURIComponent(assessmentId)}/certificate/generate/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -478,7 +478,7 @@ function LogAnalyzerInner() {
         severity: results.severity || results.ai_analysis?.severity || (results.result === 'SAFE' ? 'LOW' : 'HIGH'),
         score: results.risk_score || 0
       };
-      const res = await fetch('http://localhost:8000/api/reports/quick-pdf/', {
+      const res = await fetch(`${API_BASE}/api/reports/quick-pdf/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -559,7 +559,7 @@ function LogAnalyzerInner() {
         </p>
 
         <form onSubmit={handleAnalyze} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-24, 24px)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-20, 20px)', alignItems: 'stretch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 'var(--space-20, 20px)', alignItems: 'stretch' }}>
             
             {/* Left: Paste Raw Logs Textarea */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -752,9 +752,10 @@ function LogAnalyzerInner() {
             <button
               type="submit"
               disabled={isSubmitDisabled}
-              className="glass-panel btn-fluid"
+              className="glass-panel btn-fluid btn-full-mobile"
               style={{
                 padding: '12px 28px',
+                minHeight: '44px',
                 fontSize: '0.95rem',
                 background: !isSubmitDisabled ? 'var(--accent-color, #2563eb)' : 'rgba(128, 128, 128, 0.15)',
                 color: !isSubmitDisabled ? '#fff' : 'var(--text-muted, #64748b)',

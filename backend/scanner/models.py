@@ -166,6 +166,24 @@ class ThreatIntelResult(models.Model):
     def __str__(self):
         return f"ThreatIntel [{self.target_type}]: {self.target} ({self.severity} - {self.threat_score}/100) [{self.user.username}]"
 
+    @property
+    def providers_queried(self):
+        if self.provider:
+            return [p.strip() for p in self.provider.split(',') if p.strip()]
+        return []
+
+    @property
+    def virustotal_detections(self):
+        return self.malicious_count
+
+    @property
+    def phishtank_result(self):
+        raw_responses = self.raw_data.get("provider_responses", [])
+        for r in raw_responses:
+            if r.get("provider") == "PhishTank":
+                return r
+        return None
+
 
 class FileAnalysis(models.Model):
     DETECTED_TYPES = [
@@ -1153,6 +1171,72 @@ class CertificateAuditLog(models.Model):
 
     def __str__(self):
         return f"[{self.timestamp}] {self.event_type} on {self.cert_id} by {self.actor_username or self.actor_type} ({self.status})"
+
+
+# ==============================================================================
+# Phase 12 — Perimeter Firewall & AI Recommendation Action Tracking
+# ==============================================================================
+
+class FirewallRule(models.Model):
+    ACTION_CHOICES = [
+        ('DROP', 'Drop / Block'),
+        ('ACCEPT', 'Accept / Allow'),
+        ('REJECT', 'Reject'),
+    ]
+    STATUS_CHOICES = [
+        ('ACTIVE', 'Active'),
+        ('INACTIVE', 'Inactive'),
+    ]
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='firewall_rules'
+    )
+    ip_address = models.CharField(max_length=64, db_index=True)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, default='DROP')
+    reason = models.CharField(max_length=255, default='Multiple failed login attempts detected on internal firewall')
+    rule_direction = models.CharField(max_length=20, default='INGRESS')
+    port = models.IntegerField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['ip_address']),
+            models.Index(fields=['status']),
+        ]
+
+    def __str__(self):
+        return f"FirewallRule [{self.action}]: {self.ip_address} ({self.status}) [{self.user.username}]"
+
+
+class RecommendationAction(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='recommendation_actions'
+    )
+    recommendation_id = models.CharField(max_length=128, db_index=True)
+    action_type = models.CharField(max_length=64)  # 'BLOCK_IP', 'UNBLOCK_IP', 'RENEW_SSL', etc.
+    status = models.CharField(max_length=30, default='RESOLVED')  # 'PENDING', 'RESOLVED', 'REVERTED'
+    target = models.CharField(max_length=255, blank=True, default='')  # IP or domain
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['user', 'recommendation_id']),
+            models.Index(fields=['user', 'action_type']),
+        ]
+
+    def __str__(self):
+        return f"RecommendationAction [{self.action_type}]: {self.recommendation_id} -> {self.status} [{self.user.username}]"
+
 
 
 

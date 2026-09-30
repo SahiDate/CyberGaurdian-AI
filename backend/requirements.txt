@@ -11,3 +11,8 @@ langchain==0.1.12
 langchain-community==0.0.28
 langgraph==0.0.27
 ollama==0.1.7
+gunicorn==21.2.0
+whitenoise==6.6.0
+psycopg[binary]>=3.1.18
+dj-database-url==2.1.0
+

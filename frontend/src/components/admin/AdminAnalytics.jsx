@@ -19,7 +19,7 @@ ChartJS.register(
   BarElement, ArcElement, Title, Tooltip, Legend, Filler
 );
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 export default function AdminAnalytics() {
   const { authTokens } = useContext(AuthContext);

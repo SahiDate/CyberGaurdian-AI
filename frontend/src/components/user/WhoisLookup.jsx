@@ -3,7 +3,7 @@ import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const AGE_BADGE_STYLES = {
   NEW:         { color: '#e3b341', bg: 'rgba(227,179,65,0.15)', border: '#e3b341', label: '🆕 New (< 90d)' },
@@ -97,7 +97,7 @@ export default function WhoisLookup() {
   return (
     <div style={{ minHeight: '100vh', color: 'var(--text-main)', fontFamily: 'Inter, sans-serif' }}>
       <Navbar />
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+      <div className="responsive-page-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: 'clamp(1rem, 2.5vw, 2rem) clamp(0.5rem, 2vw, 1.5rem)', boxSizing: 'border-box' }}>
         
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
@@ -119,8 +119,8 @@ export default function WhoisLookup() {
           marginBottom: '2rem'
         }}>
           <form onSubmit={handleLookup}>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <div style={{ flex: '1 1 500px' }}>
+            <div className="form-row-responsive" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: '1 1 240px', minWidth: 0, width: '100%' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                   Domain Name
                 </label>
@@ -143,12 +143,15 @@ export default function WhoisLookup() {
                 />
               </div>
 
-              <div>
+              <div style={{ width: 'auto' }}>
                 <button
                   type="submit"
                   disabled={loading}
+                  className="btn-full-mobile"
                   style={{
                     padding: '0.75rem 1.75rem',
+                    minHeight: '44px',
+                    justifyContent: 'center',
                     background: loading ? '#21262d' : 'linear-gradient(135deg, #238636 0%, #1f6feb 100%)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '8px',
@@ -218,8 +221,8 @@ export default function WhoisLookup() {
           }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
-              <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+              <div style={{ maxWidth: '100%', flex: '1 1 260px', minWidth: 0 }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, wordBreak: 'break-all' }}>
                   {currentResult.domain}
                 </h2>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.35rem' }}>
@@ -446,8 +449,8 @@ export default function WhoisLookup() {
               No domain lookups recorded yet. Enter a domain above to perform your first query.
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <div className="table-responsive-container" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '0.75rem' }}>Domain</th>

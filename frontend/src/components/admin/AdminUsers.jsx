@@ -18,7 +18,7 @@ export default function AdminUsers() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/users/', {
+      const response = await fetch(`${API_BASE}/api/admin/users/`, {
         headers: { 'Authorization': `Bearer ${authTokens?.access}` }
       });
       if (response.ok) {
@@ -34,7 +34,7 @@ export default function AdminUsers() {
 
   const handleUpdateRole = async (userId, newRole) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/users/${userId}/`, {
+      const response = await fetch(`${API_BASE}/api/admin/users/${userId}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -53,7 +53,7 @@ export default function AdminUsers() {
 
   const handleUpdateStatus = async (userId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/users/${userId}/`, {
+      const response = await fetch(`${API_BASE}/api/admin/users/${userId}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ export default function AdminUsers() {
   const handleDeleteUser = async (userId) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/users/${userId}/`, {
+      const response = await fetch(`${API_BASE}/api/admin/users/${userId}/`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${authTokens?.access}` }
       });
@@ -100,7 +100,7 @@ export default function AdminUsers() {
   const handleInspectUser = async (userId) => {
     setLoadingDetail(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/users/${userId}/`, {
+      const response = await fetch(`${API_BASE}/api/admin/users/${userId}/`, {
         headers: { 'Authorization': `Bearer ${authTokens?.access}` }
       });
       if (response.ok) {

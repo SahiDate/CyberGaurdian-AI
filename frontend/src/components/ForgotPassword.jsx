@@ -119,11 +119,11 @@ export default function ForgotPassword() {
       style={{
         position: 'relative',
         minHeight: '100vh',
-        width: '100vw',
+        width: '100%',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '1.5rem',
+        padding: 'clamp(1rem, 3vw, 1.5rem)',
         overflowY: 'auto',
         boxSizing: 'border-box'
       }}

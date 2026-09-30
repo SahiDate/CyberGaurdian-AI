@@ -82,6 +82,26 @@ def calculate_threat_score_and_severity(provider_results: List[Dict[str, Any]]) 
                 else:
                     signals.append("urlscan.io: Clean scan history.")
 
+            elif provider_name == "PhishTank":
+                raw_sum = res.get("raw_summary", {})
+                in_db = raw_sum.get("in_database", False)
+                verified = raw_sum.get("verified", False)
+                phish_id = raw_sum.get("phish_id")
+                if m > 0 or (in_db and verified):
+                    pt_pts = 90
+                    calculated_points = max(calculated_points, pt_pts)
+                    signals.append(
+                        f"PhishTank: Confirmed verified phishing site" + (f" (Phish ID #{phish_id})" if phish_id else ".")
+                    )
+                elif s > 0 or in_db:
+                    pt_pts = 50
+                    calculated_points = max(calculated_points, pt_pts)
+                    signals.append(
+                        f"PhishTank: Flagged in phishing database (unverified" + (f", Phish ID #{phish_id})" if phish_id else ").")
+                    )
+                else:
+                    signals.append("PhishTank: Target not found in phishing database.")
+
             elif provider_name == "CyberGuardian Phishing Intelligence":
                 phish_pts = max(80, min(100, 75 + (m * 5)))
                 calculated_points = max(calculated_points, phish_pts)

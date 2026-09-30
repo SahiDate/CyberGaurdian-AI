@@ -789,6 +789,11 @@ table td {
   .desktop-only-nav {
     display: none !important;
   }
+  .mobile-header-controls {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+  }
   .mobile-hamburger-btn {
     display: flex !important;
     align-items: center;
@@ -797,6 +802,23 @@ table td {
   .mobile-only-control {
     display: flex !important;
   }
+}
+
+/* Fluid responsive container */
+.responsive-page-container {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 0 clamp(0.5rem, 2vw, 1.5rem);
+}
+
+/* Controlled table scroll container */
+.table-responsive-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
 }
 
 /* Mobile & Tablet Breakpoint Overrides */
@@ -820,9 +842,25 @@ table td {
     font-size: 1.3rem !important;
   }
 
-  .glass-panel {
+  .glass-panel:not(.theme-toggle-btn):not(.mobile-hamburger-btn) {
     padding: 16px !important;
     border-radius: var(--radius-sm);
+  }
+
+  .theme-toggle-btn,
+  .mobile-hamburger-btn {
+    padding: 0 !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    line-height: 1 !important;
   }
 
   /* Responsive Forms & Buttons */
@@ -836,7 +874,7 @@ table td {
   }
 
   /* Accessible Touch Target Heights */
-  button, input, select, textarea {
+  button:not(.theme-toggle-btn):not(.mobile-hamburger-btn), input, select, textarea {
     min-height: 44px;
   }
 
@@ -925,4 +963,24 @@ table td {
     justify-content: center !important;
     width: 100% !important;
   }
+}
+
+/* Mobile Drawer Animation & Interactions */
+@keyframes drawerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-nav-link {
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease !important;
+}
+
+.mobile-nav-link:hover {
+  transform: translateX(3px);
 }

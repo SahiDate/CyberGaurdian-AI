@@ -448,15 +448,15 @@ export default function AnimatedHistoryCard({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
-                gap: '1.25rem',
+                gap: '1rem',
                 animation: 'cardFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
             >
               {/* Left Item Details */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: '260px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: '1 1 220px', minWidth: 0, maxWidth: '100%' }}>
                 <div style={{
-                  width: '46px',
-                  height: '46px',
+                  width: '44px',
+                  height: '44px',
                   borderRadius: '12px',
                   backgroundColor: type === 'soc'
                     ? (isDark ? 'rgba(168, 85, 247, 0.2)' : '#f3e8ff')
@@ -470,14 +470,15 @@ export default function AnimatedHistoryCard({
                   {type === 'soc' ? <TerminalIcon /> : <GlobeIcon />}
                 </div>
 
-                <div>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{
                       fontWeight: 800,
-                      fontSize: '1.1rem',
+                      fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)',
                       color: textMain,
                       fontFamily: 'monospace',
-                      letterSpacing: '-0.01em'
+                      letterSpacing: '-0.01em',
+                      wordBreak: 'break-all'
                     }}>
                       {currentItem._displayTarget}
                     </span>
@@ -612,7 +613,10 @@ export default function AnimatedHistoryCard({
               padding: '4px',
               borderRadius: '10px',
               backgroundColor: isDark ? '#0f172a' : '#f1f5f9',
-              border: `1px solid ${cardBorder}`
+              border: `1px solid ${cardBorder}`,
+              maxWidth: '100%',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch'
             }}>
               <button
                 type="button"

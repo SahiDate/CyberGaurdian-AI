@@ -10,7 +10,7 @@ import {
   CheckCircle2, FileText, Lock, Radio, Shield, Terminal, Clock, Award
 } from 'lucide-react';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 // ── Metis Stat Card (Consistent with Admin Dashboard) ────────────────────────
 const MetisStatCard = ({ label, value, icon: Icon, iconBg, iconColor, trend, isPositive, sub, onClick }) => {
@@ -249,7 +249,7 @@ export default function UserDashboard() {
     }}>
       <Navbar />
 
-      <main style={{ maxWidth: '1440px', margin: '0 auto', padding: '0 1.5rem' }}>
+      <main className="responsive-page-container" style={{ margin: '0 auto', padding: '0 clamp(1rem, 3vw, 1.5rem)' }}>
         
         {/* ═══════════════════════════════════════════════════════════════
             TOP PAGE HEADER WITH METIS-STYLE ACTION CONTROLS
@@ -266,7 +266,7 @@ export default function UserDashboard() {
           <div>
             <h1 style={{
               margin: 0,
-              fontSize: '1.75rem',
+              fontSize: 'clamp(1.4rem, 4vw, 1.75rem)',
               fontWeight: 700,
               color: 'var(--admin-text-main, #0f172a)',
               letterSpacing: '-0.02em',
@@ -286,7 +286,7 @@ export default function UserDashboard() {
           </div>
 
           {/* Action Toolbar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               onClick={focusScanInput}
               className="admin-btn-primary"
@@ -320,7 +320,7 @@ export default function UserDashboard() {
             ═══════════════════════════════════════════════════════════════ */}
         <div id="user-kpi-stats" style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
           gap: '1.25rem',
           marginBottom: '1.75rem'
         }}>

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext, Suspense, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutGrid } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import AnalysisResults from './AnalysisResults';
 import LogAnalyzer from './LogAnalyzer';
 import FluidTabs from './shared/FluidTabs';
+import Navbar from './shared/Navbar';
 import { useAnimatedCount } from '../hooks/useAnimatedCount';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -189,6 +190,7 @@ export default function Dashboard() {
   const { isDark } = useTheme();
   const { user, logoutUser, authTokens } = useContext(AuthContext);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('scanner');
   const [chartMode, setChartMode] = useState('3d');
@@ -204,6 +206,44 @@ export default function Dashboard() {
     }
   }, [location.state]);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message: string }
+  const [recommendations, setRecommendations] = useState([
+    {
+      id: 'rec-firewall-1',
+      type: 'alert',
+      badge: 'Alert',
+      badge_chip: 'chip-danger',
+      title: 'Multiple failed login attempts detected on internal firewall.',
+      description: '14 failed SSH / root login attempts detected on internal firewall port 22/443 within 60 seconds from IP 198.51.100.42.',
+      action_label: 'Block IP',
+      action_type: 'BLOCK_IP',
+      target: '198.51.100.42',
+      is_resolved: false,
+      status: 'pending'
+    },
+    {
+      id: 'rec-ssl-1',
+      type: 'notice',
+      badge: 'Notice',
+      badge_chip: 'chip-accent',
+      title: 'SSL Certificate for main-domain expires in 12 days.',
+      description: 'SSL Certificate for main-domain expires in 12 days. Automated ACME TLS renewal recommended.',
+      action_label: 'Renew Now',
+      action_type: 'RENEW_SSL',
+      target: 'main-domain.com',
+      is_resolved: false,
+      status: 'pending'
+    }
+  ]);
+  const [actionLoading, setActionLoading] = useState({});
+  const [actionModal, setActionModal] = useState(null);
+  const [modalTarget, setModalTarget] = useState('');
+
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
   const [metrics, setMetrics] = useState({
     high_security_risks: 0,
     analyzed_urls: 0,
@@ -217,7 +257,7 @@ export default function Dashboard() {
 
   const fetchUserMetrics = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/user/dashboard/', {
+      const res = await fetch(`${API_BASE}/api/user/dashboard/`, {
         headers: {
           'Authorization': `Bearer ${authTokens?.access}`
         }
@@ -230,9 +270,111 @@ export default function Dashboard() {
         if (data?.recent_scans && Array.isArray(data.recent_scans) && scanHistory.length === 0) {
           setScanHistory(data.recent_scans);
         }
+        if (data?.recommendations && Array.isArray(data.recommendations)) {
+          setRecommendations(data.recommendations);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch user metrics:", err);
+    }
+  };
+
+  const fetchRecommendations = async (targetOverride = null) => {
+    try {
+      const headers = {};
+      if (authTokens?.access) {
+        headers['Authorization'] = `Bearer ${authTokens.access}`;
+      }
+      const activeTgt = targetOverride !== null ? targetOverride : target;
+      const url = (activeTgt && activeTgt.trim())
+        ? `${API_BASE}/api/user/recommendations/?target=${encodeURIComponent(activeTgt.trim())}`
+        : `${API_BASE}/api/user/recommendations/`;
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.recommendations && Array.isArray(data.recommendations)) {
+          setRecommendations(data.recommendations);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch recommendations:", err);
+    }
+  };
+
+  // Debounce target changes in search bar to automatically tailor recommendations
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchRecommendations(target);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [target]);
+
+  const openActionModal = (rec, mode) => {
+    const currentTarget = (target && target.trim()) ? target.trim() : (rec.target || '');
+    setModalTarget(currentTarget);
+    setActionModal({ open: true, rec, mode });
+  };
+
+  const handleRecommendationAction = async (rec, customActionType = null, customTarget = null) => {
+    const actionType = customActionType || rec.action_type;
+    const effectiveTarget = (customTarget && customTarget.trim())
+      ? customTarget.trim()
+      : ((modalTarget && modalTarget.trim()) ? modalTarget.trim() : (rec.target || target || ''));
+
+    setActionLoading(prev => ({ ...prev, [rec.id]: true }));
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (authTokens?.access) {
+        headers['Authorization'] = `Bearer ${authTokens.access}`;
+      }
+      const res = await fetch(`${API_BASE}/api/user/recommendations/action/`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          recommendation_id: rec.id,
+          action_type: actionType,
+          target: effectiveTarget,
+          reason: rec.description || rec.title
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        if (data.recommendations) {
+          setRecommendations(data.recommendations);
+        } else if (data.recommendation) {
+          setRecommendations(prev => prev.map(r => r.id === rec.id ? data.recommendation : r));
+        }
+        setFeedback({
+          type: 'success',
+          message: data.message || `Action ${actionType} completed successfully.`
+        });
+        if (actionType === 'BLOCK_IP') {
+          emitSecurityEvent('FIREWALL_RULE_UPDATED', { ip: data.blocked_ip || effectiveTarget, status: 'BLOCKED' });
+          emitSecurityEvent('INCIDENT_CREATED', { target: data.blocked_ip || effectiveTarget, type: 'FIREWALL_BLOCK' });
+        } else if (actionType === 'RENEW_SSL') {
+          emitSecurityEvent('SSL_CERTIFICATE_RENEWED', { domain: data.domain || effectiveTarget, days: 365 });
+          emitSecurityEvent('INCIDENT_UPDATED', { domain: data.domain || effectiveTarget, type: 'CERTIFICATE_RENEWED' });
+        }
+        fetchUserMetrics();
+        // If user specified a target in modal and top search was empty, populate it
+        if (effectiveTarget && !target.trim()) {
+          setTarget(effectiveTarget);
+        }
+      } else {
+        setFeedback({
+          type: 'error',
+          message: data?.error || data?.message || 'Failed to execute recommendation action.'
+        });
+      }
+    } catch (err) {
+      console.error("Error executing recommendation action:", err);
+      setFeedback({
+        type: 'error',
+        message: 'Network error when communicating with security engine.'
+      });
+    } finally {
+      setActionLoading(prev => ({ ...prev, [rec.id]: false }));
+      setActionModal(null);
     }
   };
 
@@ -243,7 +385,7 @@ export default function Dashboard() {
       if (authTokens?.access) {
         headers['Authorization'] = `Bearer ${authTokens.access}`;
       }
-      const res = await fetch('http://localhost:8000/api/user/scans/', { headers });
+      const res = await fetch(`${API_BASE}/api/user/scans/`, { headers });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -260,6 +402,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchUserMetrics();
     fetchScanHistory();
+    fetchRecommendations();
   }, [authTokens?.access]);
 
   const handleSelectHistoryTarget = (item) => {
@@ -381,7 +524,7 @@ export default function Dashboard() {
         headers['Authorization'] = `Bearer ${authTokens.access}`;
       }
 
-      const response = await fetch('http://localhost:8000/api/analyze/', {
+      const response = await fetch(`${API_BASE}/api/analyze/`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ target: scanTarget })
@@ -432,13 +575,16 @@ export default function Dashboard() {
 
   return (
     <>
+      {/* Global User Navigation Bar */}
+      <Navbar />
+
       {/* Dashboard Foreground Content */}
-      <div className="user-dashboard" style={{ position: 'relative', zIndex: 1, padding: 'var(--space-32) var(--space-24)', maxWidth: '1240px', margin: '0 auto' }}>
+      <div className="user-dashboard responsive-page-container" style={{ position: 'relative', zIndex: 1, padding: 'clamp(0.5rem, 2vw, var(--space-32)) clamp(0.5rem, 2vw, var(--space-24))', maxWidth: '1240px', margin: '0 auto', boxSizing: 'border-box' }}>
         
         {/* Header Hierarchy: Weight + Size together */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-32)', flexWrap: 'wrap', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-            <h1 className="h1-fluid" style={{ margin: 0, fontSize: '2.1rem', color: 'var(--text-main)' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'clamp(1rem, 2.5vw, var(--space-32))', flexWrap: 'wrap', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
+            <h1 className="h1-fluid" style={{ margin: 0, fontSize: 'clamp(1.4rem, 3.2vw, 2.1rem)', color: 'var(--text-main)' }}>
               CyberGuardian AI
             </h1>
             <span style={{
@@ -456,37 +602,17 @@ export default function Dashboard() {
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <span className="chip-badge chip-success" style={{ textTransform: 'none', padding: '6px 12px' }}>
               <CheckCircleIcon />
               Agent Status: <strong>Autonomous Mode Active</strong>
             </span>
 
-            {/* Theme Toggle Button (Light / Dark) */}
-            <ThemeToggle />
-
             {user && (
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 Welcome, <strong style={{ color: 'var(--text-main)' }}>{user.username}</strong>
               </span>
             )}
-
-            <button
-              onClick={logoutUser}
-              className="glass-panel btn-fluid"
-              style={{
-                padding: '8px 16px',
-                color: 'var(--text-main)',
-                cursor: 'pointer',
-                background: 'var(--panel-bg)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-sm)',
-                fontWeight: '600',
-                fontSize: '0.875rem'
-              }}
-            >
-              Logout
-            </button>
           </div>
         </header>
 
@@ -599,7 +725,7 @@ export default function Dashboard() {
                 <button
                   type="submit"
                   disabled={loading || !target.trim()}
-                  className="admin-btn-primary"
+                  className="admin-btn-primary btn-full-mobile"
                   style={{
                     padding: '14px 28px',
                     fontSize: '1rem',
@@ -670,7 +796,7 @@ export default function Dashboard() {
                 {/* Metis Stat Cards Grid - Real User Counts */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
                   gap: '1.25rem',
                   marginBottom: 'var(--space-32)'
                 }}>
@@ -787,72 +913,189 @@ export default function Dashboard() {
 
                 {/* AI Recommendations Panel */}
                 <div className="glass-panel" style={{ padding: 'var(--space-24)' }}>
-                  <h2 style={{ fontSize: '1.25rem', marginBottom: 'var(--space-16)', color: 'var(--text-main)' }}>AI Recommendations</h2>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-16)', flexWrap: 'wrap', gap: '8px' }}>
+                    <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>AI Recommendations</span>
+                    </h2>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Automated Defensive Response & Mitigation
+                    </span>
+                  </div>
+
                   <ul style={{ listStyleType: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <li style={{
-                      padding: '16px 18px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.55)',
-                      border: '1px solid var(--border-subtle)',
-                      borderTop: '1px solid var(--border-color)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '16px',
-                      flexWrap: 'wrap'
-                    }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)' }}>
-                        <span className="chip-badge chip-danger" style={{ padding: '4px 8px' }}><AlertTriangleIcon /> Alert</span>
-                        <span>Multiple failed login attempts detected on internal firewall.</span>
-                      </span>
-                      <button className="btn-fluid" style={{
-                        background: 'var(--danger-color)',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: 'var(--radius-sm)',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        boxShadow: '0 2px 10px rgba(220, 38, 38, 0.25)'
-                      }}>
-                        Block IP
-                      </button>
-                    </li>
-                    <li style={{
-                      padding: '16px 18px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.55)',
-                      border: '1px solid var(--border-subtle)',
-                      borderTop: '1px solid var(--border-color)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '16px',
-                      flexWrap: 'wrap'
-                    }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)' }}>
-                        <span className="chip-badge chip-accent" style={{ padding: '4px 8px' }}><ActivityIcon /> Notice</span>
-                        <span>SSL Certificate for main-domain expires in 12 days.</span>
-                      </span>
-                      <button className="btn-fluid" style={{
-                        background: 'var(--accent-color)',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: 'var(--radius-sm)',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        boxShadow: '0 2px 10px rgba(37, 99, 235, 0.25)'
-                      }}>
-                        Renew Now
-                      </button>
-                    </li>
+                    {recommendations.map(rec => {
+                      const isLoading = !!actionLoading[rec.id];
+                      const isResolved = !!rec.is_resolved;
+                      const isAlert = rec.type === 'alert' || rec.action_type === 'BLOCK_IP' || rec.action_type === 'UNBLOCK_IP';
+
+                      return (
+                        <li
+                          key={rec.id}
+                          style={{
+                            padding: '16px 18px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.55)',
+                            border: '1px solid var(--border-subtle)',
+                            borderTop: '1px solid var(--border-color)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '16px',
+                            flexWrap: 'wrap',
+                            transition: 'all 0.3s ease'
+                          }}
+                        >
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)', flex: '1 1 300px' }}>
+                            {isResolved ? (
+                              <span className="chip-badge chip-positive" style={{ padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <CheckCircleIcon /> {isAlert ? 'Blocked' : 'Renewed'}
+                              </span>
+                            ) : isAlert ? (
+                              <span className="chip-badge chip-danger" style={{ padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <AlertTriangleIcon /> Alert
+                              </span>
+                            ) : (
+                              <span className="chip-badge chip-accent" style={{ padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <ActivityIcon /> Notice
+                              </span>
+                            )}
+                            <span style={{ fontSize: '0.92rem', lineHeight: 1.4 }}>
+                              {rec.title}
+                            </span>
+                          </span>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {isResolved ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (rec.action_type === 'RENEW_SSL') {
+                                      navigate('/ssl-scanner', { state: { prefillTarget: rec.target || 'main-domain.com' } });
+                                    }
+                                  }}
+                                  className="btn-fluid"
+                                  style={{
+                                    background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7',
+                                    color: isDark ? '#34d399' : '#059669',
+                                    border: isDark ? '1px solid rgba(52, 211, 153, 0.4)' : '1px solid #bbf7d0',
+                                    padding: '8px 16px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    fontWeight: '600',
+                                    cursor: rec.action_type === 'RENEW_SSL' ? 'pointer' : 'default',
+                                    fontSize: '0.85rem',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                  }}
+                                  title={rec.action_type === 'RENEW_SSL' ? 'Valid for 365 days. Click to inspect in SSL Scanner' : 'Firewall Rule Active'}
+                                >
+                                  <CheckCircleIcon />
+                                  <span>{isAlert ? 'Blocked ✓' : 'Renewed ✓'}</span>
+                                </button>
+
+                                {isAlert ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      disabled={isLoading}
+                                      onClick={() => openActionModal(rec, 'UNBLOCK_IP')}
+                                      style={{
+                                        background: 'transparent',
+                                        color: 'var(--text-muted)',
+                                        border: '1px solid var(--border-subtle)',
+                                        padding: '8px 12px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        fontSize: '0.8rem',
+                                        transition: 'all 0.2s ease'
+                                      }}
+                                    >
+                                      Unblock IP
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isLoading}
+                                      onClick={() => openActionModal(rec, 'BLOCK_IP')}
+                                      style={{
+                                        background: 'transparent',
+                                        color: 'var(--text-muted)',
+                                        border: '1px solid var(--border-subtle)',
+                                        padding: '8px 12px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        fontSize: '0.8rem',
+                                        transition: 'all 0.2s ease'
+                                      }}
+                                      title="Block another URL, Domain, or IP address"
+                                    >
+                                      Block Another
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={isLoading}
+                                    onClick={() => openActionModal(rec, 'RENEW_SSL')}
+                                    style={{
+                                      background: 'transparent',
+                                      color: 'var(--text-muted)',
+                                      border: '1px solid var(--border-subtle)',
+                                      padding: '8px 12px',
+                                      borderRadius: 'var(--radius-sm)',
+                                      fontWeight: '600',
+                                      cursor: 'pointer',
+                                      fontSize: '0.8rem',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    title="Renew SSL and certificate for another URL, Domain, or IP"
+                                  >
+                                    Renew Another
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={isLoading}
+                                onClick={() => openActionModal(rec, rec.action_type)}
+                                className="btn-fluid"
+                                style={{
+                                  background: isAlert ? 'var(--danger-color)' : 'var(--accent-color)',
+                                  color: '#fff',
+                                  border: 'none',
+                                  padding: '8px 16px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  fontWeight: '600',
+                                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.85rem',
+                                  boxShadow: isAlert
+                                    ? '0 2px 10px rgba(220, 38, 38, 0.25)'
+                                    : '0 2px 10px rgba(37, 99, 235, 0.25)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                {isLoading ? (
+                                  <>
+                                    <RefreshCwIcon spinning={true} />
+                                    <span>Processing...</span>
+                                  </>
+                                ) : (
+                                  <span>{rec.action_label}</span>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               </>
@@ -862,10 +1105,377 @@ export default function Dashboard() {
           <LogAnalyzer />
         )}
 
+        {/* Action Confirmation Modal with Dynamic URL/Domain/IP Target Input */}
+        {actionModal?.open && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: 'clamp(0.5rem, 2vw, 16px)'
+          }}>
+            <div style={{
+              width: '100%',
+              maxWidth: 'min(92vw, 480px)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              borderRadius: '16px',
+              backgroundColor: isDark ? '#1e293b' : '#ffffff',
+              border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+              animation: 'modalSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                padding: '18px 22px',
+                borderBottom: isDark ? '1px solid #334155' : '1px solid #f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: actionModal.mode === 'BLOCK_IP'
+                  ? (isDark ? 'rgba(239, 68, 68, 0.12)' : '#fef2f2')
+                  : actionModal.mode === 'UNBLOCK_IP'
+                  ? (isDark ? 'rgba(100, 116, 139, 0.12)' : '#f8fafc')
+                  : (isDark ? 'rgba(37, 99, 235, 0.12)' : '#eff6ff')
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: actionModal.mode === 'BLOCK_IP'
+                      ? 'rgba(239, 68, 68, 0.2)'
+                      : actionModal.mode === 'UNBLOCK_IP'
+                      ? 'rgba(100, 116, 139, 0.2)'
+                      : 'rgba(37, 99, 235, 0.2)',
+                    color: actionModal.mode === 'BLOCK_IP' ? '#ef4444' : actionModal.mode === 'UNBLOCK_IP' ? '#94a3b8' : '#2563eb'
+                  }}>
+                    {actionModal.mode === 'BLOCK_IP' ? <ShieldIcon /> : actionModal.mode === 'UNBLOCK_IP' ? <RefreshCwIcon /> : <ActivityIcon />}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      {actionModal.mode === 'BLOCK_IP' && 'Firewall Rule: Block IP / Host'}
+                      {actionModal.mode === 'UNBLOCK_IP' && 'Firewall Rule: Unblock IP / Host'}
+                      {actionModal.mode === 'RENEW_SSL' && 'SSL & Security Certificate Renewal'}
+                    </h3>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {actionModal.mode === 'BLOCK_IP' ? 'Automated Ingress ACL Drop' : actionModal.mode === 'UNBLOCK_IP' ? 'Restore Ingress Access' : "Let's Encrypt Automated ACME Provisioning"}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActionModal(null)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '4px' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div style={{ padding: '20px 22px' }}>
+                {actionModal.mode === 'BLOCK_IP' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      Apply an immediate firewall ingress ACL drop rule. Enter any target IP address, website domain, or URL below:
+                    </p>
+
+                    {/* Editable Target Input for Firewall Block */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>Target IP, Domain, or URL to Block:</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={modalTarget}
+                        onChange={(e) => setModalTarget(e.target.value)}
+                        placeholder="e.g. 198.51.100.42, malicious-site.com, or https://bad.host"
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: isDark ? '1px solid #ef4444' : '1px solid #f87171',
+                          background: isDark ? '#0f172a' : '#ffffff',
+                          color: 'var(--text-main)',
+                          fontSize: '0.9rem',
+                          fontWeight: 600,
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        Domains or URLs are automatically resolved via DNS to their perimeter IP addresses and dropped across all ingress ports.
+                      </span>
+                    </div>
+
+                    <div style={{
+                      background: isDark ? 'rgba(0,0,0,0.25)' : '#f8fafc',
+                      border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      fontSize: '0.82rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Target Host / IP:</span>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#ef4444' }}>
+                          {modalTarget.trim() || actionModal.rec.target || '198.51.100.42'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Detection Vector:</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Internal Firewall (Kernel/auth.log)</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Failed Attempts:</span>
+                        <span style={{ fontWeight: 600, color: '#ef4444' }}>14 in last 60 seconds</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Mitigation Rule:</span>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text-main)' }}>DROP Ingress All Ports (iptables)</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {actionModal.mode === 'UNBLOCK_IP' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      Are you sure you want to lift the firewall block for <strong style={{ color: 'var(--text-main)' }}>{modalTarget.trim() || actionModal.rec.target}</strong>? This host will be permitted to initiate connections again.
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        Target IP to Unblock:
+                      </label>
+                      <input
+                        type="text"
+                        value={modalTarget}
+                        onChange={(e) => setModalTarget(e.target.value)}
+                        placeholder="IP to unblock..."
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: isDark ? '1px solid #475569' : '1px solid #cbd5e1',
+                          background: isDark ? '#0f172a' : '#ffffff',
+                          color: 'var(--text-main)',
+                          fontSize: '0.9rem',
+                          fontWeight: 600,
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {actionModal.mode === 'RENEW_SSL' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      Renew and deploy fresh SSL/TLS certificates and official CyberGuardian Cybersecurity Compliance Certificates for any URL, domain, or website IP.
+                    </p>
+
+                    {/* Editable Target Input for SSL Certificate Renewal */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>Website URL, Domain, or IP to Renew:</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={modalTarget}
+                        onChange={(e) => setModalTarget(e.target.value)}
+                        placeholder="e.g. main-domain.com, https://mycompany.org, or 192.168.1.1"
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: isDark ? '1px solid #2563eb' : '1px solid #60a5fa',
+                          background: isDark ? '#0f172a' : '#ffffff',
+                          color: 'var(--text-main)',
+                          fontSize: '0.9rem',
+                          fontWeight: 600,
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        Enter any domain, URL, or website IP. Automated ACME TLS renewal provisions 365 days of validity & issues a compliance certificate.
+                      </span>
+                    </div>
+
+                    <div style={{
+                      background: isDark ? 'rgba(0,0,0,0.25)' : '#f8fafc',
+                      border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      fontSize: '0.82rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Target Host / Domain:</span>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#2563eb' }}>
+                          {modalTarget.trim() || actionModal.rec.target || 'main-domain.com'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Issuing CA:</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Let's Encrypt ACME Automated CA</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Cipher / Protocol:</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>TLS 1.3 (AES-256-GCM / SHA-384)</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Extended Validity:</span>
+                        <span style={{ fontWeight: 700, color: '#10b981' }}>+365 Days (1 Year Extension)</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Compliance Certificate:</span>
+                        <span style={{ fontWeight: 600, color: '#10b981' }}>CyberGuardian AI Certificate Issued</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Actions */}
+              <div style={{
+                padding: '14px 22px',
+                borderTop: isDark ? '1px solid #334155' : '1px solid #f1f5f9',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '10px',
+                background: isDark ? 'rgba(0,0,0,0.15)' : '#fafafa'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setActionModal(null)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: isDark ? '1px solid #475569' : '1px solid #cbd5e1',
+                    background: 'transparent',
+                    color: 'var(--text-main)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading[actionModal.rec.id] || !((modalTarget && modalTarget.trim()) || actionModal.rec.target)}
+                  onClick={() => handleRecommendationAction(actionModal.rec, actionModal.mode)}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: actionModal.mode === 'BLOCK_IP'
+                      ? 'var(--danger-color)'
+                      : actionModal.mode === 'UNBLOCK_IP'
+                      ? (isDark ? '#475569' : '#64748b')
+                      : 'var(--accent-color)',
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    cursor: (actionLoading[actionModal.rec.id] || !((modalTarget && modalTarget.trim()) || actionModal.rec.target)) ? 'not-allowed' : 'pointer',
+                    fontSize: '0.85rem',
+                    boxShadow: actionModal.mode === 'BLOCK_IP'
+                      ? '0 2px 10px rgba(220, 38, 38, 0.3)'
+                      : '0 2px 10px rgba(37, 99, 235, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: (!((modalTarget && modalTarget.trim()) || actionModal.rec.target)) ? 0.6 : 1
+                  }}
+                >
+                  {actionLoading[actionModal.rec.id] ? (
+                    <>
+                      <RefreshCwIcon spinning={true} />
+                      <span>Executing...</span>
+                    </>
+                  ) : (
+                    <span>
+                      {actionModal.mode === 'BLOCK_IP' && 'Block on Firewall'}
+                      {actionModal.mode === 'UNBLOCK_IP' && 'Unblock IP'}
+                      {actionModal.mode === 'RENEW_SSL' && 'Renew Certificate Now'}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Global Action Toast Notification Banner */}
+        {feedback && (
+          <div style={{
+            position: 'fixed',
+            bottom: 'clamp(12px, 3vw, 24px)',
+            right: 'clamp(12px, 3vw, 24px)',
+            maxWidth: 'min(calc(100vw - 24px), 420px)',
+            boxSizing: 'border-box',
+            zIndex: 99999,
+            padding: '14px 20px',
+            borderRadius: '12px',
+            background: feedback.type === 'success'
+              ? (isDark ? 'rgba(16, 185, 129, 0.95)' : '#059669')
+              : (isDark ? 'rgba(239, 68, 68, 0.95)' : '#dc2626'),
+            color: '#ffffff',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            animation: 'toastSlideUp 0.3s ease-out'
+          }}>
+            {feedback.type === 'success' ? <CheckCircleIcon /> : <AlertTriangleIcon />}
+            <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{feedback.message}</span>
+            <button
+              onClick={() => setFeedback(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#ffffff',
+                cursor: 'pointer',
+                marginLeft: '8px',
+                fontSize: '1rem',
+                opacity: 0.8
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <style>{`
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+          }
+          @keyframes modalSlideIn {
+            from { opacity: 0; transform: scale(0.96) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          @keyframes toastSlideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
           }
         `}</style>
       </div>

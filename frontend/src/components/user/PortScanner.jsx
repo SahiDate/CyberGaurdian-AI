@@ -3,7 +3,7 @@ import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const SEVERITY_STYLES = {
   CRITICAL: { color: '#f85149', bg: 'rgba(248,81,73,0.15)', border: '#f85149' },
@@ -120,7 +120,7 @@ export default function PortScanner() {
   return (
     <div style={{ minHeight: '100vh', color: 'var(--text-main)', fontFamily: 'Inter, sans-serif' }}>
       <Navbar />
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+      <div className="responsive-page-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: 'clamp(1rem, 2.5vw, 2rem) clamp(0.5rem, 2vw, 1.5rem)', boxSizing: 'border-box' }}>
         
         {/* Header */}
         <div style={{ marginBottom: '1.5rem' }}>
@@ -161,8 +161,8 @@ export default function PortScanner() {
           marginBottom: '2rem'
         }}>
           <form onSubmit={handleScan}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
-              <div style={{ flex: '1 1 320px' }}>
+            <div className="form-row-responsive" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+              <div style={{ flex: '1 1 240px', minWidth: 0, width: '100%' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                   Target Hostname or Authorized IP
                 </label>
@@ -240,9 +240,11 @@ export default function PortScanner() {
                 <button
                   type="submit"
                   disabled={scanning}
+                  className="btn-full-mobile"
                   style={{
                     width: '100%',
                     padding: '0.75rem 1.75rem',
+                    minHeight: '44px',
                     whiteSpace: 'nowrap',
                     background: scanning ? '#21262d' : 'linear-gradient(135deg, #1f6feb 0%, #238636 100%)',
                     border: '1px solid rgba(255,255,255,0.1)',
@@ -319,7 +321,7 @@ export default function PortScanner() {
           }}>
             {/* Result Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
-              <div>
+              <div style={{ maxWidth: '100%', flex: '1 1 260px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.75rem', background: isDark ? '#21262d' : 'rgba(37,99,235,0.1)', color: 'var(--accent-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700 }}>
                     {currentResult.target_type || 'TARGET'}
@@ -327,7 +329,7 @@ export default function PortScanner() {
                   <span style={{ fontSize: '0.75rem', background: isDark ? '#21262d' : 'rgba(217,119,6,0.1)', color: isDark ? '#e3b341' : '#b45309', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700 }}>
                     PROFILE: {currentResult.scan_profile}
                   </span>
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, wordBreak: 'break-all' }}>
                     {currentResult.target}
                   </h2>
                 </div>
@@ -576,8 +578,8 @@ export default function PortScanner() {
               No port scans recorded yet. Enter a target above to run your first scan.
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <div className="table-responsive-container" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '0.75rem' }}>Target</th>

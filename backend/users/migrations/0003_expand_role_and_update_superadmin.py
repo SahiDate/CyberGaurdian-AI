@@ -1,10 +1,12 @@
 from django.db import migrations, connection
 
 def expand_role_column(apps, schema_editor):
-    """Safely expand role column size to VARCHAR(20) in MySQL/SQLite."""
+    """Safely expand role column size to VARCHAR(20) in MySQL/PostgreSQL/SQLite."""
     with connection.cursor() as cursor:
         if connection.vendor == 'mysql':
             cursor.execute("ALTER TABLE `users_user` MODIFY COLUMN `role` VARCHAR(20) NOT NULL DEFAULT 'USER'")
+        elif connection.vendor == 'postgresql':
+            cursor.execute('ALTER TABLE "users_user" ALTER COLUMN "role" TYPE VARCHAR(20)')
 
 
 def promote_sahilraj_and_remove_admin(apps, schema_editor):
@@ -23,27 +25,28 @@ def promote_sahilraj_and_remove_admin(apps, schema_editor):
         # Check if user exists with email or similar username
         user = User.objects.filter(username__icontains='sahilraj').first()
 
-    if user:
-        user.role = 'SUPER_ADMIN'
-        user.status = 'ACTIVE'
-        user.is_active = True
-        user.is_staff = True
-        user.is_superuser = True
-        user.save()
-    else:
-        # If Sahilraj07 doesn't exist yet, create the user as SUPER_ADMIN
-        from django.contrib.auth.hashers import make_password
-        u = User.objects.create(
-            username='Sahilraj07',
-            email='sahilraj07@cyberguardian.io',
-            password=make_password('AdminPassword123!'),
-            is_active=True,
-            is_email_verified=True,
-            is_staff=True,
-            is_superuser=True
-        )
-        with connection.cursor() as cursor:
-            cursor.execute(f"UPDATE `users_user` SET `role`='SUPER_ADMIN', `status`='ACTIVE' WHERE `id`={u.id}")
+    q = '"' if connection.vendor in ('postgresql', 'sqlite') else '`'
+    with connection.cursor() as cursor:
+        if user:
+            user.is_active = True
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+            cursor.execute(f"UPDATE {q}users_user{q} SET {q}role{q}='SUPER_ADMIN', {q}status{q}='ACTIVE' WHERE {q}id{q}=%s", [user.id])
+        else:
+            # If Sahilraj07 doesn't exist yet, create the user as SUPER_ADMIN
+            from django.contrib.auth.hashers import make_password
+            u = User.objects.create(
+                username='Sahilraj07',
+                email='sahilraj07@cyberguardian.io',
+                password=make_password('AdminPassword123!'),
+                is_active=True,
+                is_email_verified=True,
+                is_staff=True,
+                is_superuser=True
+            )
+            cursor.execute(f"UPDATE {q}users_user{q} SET {q}role{q}='SUPER_ADMIN', {q}status{q}='ACTIVE' WHERE {q}id{q}=%s", [u.id])
+
 
 
 class Migration(migrations.Migration):

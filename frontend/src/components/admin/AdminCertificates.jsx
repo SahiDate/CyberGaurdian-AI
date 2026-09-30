@@ -8,7 +8,7 @@ import {
   ExternalLink, Eye, X, AlertTriangle, History, CheckCircle2, User, Clock
 } from 'lucide-react';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 const PAGE_SIZE = 15;
 
 const StatusBadge = ({ status, isDark }) => {

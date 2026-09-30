@@ -8,6 +8,7 @@ from users.models import AdminAuditLog
 from .virustotal import VirusTotalProvider
 from .abuseipdb import AbuseIPDBProvider
 from .urlscan import URLScanProvider
+from .phishtank import PhishTankProvider
 from .scoring import calculate_threat_score_and_severity
 
 
@@ -26,6 +27,7 @@ class ThreatIntelligenceService:
                 VirusTotalProvider(),
                 AbuseIPDBProvider(),
                 URLScanProvider(),
+                PhishTankProvider(),
             ]
         else:
             self.providers = providers

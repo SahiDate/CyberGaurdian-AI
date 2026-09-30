@@ -41,10 +41,31 @@ import json
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from .scanners import scan_website_headers, check_ssl_certificate, scan_ports  # type: ignore
-from .threat_intel import check_virustotal  # type: ignore
+from .threat_intel import check_virustotal, check_phishtank  # type: ignore
 
 
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "cybersec-ai-phishing")
+import logging
+import requests
+
+logger = logging.getLogger(__name__)
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+
+GENERAL_OLLAMA_MODEL = os.getenv(
+    "GENERAL_OLLAMA_MODEL",
+    "cyberguardian-ai:latest"
+)
+
+PHISHING_OLLAMA_MODEL = os.getenv(
+    "PHISHING_OLLAMA_MODEL",
+    "cyberguardian-phishing:latest"
+)
+
+# Backward-compatible alias for any legacy references
+OLLAMA_MODEL = GENERAL_OLLAMA_MODEL
+
+# Configurable timeout for Ollama inferences (defaults to 60.0s for local models)
+OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "60.0"))
 
 # In-memory LRU-style cache for AI inferences (Fingerprint -> AI Response)
 _AI_SYNTHESIS_CACHE = {}
@@ -71,19 +92,28 @@ def _compute_deterministic_scan_analysis(target: str, findings: dict) -> dict:
     missing_headers = [k for k, v in headers.items() if v == 'Missing'] if isinstance(headers, dict) else []
     has_ssl_err = isinstance(ssl_info, dict) and ("error" in ssl_info or ssl_info.get("status") not in ["Valid", "OK"])
     is_malicious_vt = isinstance(vt, dict) and (vt.get("positives", 0) > 0 or vt.get("status") == "Malicious")
-    is_phishing = is_malicious_vt or (isinstance(vt, dict) and "phishing" in str(vt.get("category", "")).lower())
+    pt = findings.get("phishtank", {}) or {}
+    is_pt_phishing = isinstance(pt, dict) and (pt.get("verified") or pt.get("in_database"))
+    is_phishing = is_malicious_vt or is_pt_phishing or (isinstance(vt, dict) and "phishing" in str(vt.get("category", "")).lower())
 
     recs = []
     # 1. PHISHING / ACTIVE MALICIOUS THREATS (Top Priority)
-    if is_phishing or is_malicious_vt:
-        sev = vt.get("severity", "Critical")
-        indicators = vt.get("indicators", []) if isinstance(vt, dict) else []
+    if is_phishing or is_malicious_vt or is_pt_phishing:
+        sev = "Critical" if (isinstance(pt, dict) and pt.get("verified")) else vt.get("severity", "Critical")
+        indicators = vt.get("indicators", [])[:] if isinstance(vt, dict) else []
+        if isinstance(pt, dict) and pt.get("in_database"):
+            if pt.get("verified"):
+                indicators.insert(0, f"PhishTank: Verified Phishing (ID #{pt.get('phish_id')})")
+            else:
+                indicators.insert(0, f"PhishTank: Logged Phish (ID #{pt.get('phish_id')})")
         ind_str = f" Key indicators: {'; '.join(indicators[:3])}." if indicators else ""
         
         summary = (
             f"🚨 CRITICAL PHISHING / MALICIOUS THREAT DETECTED: Target '{target}' exhibits active "
             f"credential harvesting, deceptive infrastructure, or brand impersonation signatures.{ind_str}"
         )
+        if isinstance(pt, dict) and pt.get("verified"):
+            recs.append(f"PHISHTANK VERIFIED: Active phishing campaign confirmed by PhishTank (ID #{pt.get('phish_id')}).")
         recs.append("BLOCK IMMEDIATELY: Restrict all outbound traffic to this URL across enterprise firewall and DNS filters.")
         recs.append("CREDENTIAL SAFETY: Do NOT enter credentials, login details, 2FA tokens, or personal banking information.")
         recs.append("THREAT ESCALATION: Report domain to Google Safe Browsing, PhishTank, and corporate SOC teams.")
@@ -154,52 +184,175 @@ def _compute_deterministic_log_analysis(metrics_summary: dict) -> dict:
     }
 
 
-import requests
+def _clean_and_parse_json(raw_text: str) -> dict:
+    """Safely extracts and parses JSON from LLM output, with autofix for minor truncation."""
+    if not raw_text or not raw_text.strip():
+        return None
+    cleaned = raw_text.strip()
+    if '```json' in cleaned:
+        cleaned = cleaned.split('```json')[1].split('```')[0].strip()
+    elif '```' in cleaned:
+        cleaned = cleaned.split('```')[1].split('```')[0].strip()
 
-def _call_fast_ollama(prompt_text: str, timeout: float = 2.0) -> dict:
-    """Fast non-blocking direct Ollama API call with model fallback and fast preflight."""
-    # Fast preflight check (0.25s) to verify if Ollama is listening locally
+    # 1. Try direct parse
     try:
-        ping = requests.get("http://localhost:11434/api/tags", timeout=0.25)
+        data = json.loads(cleaned)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+
+    # 2. Autofix trailing brackets if token generation was capped
+    for fix in [
+        '}', '"}', '"]}', '"]}}', '"}]}', '": ""}', '": []}',
+        '\n"]\n}', '\n  "]\n}', '"]\n}'
+    ]:
+        try:
+            data = json.loads(cleaned + fix)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            continue
+
+    # 3. Regex search for balanced JSON block
+    import re
+    match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+    if match:
+        try:
+            data = json.loads(match.group(0))
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
+    # 4. Fallback heuristic regex extraction for robust recovery
+    extracted = {}
+    sev_match = re.search(r'"severity"\s*:\s*"([^"]+)"', cleaned, re.IGNORECASE)
+    if sev_match:
+        extracted["severity"] = sev_match.group(1).capitalize()
+
+    sum_match = re.search(r'"summary"\s*:\s*"([^"]+)"', cleaned, re.IGNORECASE)
+    if sum_match:
+        extracted["summary"] = sum_match.group(1)
+
+    phish_match = re.search(r'"is_phishing"\s*:\s*(true|false)', cleaned, re.IGNORECASE)
+    if phish_match:
+        extracted["is_phishing"] = phish_match.group(1).lower() == 'true'
+
+    if extracted and ("severity" in extracted or "summary" in extracted or "is_phishing" in extracted):
+        return extracted
+
+    return None
+
+
+def _build_compact_scan_summary(target: str, findings: dict) -> str:
+    """Builds an ultra-compact token-dense telemetry string for fast sub-second LLM ingestion."""
+    ports = findings.get("open_ports", []) or []
+    headers = findings.get("security_headers", {}) or {}
+    ssl_info = findings.get("ssl", {}) or {}
+    vt = findings.get("threat_intel", {}) or {}
+
+    missing_headers = [k for k, v in headers.items() if v == 'Missing'] if isinstance(headers, dict) else []
+    ssl_status = ssl_info.get("status", "Valid" if ssl_info.get("issuer") else "Unknown")
+    vt_status = vt.get("status", "Clean")
+    indicators = vt.get("indicators", [])
+
+    summary_parts = [
+        f"Target: {target}",
+        f"Ports: {ports if ports else 'None'}",
+        f"SSL: {ssl_status}",
+        f"MissingHeaders: {', '.join(missing_headers[:3]) if missing_headers else 'None'}",
+        f"ThreatIntel: {vt_status}"
+    ]
+    if indicators:
+        summary_parts.append(f"Indicators: {'; '.join(indicators[:2])}")
+    return " | ".join(summary_parts)
+
+
+def _call_fast_ollama(prompt_text: str, model: str = None, timeout: float = None, num_predict: int = 65) -> dict:
+    """
+    Direct Ollama API call with explicit model routing and configurable timeout.
+    Accepts prompt_text, explicit model name, and timeout.
+    """
+    effective_timeout = OLLAMA_TIMEOUT if timeout is None else timeout
+    target_model = model or GENERAL_OLLAMA_MODEL
+
+    # 1. Fast preflight check (1.5s) to verify if Ollama is listening locally
+    try:
+        ping = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=1.5)
         if ping.status_code != 200:
+            logger.warning("Ollama is unavailable; using deterministic cybersecurity analysis.")
             return None
         available_models = [m.get('name', '') for m in ping.json().get('models', [])]
     except Exception:
         # Ollama server is offline or unreachable — immediately return with zero delay
+        logger.warning("Ollama is unavailable; using deterministic cybersecurity analysis.")
         return None
 
-    # Pick the best available model
-    target_model = None
-    for candidate in [OLLAMA_MODEL, "cybersec-ai-phishing:latest", "cybersec-ai-phishing", "cybersec-ai:latest", "cybersec-ai", "llama3:latest", "llama3"]:
-        if any(candidate in m for m in available_models):
-            target_model = candidate
-            break
+    # 2. Check if the requested model is available in Ollama
+    matched_model = None
+    if target_model in available_models:
+        matched_model = target_model
+    elif f"{target_model}:latest" in available_models:
+        matched_model = f"{target_model}:latest"
+    else:
+        # Check base name match (e.g. 'cyberguardian-ai' matching 'cyberguardian-ai:latest')
+        base_name = target_model.split(":")[0]
+        for m in available_models:
+            if m == base_name or m.startswith(f"{base_name}:"):
+                matched_model = m
+                break
 
-    if not target_model:
+    if not matched_model:
+        logger.warning(
+            f"Requested Ollama model '{target_model}' is not available in Ollama; "
+            f"using deterministic cybersecurity analysis."
+        )
         return None
 
+    # 3. Safe debug logging showing which model was selected
+    logger.info(f"Using Ollama model: {matched_model}")
+    print(f"Using Ollama model: {matched_model}")
+
+    # 4. Direct Ollama generate API call
     try:
-        url = "http://localhost:11434/api/generate"
+        url = f"{OLLAMA_BASE_URL}/api/generate"
         payload = {
-            "model": target_model,
+            "model": matched_model,
             "prompt": prompt_text,
             "stream": False,
             "format": "json",
+            "keep_alive": -1,
             "options": {
                 "temperature": 0.1,
-                "num_predict": 180
+                "num_predict": num_predict,
+                "num_ctx": 256,
+                "top_k": 20,
+                "top_p": 0.9
             }
         }
-        res = requests.post(url, json=payload, timeout=timeout)
+        # Allow 4.0s for initial connect and effective_timeout for response generation
+        req_timeout = (4.0, float(effective_timeout)) if isinstance(effective_timeout, (int, float)) else effective_timeout
+        res = requests.post(url, json=payload, timeout=req_timeout)
         if res.status_code == 200:
             data = res.json()
             raw_response = data.get("response", "").strip()
-            clean_json = raw_response.replace('```json', '').replace('```', '').strip()
-            parsed = json.loads(clean_json)
-            if isinstance(parsed, dict) and "summary" in parsed:
+            parsed = _clean_and_parse_json(raw_response)
+            if isinstance(parsed, dict) and any(k in parsed for k in ["summary", "is_phishing", "classification", "severity"]):
                 return parsed
-    except Exception:
-        pass
+            logger.warning(
+                f"Ollama model '{matched_model}' returned unparseable JSON; "
+                f"using deterministic cybersecurity analysis."
+            )
+        else:
+            logger.warning(
+                f"Ollama returned HTTP status {res.status_code}; "
+                f"using deterministic cybersecurity analysis."
+            )
+    except Exception as e:
+        logger.warning(
+            f"Ollama generation failed ({e}); using deterministic cybersecurity analysis."
+        )
     return None
 
 
@@ -214,12 +367,14 @@ def run_autonomous_analysis(target):
     ssl_info = {}
     ports = []
     vt_result = {}
+    pt_result = {}
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=5) as executor:
         f_headers = executor.submit(scan_website_headers, target)
         f_ssl = executor.submit(check_ssl_certificate, target)
         f_ports = executor.submit(scan_ports, target)
         f_vt = executor.submit(check_virustotal, target)
+        f_pt = executor.submit(check_phishtank, target)
 
         try:
             headers = f_headers.result(timeout=1.8)
@@ -241,13 +396,19 @@ def run_autonomous_analysis(target):
         except Exception as e:
             vt_result = {"error": str(e)}
 
+        try:
+            pt_result = f_pt.result(timeout=1.8)
+        except Exception as e:
+            pt_result = {"source": "PhishTank", "error": str(e), "in_database": False, "verified": False}
+
     # 2. Compile Findings
     findings = {
         "target": target,
         "security_headers": headers,
         "ssl": ssl_info,
         "open_ports": ports,
-        "threat_intel": vt_result
+        "threat_intel": vt_result,
+        "phishtank": pt_result
     }
 
     # 3. Check Cache
@@ -257,33 +418,91 @@ def run_autonomous_analysis(target):
         findings["ai_analysis"] = cached_ai
         findings["security_score"] = 15 if cached_ai.get("is_phishing") or cached_ai.get("severity") in ["Critical", "High"] else 80
         findings["is_phishing"] = cached_ai.get("is_phishing", False)
-        findings["phishing_indicators"] = vt_result.get("indicators", [])
+        phish_inds = vt_result.get("indicators", [])[:]
+        if pt_result.get("in_database"):
+            phish_inds.insert(0, f"PhishTank: ID #{pt_result.get('phish_id')}")
+        findings["phishing_indicators"] = phish_inds
         return findings
 
     # Compute high-accuracy deterministic baseline immediately (<1ms)
-    ai_analysis = _compute_deterministic_scan_analysis(target, findings)
-    is_phish_baseline = ai_analysis.get("is_phishing", False) or vt_result.get("status") == "Malicious"
+    deterministic_analysis = _compute_deterministic_scan_analysis(target, findings)
+    is_phish_baseline = deterministic_analysis.get("is_phishing", False) or vt_result.get("status") == "Malicious" or pt_result.get("verified", False)
+    ai_analysis = deterministic_analysis
 
-    # 4. Optional fast LLM augmentation (bounded timeout)
-    prompt_str = f"""
-    You are CyberGuardian AI, an expert cybersecurity and phishing analyst.
-    Analyze target '{target}' and threat findings to evaluate phishing, credential theft, and security posture.
-    Return pure JSON:
-    Findings: {json.dumps(findings, default=str)}
-    JSON structure: {{"severity": "Critical/High/Medium/Low", "is_phishing": true/false, "summary": "2 sentence summary", "recommendations": ["rec1", "rec2"]}}
-    """
-    llm_res = _call_fast_ollama(prompt_str, timeout=2.0)
-    if llm_res:
-        # Security Guardrail: Never let LLM downgrade confirmed phishing/malicious findings
-        if is_phish_baseline:
-            llm_res["is_phishing"] = True
-            if llm_res.get("severity") not in ["Critical", "High"]:
-                llm_res["severity"] = ai_analysis.get("severity", "Critical")
-        ai_analysis = llm_res
+    # 4. Multi-Stage AI Pipeline: First 'cyberguardian-phishing', then 'cyberguardian-ai'
+    compact_summary = _build_compact_scan_summary(target, findings)
+
+    # ── STAGE 1: First evaluate using cyberguardian-phishing (Ultra-fast ~9s execution) ──
+    phishing_prompt = (
+        f"Analyze target for phishing/malicious lures.\n"
+        f"Context: {compact_summary}\n"
+        f"Output pure JSON only:\n"
+        f'{{"is_phishing": false, "severity": "Low", "summary": "Short 1-sentence assessment"}}'
+    )
+    phishing_res = _call_fast_ollama(
+        phishing_prompt,
+        model=PHISHING_OLLAMA_MODEL,
+        timeout=50.0,
+        num_predict=35
+    )
+
+    is_phish_detected = is_phish_baseline
+    if phishing_res:
+        phish_flag = bool(
+            phishing_res.get("is_phishing", False) or
+            str(phishing_res.get("classification", "")).lower() == "phishing"
+        )
+        phish_sev = str(phishing_res.get("severity", phishing_res.get("risk", ""))).capitalize()
+        if phish_flag or phish_sev in ["Critical", "High"]:
+            is_phish_detected = True
+            phishing_res["is_phishing"] = True
+        elif is_phish_baseline:
+            # Security guardrail: never downgrade confirmed threat baseline
+            is_phish_detected = True
+            phishing_res["is_phishing"] = True
+            if phish_sev not in ["Critical", "High"]:
+                phishing_res["severity"] = deterministic_analysis.get("severity", "Critical")
+
+    # ── STAGE 2: Then evaluate using cyberguardian-ai (Ultra-fast ~15s execution) ──
+    phish_verdict_str = "PHISHING" if is_phish_detected else "SAFE"
+    phish_sev_str = phishing_res.get("severity", "Critical" if is_phish_detected else "Low") if phishing_res else ("Critical" if is_phish_detected else "Low")
+    general_prompt = (
+        f"Analyze cybersecurity posture.\n"
+        f"Context: {compact_summary} | Phishing: {phish_verdict_str} ({phish_sev_str})\n"
+        f"Output pure JSON only:\n"
+        f'{{"severity": "Low", "summary": "1 sentence security summary", "recommendations": ["rec1", "rec2"]}}'
+    )
+    general_res = _call_fast_ollama(
+        general_prompt,
+        model=GENERAL_OLLAMA_MODEL,
+        timeout=50.0,
+        num_predict=60
+    )
+
+    # ── STAGE 3: Synthesize AI Outputs & Apply Security Guardrails ──
+    if general_res:
+        ai_analysis = general_res
+        if is_phish_detected:
+            ai_analysis["is_phishing"] = True
+            if ai_analysis.get("severity") not in ["Critical", "High"]:
+                ai_analysis["severity"] = (
+                    phishing_res.get("severity", "Critical")
+                    if phishing_res and phishing_res.get("severity") in ["Critical", "High"]
+                    else deterministic_analysis.get("severity", "Critical")
+                )
+    elif phishing_res:
+        # Fallback to phishing model results if general model is unavailable
+        ai_analysis = {
+            "severity": phishing_res.get("severity", deterministic_analysis.get("severity", "Low")),
+            "is_phishing": phishing_res.get("is_phishing", is_phish_detected),
+            "summary": phishing_res.get("summary", deterministic_analysis.get("summary", "")),
+            "recommendations": deterministic_analysis.get("recommendations", [])
+        }
+    # else ai_analysis remains deterministic_analysis
 
     # Determine final authoritative severity and security score
     final_sev = str(ai_analysis.get("severity", "Low")).capitalize()
-    is_phishing = ai_analysis.get("is_phishing", False) or is_phish_baseline
+    is_phishing = bool(ai_analysis.get("is_phishing", False) or is_phish_detected)
     ai_analysis["is_phishing"] = is_phishing
 
     if is_phishing or final_sev in ["Critical", "High"]:
@@ -297,8 +516,17 @@ def run_autonomous_analysis(target):
     ai_analysis["severity"] = final_sev
     findings["security_score"] = sec_score
     findings["is_phishing"] = is_phishing
-    findings["phishing_indicators"] = vt_result.get("indicators", [])
 
+    # Consolidate indicators from VirusTotal and phishing model
+    combined_indicators = list(vt_result.get("indicators", []) or [])
+    if phishing_res:
+        phish_inds = phishing_res.get("indicators", []) or phishing_res.get("phishing_indicators", []) or []
+        for ind in phish_inds:
+            if ind and ind not in combined_indicators:
+                combined_indicators.append(ind)
+        findings["phishing_analysis"] = phishing_res
+
+    findings["phishing_indicators"] = combined_indicators
     _AI_SYNTHESIS_CACHE[cache_key] = ai_analysis
     findings["ai_analysis"] = ai_analysis
     return findings
@@ -325,14 +553,26 @@ def run_log_analysis_ai(parsed_data):
     # Compute high-accuracy deterministic analysis immediately (<1ms)
     ai_analysis = _compute_deterministic_log_analysis(metrics_summary)
 
-    # Optional fast LLM augmentation (strict 1.0s socket timeout)
-    prompt_str = f"""
-    You are CyberGuardian AI, an expert SOC Analyst.
-    Analyze the following parsed log metrics and assess the security risk in pure JSON.
-    Metrics: {json.dumps(metrics_summary)}
-    JSON structure: {{"severity": "Low/Medium/High/Critical", "summary": "2-3 sentence summary", "recommendations": ["rec1", "rec2"]}}
-    """
-    llm_res = _call_fast_ollama(prompt_str, timeout=1.0)
+    # Optional fast LLM augmentation with compact prompt
+    compact_log = (
+        f"Reqs: {metrics_summary.get('total_requests')}, "
+        f"UniqueIPs: {metrics_summary.get('unique_ips')}, "
+        f"ErrorRate: {metrics_summary.get('error_rate_pct')}%, "
+        f"BruteForce: {metrics_summary.get('brute_force_attempts_count')}, "
+        f"DirScans: {metrics_summary.get('directory_scans_count')}"
+    )
+    prompt_str = (
+        f"Analyze SOC log telemetry.\n"
+        f"Context: {compact_log}\n"
+        f"Output pure JSON only:\n"
+        f'{{"severity": "Low", "summary": "1 sentence security summary", "recommendations": ["rec1", "rec2"]}}'
+    )
+    llm_res = _call_fast_ollama(
+        prompt_str,
+        model=GENERAL_OLLAMA_MODEL,
+        timeout=30.0,
+        num_predict=55
+    )
     if llm_res:
         ai_analysis = llm_res
 

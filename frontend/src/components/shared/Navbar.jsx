@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import ThemeToggle from '../ThemeToggle';
 import {
   LayoutDashboard,
@@ -37,6 +38,7 @@ const SCANNER_TOOLS = [
 
 export default function Navbar() {
   const { user, logoutUser } = useContext(AuthContext);
+  const { isDark } = useTheme();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scannersOpen, setScannersOpen] = useState(false);
@@ -90,6 +92,42 @@ export default function Navbar() {
     setMobileOpen(false);
   }, [location.pathname]);
 
+  // Accessibility: Close with Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMobileOpen(false);
+        setScannersOpen(false);
+        setProfileOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Lock background body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
+
+  // Auto-close mobile drawer when window resized to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 1200) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (scannersRef.current && !scannersRef.current.contains(e.target)) {
@@ -124,9 +162,9 @@ export default function Navbar() {
   });
 
   return (
-    <header className="glass-panel" style={{
-      margin: '0.85rem 1rem 1.5rem 1rem',
-      padding: '0.6rem 1rem',
+    <header className="glass-panel user-navbar-header" style={{
+      margin: 'clamp(0.5rem, 1.5vw, 0.85rem) clamp(0.4rem, 2vw, 1rem) clamp(0.85rem, 2vw, 1.5rem)',
+      padding: 'clamp(0.45rem, 1.5vw, 0.6rem) clamp(0.5rem, 2vw, 1rem)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -574,291 +612,454 @@ export default function Navbar() {
         </div>
       </div>
 
-        {/* Mobile Hamburger Toggle Button (Hidden on Desktop via CSS) */}
-        <button
-          className="mobile-hamburger-btn"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle Navigation Menu"
-          style={{
-            display: 'none',
-            background: 'var(--panel-bg)',
-            border: '1px solid var(--border-color)',
-            color: 'var(--text-main)',
-            fontSize: '1.2rem',
-            padding: '0.4rem 0.65rem',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            minHeight: '40px',
-            minWidth: '40px'
-          }}
-        >
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+      {/* Mobile Header Controls: Theme toggle + Hamburger */}
+      <div className="mobile-header-controls" style={{ display: 'none', alignItems: 'center', gap: '0.5rem' }}>
+          <ThemeToggle />
+          <button
+            className="mobile-hamburger-btn"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? "Close Navigation Menu" : "Open Navigation Menu"}
+            style={{
+              background: 'var(--panel-bg)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-main)',
+              fontSize: '1.2rem',
+              padding: '0.4rem 0.65rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              minHeight: '44px',
+              minWidth: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Navigation Drawer */}
       {mobileOpen && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation Menu"
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'rgba(10, 13, 18, 0.92)',
-            backdropFilter: 'blur(20px)',
-            zIndex: 999,
+            inset: 0,
+            width: '100%',
+            height: '100dvh',
+            backgroundColor: isDark ? '#0b0f17' : '#ffffff',
+            color: isDark ? '#f0f6fc' : '#0f172a',
+            zIndex: 99999,
             display: 'flex',
             flexDirection: 'column',
-            padding: '1.25rem',
             boxSizing: 'border-box',
-            overflowY: 'auto'
+            overflow: 'hidden',
+            animation: 'drawerFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
-          {/* Drawer Header */}
+          {/* 1. Drawer Header (Fixed at Top) */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '1.25rem',
-            borderBottom: '1px solid var(--border-color)',
-            paddingBottom: '0.85rem'
+            padding: '0.85rem clamp(0.75rem, 3vw, 1.25rem)',
+            borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+            backgroundColor: isDark ? '#0b0f17' : '#ffffff',
+            flexShrink: 0
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.25rem' }}>🛡️</span>
-              <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>
-                CyberGuardian
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #00c9a7 0%, #0077b6 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0, 201, 167, 0.3)'
+              }}>
+                <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{
+                  fontWeight: 800,
+                  fontSize: '1.05rem',
+                  color: isDark ? '#f0f6fc' : '#0f172a',
+                  lineHeight: 1.15
+                }}>
+                  CyberGuardian
+                </span>
+                <span style={{
+                  fontSize: '0.62rem',
+                  color: '#00c9a7',
+                  fontWeight: 700,
+                  letterSpacing: '0.8px',
+                  textTransform: 'uppercase'
+                }}>
+                  Security Suite
+                </span>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <ThemeToggle />
               <button
                 onClick={() => setMobileOpen(false)}
+                aria-label="Close menu"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid var(--border-color)',
-                  color: '#fff',
-                  borderRadius: '6px',
-                  padding: '0.35rem',
+                  background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
+                  border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid #cbd5e1',
+                  color: isDark ? '#f0f6fc' : '#0f172a',
+                  borderRadius: '8px',
+                  width: '40px',
+                  height: '40px',
+                  padding: 0,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  transition: 'all 0.15s ease'
                 }}
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
           </div>
 
-          {/* Section: Core Navigation */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem' }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 0.5rem' }}>
-              Overview & Operations
-            </div>
-            {[
-              ['/dashboard', 'Dashboard', LayoutDashboard],
-              ['/modules', 'All Modules', LayoutGrid],
-              ['/soc-analysis', 'SOC Analysis', Activity],
-              ['/threat-intel', 'Threat Intel', Radio],
-              ['/ai-agent', 'AI Security Agent', Bot],
-            ].map(([path, label, Icon]) => (
-              <Link
-                key={path}
-                to={path}
-                onClick={() => setMobileOpen(false)}
-                style={{
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: '7px',
-                  textDecoration: 'none',
-                  color: isActive(path) ? '#ffffff' : 'var(--text-main)',
-                  background: isActive(path) ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.04)',
-                  fontWeight: '600',
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.65rem'
-                }}
-              >
-                <Icon size={16} />
-                <span>{label}</span>
-              </Link>
-            ))}
-          </div>
-
-          {/* Section: Scanners */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem' }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 0.5rem' }}>
-              Security Scanners
-            </div>
-            {SCANNER_TOOLS.map((tool) => {
-              const ToolIcon = tool.icon;
-              return (
-                <Link
-                  key={tool.path}
-                  to={tool.path}
-                  onClick={() => setMobileOpen(false)}
-                  style={{
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '7px',
-                    textDecoration: 'none',
-                    color: isActive(tool.path) ? '#ffffff' : 'var(--text-main)',
-                    background: isActive(tool.path) ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.04)',
-                    fontWeight: '600',
-                    fontSize: '0.9rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.65rem'
-                  }}
-                >
-                  <ToolIcon size={16} />
-                  <span>{tool.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Section: Compliance & Records */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.5rem' }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 0.5rem' }}>
-              Compliance & Audit
-            </div>
-            <Link
-              to="/certificates"
-              onClick={() => setMobileOpen(false)}
-              style={{
-                padding: '0.65rem 0.85rem',
-                borderRadius: '7px',
-                textDecoration: 'none',
-                color: '#ffffff',
-                background: isActive('/certificates')
-                  ? 'linear-gradient(135deg, #00c9a7 0%, #0077b6 100%)'
-                  : 'rgba(0, 201, 167, 0.25)',
-                fontWeight: '700',
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.65rem',
-                border: '1px solid #00c9a7'
-              }}
-            >
-              <Award size={16} />
-              <span>Certificates Hub</span>
-            </Link>
-            <Link
-              to="/reports"
-              onClick={() => setMobileOpen(false)}
-              style={{
-                padding: '0.65rem 0.85rem',
-                borderRadius: '7px',
-                textDecoration: 'none',
-                color: isActive('/reports') ? '#ffffff' : 'var(--text-main)',
-                background: isActive('/reports') ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.04)',
-                fontWeight: '600',
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.65rem'
-              }}
-            >
-              <FileText size={16} />
-              <span>Security Reports</span>
-            </Link>
-            <Link
-              to="/history"
-              onClick={() => setMobileOpen(false)}
-              style={{
-                padding: '0.65rem 0.85rem',
-                borderRadius: '7px',
-                textDecoration: 'none',
-                color: isActive('/history') ? '#ffffff' : 'var(--text-main)',
-                background: isActive('/history') ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.04)',
-                fontWeight: '600',
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.65rem'
-              }}
-            >
-              <History size={16} />
-              <span>Audit History</span>
-            </Link>
-          </div>
-
-          {/* Section: Account & Logout */}
+          {/* 2. Scrollable Drawer Content */}
           <div style={{
-            marginTop: 'auto',
-            paddingTop: '1rem',
-            borderTop: '1px solid var(--border-color)',
+            flex: 1,
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            padding: '1rem clamp(0.75rem, 3vw, 1.25rem) 1.5rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.5rem'
+            gap: '1.25rem'
           }}>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Link
-                to="/profile"
-                onClick={() => setMobileOpen(false)}
-                style={{
-                  flex: 1,
-                  padding: '0.65rem',
-                  borderRadius: '7px',
-                  textDecoration: 'none',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-main)',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.4rem'
-                }}
-              >
-                👤 {user ? user.username : 'Profile'}
-              </Link>
-              <Link
-                to="/settings"
-                onClick={() => setMobileOpen(false)}
-                style={{
-                  flex: 1,
-                  padding: '0.65rem',
-                  borderRadius: '7px',
-                  textDecoration: 'none',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-main)',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.4rem'
-                }}
-              >
-                <Settings size={15} /> Settings
-              </Link>
+            {/* Section: Overview & Operations */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: isDark ? '#94a3b8' : '#64748b',
+                textTransform: 'uppercase',
+                letterSpacing: '0.6px',
+                padding: '0 0.5rem 0.2rem'
+              }}>
+                Overview & Operations
+              </div>
+              {[
+                ['/dashboard', 'Dashboard', LayoutDashboard],
+                ['/modules', 'All Modules', LayoutGrid],
+                ['/soc-analysis', 'SOC Analysis', Activity],
+                ['/threat-intel', 'Threat Intel', Radio],
+                ['/ai-agent', 'AI Security Agent', Bot],
+              ].map(([path, label, Icon]) => {
+                const active = isActive(path);
+                return (
+                  <Link
+                    key={path}
+                    to={path}
+                    onClick={() => setMobileOpen(false)}
+                    className="mobile-nav-link"
+                    style={{
+                      padding: '0.72rem 0.9rem',
+                      borderRadius: '8px',
+                      textDecoration: 'none',
+                      color: active ? '#ffffff' : (isDark ? '#f0f6fc' : '#1e293b'),
+                      background: active
+                        ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
+                        : (isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc'),
+                      border: active
+                        ? '1px solid rgba(255, 255, 255, 0.2)'
+                        : (isDark ? '1px solid rgba(255, 255, 255, 0.07)' : '1px solid #e2e8f0'),
+                      boxShadow: active
+                        ? (isDark ? '0 4px 14px rgba(37, 99, 235, 0.45)' : '0 4px 14px rgba(37, 99, 235, 0.25)')
+                        : 'none',
+                      fontWeight: active ? 700 : 600,
+                      fontSize: '0.92rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <Icon size={18} style={{ color: active ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'), flexShrink: 0 }} />
+                      <span>{label}</span>
+                    </div>
+                    {path === '/ai-agent' && (
+                      <span style={{
+                        fontSize: '0.62rem',
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        background: active ? 'rgba(255, 255, 255, 0.25)' : (isDark ? 'rgba(0, 201, 167, 0.15)' : 'rgba(13, 148, 136, 0.12)'),
+                        color: active ? '#ffffff' : (isDark ? '#00c9a7' : '#0d9488')
+                      }}>
+                        PRO
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
 
-            <button
-              onClick={() => { setMobileOpen(false); logoutUser(); }}
-              style={{
-                padding: '0.75rem',
-                background: 'rgba(248, 81, 73, 0.18)',
-                border: '1px solid var(--danger-color)',
-                color: 'var(--danger-color)',
-                borderRadius: '8px',
-                cursor: 'pointer',
+            {/* Section: Security Scanners */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{
+                fontSize: '0.72rem',
                 fontWeight: 700,
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.45rem'
-              }}
-            >
-              <LogOut size={16} />
-              Sign Out
-            </button>
+                color: isDark ? '#94a3b8' : '#64748b',
+                textTransform: 'uppercase',
+                letterSpacing: '0.6px',
+                padding: '0 0.5rem 0.2rem'
+              }}>
+                Security Scanners
+              </div>
+              {SCANNER_TOOLS.map((tool) => {
+                const ToolIcon = tool.icon;
+                const active = isActive(tool.path);
+                return (
+                  <Link
+                    key={tool.path}
+                    to={tool.path}
+                    onClick={() => setMobileOpen(false)}
+                    className="mobile-nav-link"
+                    style={{
+                      padding: '0.68rem 0.9rem',
+                      borderRadius: '8px',
+                      textDecoration: 'none',
+                      color: active ? '#ffffff' : (isDark ? '#f0f6fc' : '#1e293b'),
+                      background: active
+                        ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
+                        : (isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc'),
+                      border: active
+                        ? '1px solid rgba(255, 255, 255, 0.2)'
+                        : (isDark ? '1px solid rgba(255, 255, 255, 0.07)' : '1px solid #e2e8f0'),
+                      boxShadow: active
+                        ? (isDark ? '0 4px 14px rgba(37, 99, 235, 0.45)' : '0 4px 14px rgba(37, 99, 235, 0.25)')
+                        : 'none',
+                      fontWeight: active ? 700 : 600,
+                      fontSize: '0.92rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <ToolIcon size={18} style={{ color: active ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'), flexShrink: 0 }} />
+                      <span>{tool.label}</span>
+                    </div>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      color: active ? 'rgba(255, 255, 255, 0.85)' : (isDark ? '#8b949e' : '#64748b')
+                    }}>
+                      {tool.desc.split('&')[0].trim()}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Section: Compliance & Audit */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: isDark ? '#94a3b8' : '#64748b',
+                textTransform: 'uppercase',
+                letterSpacing: '0.6px',
+                padding: '0 0.5rem 0.2rem'
+              }}>
+                Compliance & Audit
+              </div>
+
+              {/* Certificates Hub */}
+              <Link
+                to="/certificates"
+                onClick={() => setMobileOpen(false)}
+                className="mobile-nav-link"
+                style={{
+                  padding: '0.72rem 0.9rem',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  color: isActive('/certificates') ? '#ffffff' : (isDark ? '#00c9a7' : '#0d9488'),
+                  background: isActive('/certificates')
+                    ? 'linear-gradient(135deg, #00c9a7 0%, #0077b6 100%)'
+                    : (isDark ? 'rgba(0, 201, 167, 0.12)' : 'rgba(0, 201, 167, 0.08)'),
+                  border: isActive('/certificates')
+                    ? '1px solid #00c9a7'
+                    : (isDark ? '1px solid rgba(0, 201, 167, 0.35)' : '1px solid rgba(13, 148, 136, 0.35)'),
+                  boxShadow: isActive('/certificates')
+                    ? '0 4px 14px rgba(0, 201, 167, 0.4)'
+                    : 'none',
+                  fontWeight: 700,
+                  fontSize: '0.92rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Award size={18} style={{ color: isActive('/certificates') ? '#ffffff' : (isDark ? '#00c9a7' : '#0d9488') }} />
+                  <span>Certificates Hub</span>
+                </div>
+                <span style={{
+                  fontSize: '0.65rem',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  background: isActive('/certificates') ? 'rgba(255, 255, 255, 0.25)' : (isDark ? 'rgba(0, 201, 167, 0.2)' : 'rgba(13, 148, 136, 0.15)'),
+                  color: isActive('/certificates') ? '#ffffff' : (isDark ? '#00c9a7' : '#0d9488'),
+                  fontWeight: 700
+                }}>
+                  VERIFIED
+                </span>
+              </Link>
+
+              {/* Reports & History */}
+              {[
+                ['/reports', 'Security Reports', FileText],
+                ['/history', 'Audit History', History],
+              ].map(([path, label, Icon]) => {
+                const active = isActive(path);
+                return (
+                  <Link
+                    key={path}
+                    to={path}
+                    onClick={() => setMobileOpen(false)}
+                    className="mobile-nav-link"
+                    style={{
+                      padding: '0.68rem 0.9rem',
+                      borderRadius: '8px',
+                      textDecoration: 'none',
+                      color: active ? '#ffffff' : (isDark ? '#f0f6fc' : '#1e293b'),
+                      background: active
+                        ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
+                        : (isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc'),
+                      border: active
+                        ? '1px solid rgba(255, 255, 255, 0.2)'
+                        : (isDark ? '1px solid rgba(255, 255, 255, 0.07)' : '1px solid #e2e8f0'),
+                      boxShadow: active
+                        ? (isDark ? '0 4px 14px rgba(37, 99, 235, 0.45)' : '0 4px 14px rgba(37, 99, 235, 0.25)')
+                        : 'none',
+                      fontWeight: active ? 700 : 600,
+                      fontSize: '0.92rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Icon size={18} style={{ color: active ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'), flexShrink: 0 }} />
+                    <span>{label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Section: Account & Logout */}
+            <div style={{
+              marginTop: 'auto',
+              paddingTop: '1.25rem',
+              borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.65rem'
+            }}>
+              <div style={{ display: 'flex', gap: '0.65rem' }}>
+                <Link
+                  to="/profile"
+                  onClick={() => setMobileOpen(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
+                    border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
+                    color: isDark ? '#f0f6fc' : '#0f172a',
+                    fontWeight: 600,
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    minHeight: '44px'
+                  }}
+                >
+                  <div style={{
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #00c9a7 0%, #0077b6 100%)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    flexShrink: 0
+                  }}>
+                    {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <span>{user ? user.username : 'Profile'}</span>
+                </Link>
+
+                <Link
+                  to="/settings"
+                  onClick={() => setMobileOpen(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
+                    border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
+                    color: isDark ? '#f0f6fc' : '#0f172a',
+                    fontWeight: 600,
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    minHeight: '44px'
+                  }}
+                >
+                  <Settings size={16} style={{ color: isDark ? '#94a3b8' : '#64748b' }} />
+                  <span>Settings</span>
+                </Link>
+              </div>
+
+              <button
+                onClick={() => { setMobileOpen(false); logoutUser(); }}
+                style={{
+                  width: '100%',
+                  padding: '0.8rem',
+                  background: isDark ? 'rgba(248, 81, 73, 0.15)' : '#fee2e2',
+                  border: isDark ? '1px solid rgba(248, 81, 73, 0.4)' : '1px solid #fca5a5',
+                  color: isDark ? '#ff7b72' : '#dc2626',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  fontSize: '0.92rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  minHeight: '44px',
+                  transition: 'background 0.15s ease'
+                }}
+              >
+                <LogOut size={16} />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -62,8 +62,9 @@ class AIAgentSecurityAndUnitTests(TestCase):
     def test_ollama_health_when_online_and_model_exists(self, mock_get):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
+        configured_model = AgentConfig.get_ollama_model()
         mock_resp.json.return_value = {
-            "models": [{"name": "qwen2.5:7b"}, {"name": "cybersec-ai:latest"}]
+            "models": [{"name": "qwen2.5:7b"}, {"name": configured_model}]
         }
         mock_get.return_value = mock_resp
 
@@ -121,6 +122,8 @@ class AIAgentSecurityAndUnitTests(TestCase):
         """Asserts loopback, metadata endpoints, and private IPs are blocked."""
         restricted_targets = [
             "127.0.0.1",
+            "127.0.0.1:11434",
+            "127.0.0.1:11434:",
             "localhost",
             "169.254.169.254",
             "http://169.254.169.254/latest/meta-data/",

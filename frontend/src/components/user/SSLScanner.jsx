@@ -3,7 +3,7 @@ import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const CERT_STATUS_STYLES = {
   VALID:             { color: '#39d353', bg: 'rgba(57,211,83,0.15)', border: '#39d353' },
@@ -101,7 +101,7 @@ export default function SSLScanner() {
   return (
     <div style={{ minHeight: '100vh', color: 'var(--text-main)', fontFamily: 'Inter, sans-serif' }}>
       <Navbar />
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+      <div className="responsive-page-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: 'clamp(1rem, 2.5vw, 2rem) clamp(0.5rem, 2vw, 1.5rem)', boxSizing: 'border-box' }}>
         
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
@@ -123,8 +123,8 @@ export default function SSLScanner() {
           marginBottom: '2rem'
         }}>
           <form onSubmit={handleScan}>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <div style={{ flex: '1 1 400px' }}>
+            <div className="form-row-responsive" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: '1 1 240px', minWidth: 0, width: '100%' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                   Target Domain or URL
                 </label>
@@ -170,12 +170,15 @@ export default function SSLScanner() {
                 />
               </div>
 
-              <div>
+              <div style={{ width: 'auto' }}>
                 <button
                   type="submit"
                   disabled={scanning}
+                  className="btn-full-mobile"
                   style={{
                     padding: '0.75rem 1.75rem',
+                    minHeight: '44px',
+                    justifyContent: 'center',
                     background: scanning ? '#21262d' : 'linear-gradient(135deg, #1f6feb 0%, #1158c7 100%)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '8px',
@@ -245,9 +248,9 @@ export default function SSLScanner() {
           }}>
             {/* Header / Badges */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+              <div style={{ maxWidth: '100%', flex: '1 1 260px', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, wordBreak: 'break-all' }}>
                     {currentResult.domain}
                   </h2>
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', background: isDark ? '#0d1117' : 'rgba(0,0,0,0.05)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
@@ -475,8 +478,8 @@ export default function SSLScanner() {
               No SSL scans recorded yet. Enter a domain above to perform your first scan.
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <div className="table-responsive-container" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '0.75rem' }}>Target / Domain</th>

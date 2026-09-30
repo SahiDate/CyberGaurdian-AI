@@ -24,12 +24,28 @@ def validate_agent_target(target: str) -> Tuple[bool, str]:
     if _is_valid_hash(cleaned):
         return True, ""
 
+    # Strip trailing punctuation, colons, slashes, and spaces
+    cleaned_norm = cleaned.rstrip(':/\\ ')
+    if not cleaned_norm:
+        return False, "Target cannot be empty."
+
     # Extract bare hostname if URL scheme or port is given
-    host_to_check = cleaned
+    host_to_check = cleaned_norm
     if '://' in host_to_check:
         from urllib.parse import urlparse
         host_to_check = urlparse(host_to_check).hostname or host_to_check
-    if ':' in host_to_check and not host_to_check.count(':') > 1:
+    elif host_to_check.startswith(('http:/', 'https:/')):
+        parts = host_to_check.split('/', 1)
+        host_to_check = parts[1].lstrip('/') if len(parts) > 1 else host_to_check
+
+    # If URL path remains, isolate host component
+    if '/' in host_to_check:
+        host_to_check = host_to_check.split('/')[0]
+
+    # Handle IPv6 with port: [::1]:8080 or plain host:port
+    if host_to_check.startswith('[') and ']:' in host_to_check:
+        host_to_check = host_to_check.split(']:')[0].lstrip('[')
+    elif ':' in host_to_check and host_to_check.count(':') == 1:
         host_to_check = host_to_check.split(':')[0]
     host_to_check = host_to_check.strip('[]').lower()
 

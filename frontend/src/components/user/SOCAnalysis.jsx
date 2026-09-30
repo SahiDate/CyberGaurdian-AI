@@ -3,7 +3,7 @@ import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 export default function SOCAnalysis() {
   const { authTokens } = useContext(AuthContext);
@@ -253,7 +253,7 @@ export default function SOCAnalysis() {
     }}>
       <Navbar />
 
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1.5rem', color: theme.textMain }}>
+      <div className="responsive-page-container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 clamp(0.5rem, 2.5vw, 1.5rem)', color: theme.textMain, boxSizing: 'border-box' }}>
         {/* Header Banner */}
         <div style={{
           background: theme.headerBg,
@@ -303,15 +303,16 @@ export default function SOCAnalysis() {
               <label style={{ fontWeight: '600', fontSize: '0.95rem', color: theme.labelColor }}>
                 Target Identifier (Domain, URL, IPv4/IPv6, or SHA-256 File Hash)
               </label>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="form-row-responsive" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <input
                   type="text"
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
                   placeholder="e.g. example.com, https://phish-login.xyz/auth, 198.51.100.25, or file hash"
                   style={{
-                    flex: 1,
-                    minWidth: '280px',
+                    flex: '1 1 240px',
+                    minWidth: 0,
+                    width: '100%',
                     padding: '0.75rem 1rem',
                     borderRadius: '8px',
                     border: `1px solid ${theme.inputBorder}`,
@@ -328,8 +329,11 @@ export default function SOCAnalysis() {
                   type="button"
                   onClick={handlePreCorrelate}
                   disabled={preCorrelating || !target.trim()}
+                  className="btn-full-mobile"
                   style={{
                     padding: '0.75rem 1.25rem',
+                    minHeight: '44px',
+                    justifyContent: 'center',
                     borderRadius: '8px',
                     border: `1px solid ${theme.findBtnBorder}`,
                     background: theme.findBtnBg,
@@ -345,8 +349,11 @@ export default function SOCAnalysis() {
                 <button
                   type="submit"
                   disabled={loading || !target.trim()}
+                  className="btn-full-mobile"
                   style={{
                     padding: '0.75rem 1.75rem',
+                    minHeight: '44px',
+                    justifyContent: 'center',
                     borderRadius: '8px',
                     border: 'none',
                     background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
@@ -765,8 +772,8 @@ export default function SOCAnalysis() {
               No prior SOC analyses found. Enter a target above to generate one.
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+            <div className="table-responsive-container" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${theme.tableBorder}`, color: theme.tableHeaderColor }}>
                     <th style={{ padding: '0.75rem' }}>ID</th>

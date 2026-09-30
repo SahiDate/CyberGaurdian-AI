@@ -4,9 +4,11 @@ Performs lexical, heuristic, brand impersonation, and threat intelligence analys
 to reliably detect phishing campaigns, credential harvesting vectors, and malicious targets.
 """
 
+import os
 import re
 import urllib.parse
 from typing import Dict, Any, List, Tuple
+import requests
 
 # Suspicious Top-Level Domains (TLDs) frequently abused in disposable phishing infrastructure
 SUSPICIOUS_TLDS = {
@@ -200,3 +202,122 @@ def check_abuseipdb(ip_address):
         "abuse_confidence_score": 0,
         "status": "Clean"
     }
+
+
+def check_phishtank(target: str, api_key: str = None) -> Dict[str, Any]:
+    """
+    Check target (URL, domain, or IP) against PhishTank API.
+    Returns structured threat evaluation with verification status and phish details.
+    """
+    clean_target = str(target).strip()
+    if not clean_target:
+        return {
+            "source": "PhishTank",
+            "in_database": False,
+            "verified": False,
+            "valid": False,
+            "status": "Clean",
+            "threat_score": 0,
+            "severity": "Low",
+            "details": "Empty target supplied."
+        }
+
+    url_to_check = clean_target if clean_target.startswith(('http://', 'https://')) else f"http://{clean_target}"
+    key = api_key or os.environ.get("PHISHTANK_API_KEY", "").strip()
+
+    payload = {
+        'format': 'json',
+        'url': url_to_check
+    }
+    if key:
+        payload['app_key'] = key
+
+    headers = {
+        'User-Agent': 'phishtank/CyberGuardian-AI',
+        'Accept': 'application/json'
+    }
+
+    try:
+        response = requests.post("https://checkurl.phishtank.com/checkurl/", data=payload, headers=headers, timeout=10)
+        if response.status_code == 200:
+            result = response.json()
+            results = result.get('results', {})
+            in_database = bool(results.get('in_database', False))
+            verified = bool(results.get('verified', False))
+            valid = bool(results.get('valid', False))
+            phish_id = results.get('phish_id')
+            phish_detail_page = results.get('phish_detail_page')
+
+            if in_database and verified:
+                return {
+                    "source": "PhishTank",
+                    "status": "Verified Phishing",
+                    "in_database": True,
+                    "verified": True,
+                    "valid": valid,
+                    "phish_id": phish_id,
+                    "phish_detail_page": phish_detail_page,
+                    "threat_score": 95,
+                    "severity": "Critical",
+                    "category": "Verified Phishing Infrastructure",
+                    "details": f"Target '{url_to_check}' is a confirmed, verified phishing site in PhishTank (Phish ID #{phish_id})."
+                }
+            elif in_database and not verified:
+                return {
+                    "source": "PhishTank",
+                    "status": "Suspicious / Unverified Phish",
+                    "in_database": True,
+                    "verified": False,
+                    "valid": valid,
+                    "phish_id": phish_id,
+                    "phish_detail_page": phish_detail_page,
+                    "threat_score": 50,
+                    "severity": "Medium",
+                    "category": "Potential Phishing (Unverified)",
+                    "details": f"Target '{url_to_check}' is logged in PhishTank database but not yet community-verified."
+                }
+            else:
+                return {
+                    "source": "PhishTank",
+                    "status": "Clean",
+                    "in_database": False,
+                    "verified": False,
+                    "valid": False,
+                    "threat_score": 0,
+                    "severity": "Low",
+                    "category": "Clean",
+                    "details": f"Target '{url_to_check}' is not listed in the PhishTank database."
+                }
+        elif response.status_code in (429, 509):
+            return {
+                "source": "PhishTank",
+                "status": "Rate Limited",
+                "in_database": False,
+                "verified": False,
+                "valid": False,
+                "threat_score": 0,
+                "severity": "Low",
+                "details": "PhishTank API rate limit reached."
+            }
+        else:
+            return {
+                "source": "PhishTank",
+                "status": f"HTTP {response.status_code}",
+                "in_database": False,
+                "verified": False,
+                "valid": False,
+                "threat_score": 0,
+                "severity": "Low",
+                "details": f"PhishTank query returned status {response.status_code}."
+            }
+    except Exception as e:
+        return {
+            "source": "PhishTank",
+            "status": "Error",
+            "in_database": False,
+            "verified": False,
+            "valid": False,
+            "threat_score": 0,
+            "severity": "Low",
+            "details": f"PhishTank lookup failed: {str(e)}"
+        }

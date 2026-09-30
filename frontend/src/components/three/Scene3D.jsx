@@ -45,8 +45,8 @@ export default function Scene3D() {
       style={{
         position: 'fixed',
         inset: 0,
-        width: '100vw',
-        height: '100vh',
+        width: '100%',
+        height: '100%',
         zIndex: 0,
         pointerEvents: 'none',
         overflow: 'hidden',

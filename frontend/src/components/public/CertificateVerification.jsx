@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Shield, ShieldCheck, ShieldAlert, CheckCircle2, AlertTriangle, Download, ExternalLink, ArrowLeft } from 'lucide-react';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 export default function CertificateVerification() {
   const { certificateId } = useParams();
@@ -57,6 +57,8 @@ export default function CertificateVerification() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.75rem',
         width: '100%',
         maxWidth: '780px',
         marginBottom: '2.5rem',
@@ -64,7 +66,8 @@ export default function CertificateVerification() {
         background: 'rgba(255, 255, 255, 0.03)',
         borderRadius: '12px',
         border: '1px solid rgba(255, 255, 255, 0.08)',
-        backdropFilter: 'blur(10px)'
+        backdropFilter: 'blur(10px)',
+        boxSizing: 'border-box'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           <div style={{
@@ -107,7 +110,8 @@ export default function CertificateVerification() {
         background: 'rgba(15, 23, 42, 0.75)',
         border: `1px solid ${isValid ? 'rgba(16, 185, 129, 0.35)' : isRevoked ? 'rgba(239, 68, 68, 0.35)' : 'rgba(255, 255, 255, 0.1)'}`,
         borderRadius: '18px',
-        padding: '2.5rem 2rem',
+        padding: 'clamp(1.25rem, 3vw, 2.5rem) clamp(1rem, 3vw, 2rem)',
+        boxSizing: 'border-box',
         boxShadow: isValid
           ? '0 20px 50px rgba(0, 201, 167, 0.12), 0 0 0 1px rgba(16, 185, 129, 0.15)'
           : isRevoked
@@ -155,7 +159,7 @@ export default function CertificateVerification() {
               }}>
                 <CheckCircle2 size={20} /> ✓ VALID CERTIFICATE
               </div>
-              <h2 style={{ fontSize: '1.65rem', fontWeight: 800, margin: '1rem 0 0.25rem', color: '#f8fafc' }}>
+              <h2 style={{ fontSize: 'clamp(1.25rem, 3.5vw, 1.65rem)', fontWeight: 800, margin: '1rem 0 0.25rem', color: '#f8fafc' }}>
                 CyberGuardian AI Certificate Verified
               </h2>
               <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
@@ -166,7 +170,7 @@ export default function CertificateVerification() {
             {/* Certificate Details Grid */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
               gap: '1rem',
               background: 'rgba(255, 255, 255, 0.02)',
               border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -278,11 +282,14 @@ export default function CertificateVerification() {
                 href={`${API}/api/certificates/${cert.certificate_id}/download/`}
                 target="_blank"
                 rel="noreferrer"
+                className="btn-full-mobile"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '0.45rem',
                   padding: '0.65rem 1.3rem',
+                  minHeight: '44px',
                   background: '#00c9a7',
                   color: '#060913',
                   borderRadius: '8px',
@@ -315,7 +322,7 @@ export default function CertificateVerification() {
               }}>
                 <AlertTriangle size={20} /> ⚠ REVOKED CERTIFICATE
               </div>
-              <h2 style={{ fontSize: '1.65rem', fontWeight: 800, margin: '1rem 0 0.25rem', color: '#f87171' }}>
+              <h2 style={{ fontSize: 'clamp(1.25rem, 3.5vw, 1.65rem)', fontWeight: 800, margin: '1rem 0 0.25rem', color: '#f87171' }}>
                 Certificate Revoked
               </h2>
               <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
@@ -330,7 +337,7 @@ export default function CertificateVerification() {
               padding: '1.5rem',
               marginBottom: '1.5rem'
             }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
                   <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase' }}>Certificate ID</div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 700, fontFamily: 'monospace', color: '#f87171' }}>{cert.certificate_id}</div>

@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
   // User Login Flow (/api/login/)
   const loginUser = async (username, password) => {
     try {
-      const response = await fetch('http://localhost:8000/api/login/', {
+      const response = await fetch(`${API_BASE}/api/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyLogin = async (username, password, otp) => {
     try {
-      const response = await fetch('http://localhost:8000/api/verify-login/', {
+      const response = await fetch(`${API_BASE}/api/verify-login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, otp }),
@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }) => {
   // Admin Login Flow (/api/admin/login/) - Strictly NO Public Signup!
   const adminLoginUser = async (username, password) => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/login/', {
+      const response = await fetch(`${API_BASE}/api/admin/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyAdminLogin = async (username, password, otp) => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/verify-login/', {
+      const response = await fetch(`${API_BASE}/api/admin/verify-login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, otp }),
@@ -142,7 +142,7 @@ export const AuthProvider = ({ children }) => {
       const cleanEmail = (email || '').trim().toLowerCase();
       const cleanPhone = (phone_number || '').trim();
 
-      const response = await fetch('http://localhost:8000/api/register/', {
+      const response = await fetch(`${API_BASE}/api/register/`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -180,7 +180,7 @@ export const AuthProvider = ({ children }) => {
       const cleanUsername = (username || '').trim();
       const cleanOtp = (otp || '').trim();
 
-      const response = await fetch('http://localhost:8000/api/verify-registration/', {
+      const response = await fetch(`${API_BASE}/api/verify-registration/`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -202,7 +202,7 @@ export const AuthProvider = ({ children }) => {
   const resendRegistrationOTP = async (username) => {
     try {
       const cleanUsername = (username || '').trim();
-      const response = await fetch('http://localhost:8000/api/resend-registration-otp/', {
+      const response = await fetch(`${API_BASE}/api/resend-registration-otp/`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -224,7 +224,7 @@ export const AuthProvider = ({ children }) => {
   // Password Reset Flow
   const forgotPassword = async (email) => {
     try {
-      const response = await fetch('http://localhost:8000/api/forgot-password/', {
+      const response = await fetch(`${API_BASE}/api/forgot-password/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -238,7 +238,7 @@ export const AuthProvider = ({ children }) => {
 
   const resetPassword = async (email, otp, new_password) => {
     try {
-      const response = await fetch('http://localhost:8000/api/reset-password/', {
+      const response = await fetch(`${API_BASE}/api/reset-password/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp, new_password }),

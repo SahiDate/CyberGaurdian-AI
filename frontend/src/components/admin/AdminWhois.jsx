@@ -3,7 +3,7 @@ import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
 import { subscribeSecurityEvents } from '../../utils/securityEventBus';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const AGE_BADGE_STYLES = {
   NEW:         { color: '#e3b341', bg: 'rgba(227,179,65,0.15)', border: '#e3b341', label: '🆕 New (< 90d)' },

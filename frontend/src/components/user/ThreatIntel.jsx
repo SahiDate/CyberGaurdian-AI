@@ -3,7 +3,7 @@ import Navbar from '../shared/Navbar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const SEVERITY_CONFIG = {
   CRITICAL: { color: '#f85149', bg: 'rgba(248,81,73,0.15)', border: '#f85149' },
@@ -161,7 +161,7 @@ export default function ThreatIntel() {
     <div style={{ minHeight: '100vh', color: 'var(--text-main)', paddingBottom: '4rem', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <Navbar />
 
-      <main style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 1.5rem' }}>
+      <main className="responsive-page-container" style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 clamp(0.5rem, 2.5vw, 1.5rem)', boxSizing: 'border-box' }}>
         
         {/* Header Title */}
         <div style={{ marginBottom: '2rem' }}>
@@ -183,8 +183,8 @@ export default function ThreatIntel() {
           </h2>
 
           <form onSubmit={handleScanSubmit}>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-              <div style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div className="form-row-responsive" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+              <div style={{ flex: '1 1 240px', minWidth: 0, width: '100%', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Target (Domain, URL, IP, or SHA-256 Hash)
                 </label>
@@ -231,12 +231,15 @@ export default function ThreatIntel() {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <div style={{ width: 'auto' }}>
                 <button
                   type="submit"
                   disabled={loading || !target.trim()}
+                  className="btn-full-mobile"
                   style={{
                     padding: '0.9rem 2.2rem',
+                    minHeight: '44px',
+                    justifyContent: 'center',
                     fontSize: '1rem',
                     fontWeight: 700,
                     background: loading ? 'rgba(56, 139, 253, 0.5)' : 'var(--accent-color)',
@@ -289,7 +292,7 @@ export default function ThreatIntel() {
               </div>
 
               {/* Threat Score Gauge Box */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--panel-subtle-bg, #f8fafc)', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap', background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--panel-subtle-bg, #f8fafc)', padding: '0.85rem clamp(0.75rem, 2vw, 1.5rem)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '2.2rem', fontWeight: 900, color: SEVERITY_CONFIG[scanResult.severity]?.color || 'var(--text-main)', lineHeight: 1 }}>
                     {scanResult.threat_score}
@@ -409,6 +412,21 @@ export default function ThreatIntel() {
                       )}
                       {prov.raw_summary.reputation !== undefined && (
                         <div>VT Reputation Score: <strong>{prov.raw_summary.reputation}</strong></div>
+                      )}
+                      {prov.raw_summary.in_database !== undefined && (
+                        <div>
+                          PhishTank: <strong>{prov.raw_summary.in_database ? (prov.raw_summary.verified ? 'Verified Phishing Site 🚨' : 'In Database (Unverified)') : 'Not In Database (Clean) ✅'}</strong>
+                          {prov.raw_summary.phish_id && (
+                            <span> | Phish ID: #{prov.raw_summary.phish_id}</span>
+                          )}
+                          {prov.raw_summary.phish_detail_page && (
+                            <div>
+                              <a href={prov.raw_summary.phish_detail_page} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'underline' }}>
+                                View PhishTank Advisory ↗
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}

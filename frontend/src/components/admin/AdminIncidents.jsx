@@ -6,7 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Flame, RotateCw, Search, CheckCircle, AlertTriangle, X, Plus } from 'lucide-react';
 import { emitSecurityEvent } from '../../utils/securityEventBus';
 
-const API = 'http://localhost:8000';
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const STATUS_CONFIG = {
   OPEN:          { color: '#ef4444', label: 'Open' },

@@ -16,7 +16,7 @@ export default function UserProfile() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/profile/', {
+      const response = await fetch(`${API_BASE}/api/profile/`, {
         headers: { 'Authorization': `Bearer ${authTokens?.access}` }
       });
       if (response.ok) {
@@ -35,7 +35,7 @@ export default function UserProfile() {
     setSaving(true);
     setMsg(null);
     try {
-      const response = await fetch('http://localhost:8000/api/profile/', {
+      const response = await fetch(`${API_BASE}/api/profile/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -59,9 +59,9 @@ export default function UserProfile() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-main)', paddingBottom: '3rem', transition: 'background-color 0.25s ease, color 0.25s ease' }}>
       <Navbar />
 
-      <main style={{ maxWidth: '700px', margin: '0 auto', padding: '0 1.5rem' }}>
-        <div className="glass-panel" style={{ padding: '2.5rem', borderRadius: '12px' }}>
-          <h2 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-color)' }}>👤 User Profile</h2>
+      <main className="responsive-page-container" style={{ maxWidth: '700px', margin: '0 auto', padding: '0 clamp(1rem, 3vw, 1.5rem)' }}>
+        <div className="glass-panel" style={{ padding: 'clamp(1.25rem, 3vw, 2.5rem)', borderRadius: '12px', boxSizing: 'border-box' }}>
+          <h2 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-color)', fontSize: 'clamp(1.25rem, 3vw, 1.5rem)' }}>👤 User Profile</h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
             Manage account information and security contact details.
           </p>
@@ -111,8 +111,9 @@ export default function UserProfile() {
               />
             </div>
 
-            <button type="submit" disabled={saving} style={{
+            <button type="submit" disabled={saving} className="btn-full-mobile" style={{
               padding: '0.85rem',
+              minHeight: '44px',
               background: 'var(--accent-color)',
               color: '#fff',
               border: 'none',
