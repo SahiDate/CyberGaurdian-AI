@@ -1,5 +1,5 @@
 {
-  "applicationId": "88a2e2ad-be99-463e-82c2-9c6ac80d0bb8",
+  "applicationId": "50c9c5c5-ca39-4ecb-bd2b-ae06f0f3840d",
   "name": "cyberguardian",
-  "subdomain": "cyberguardian"
+  "dashboard": "https://antideploy.com/app/50c9c5c5-ca39-4ecb-bd2b-ae06f0f3840d"
 }

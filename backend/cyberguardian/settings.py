@@ -14,8 +14,8 @@ try:
 except ImportError:
     pass  # python-dotenv not installed; use system environment variables
 
-SECRET_KEY = 'django-insecure-dummy-key-for-cyberguardian'
-DEBUG = True
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dummy-key-for-cyberguardian')
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() in ('true', '1') if os.environ.get('DJANGO_DEBUG') else (os.environ.get('DEBUG', 'False').lower() in ('true', '1'))
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
@@ -91,14 +91,14 @@ if os.environ.get('DATABASE_URL'):
             )
         }
     except ImportError:
-        from urllib.parse import urlparse
+        from urllib.parse import urlparse, unquote
         _db_url = urlparse(os.environ['DATABASE_URL'])
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.postgresql',
-                'NAME': _db_url.path.lstrip('/'),
-                'USER': _db_url.username,
-                'PASSWORD': _db_url.password,
+                'NAME': unquote(_db_url.path.lstrip('/')),
+                'USER': unquote(_db_url.username or ''),
+                'PASSWORD': unquote(_db_url.password or ''),
                 'HOST': _db_url.hostname,
                 'PORT': _db_url.port or 5432,
             }
@@ -162,7 +162,13 @@ if (FRONTEND_DIST / 'assets').exists():
 if FRONTEND_DIST.exists():
     STATICFILES_DIRS.append(FRONTEND_DIST)
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_ROOT = FRONTEND_DIST
+
+try:
+    import whitenoise
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+except ImportError:
+    pass
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
