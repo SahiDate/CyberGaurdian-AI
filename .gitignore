@@ -39,6 +39,7 @@ backend/staticfiles/
 .env
 .env.*
 !.env.example
+!.env.railway.example
 
 # Node / Frontend
 node_modules/

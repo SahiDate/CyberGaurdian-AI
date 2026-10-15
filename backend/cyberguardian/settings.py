@@ -14,9 +14,32 @@ try:
 except ImportError:
     pass  # python-dotenv not installed; use system environment variables
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dummy-key-for-cyberguardian')
-DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() in ('true', '1') if os.environ.get('DJANGO_DEBUG') else (os.environ.get('DEBUG', 'False').lower() in ('true', '1'))
-ALLOWED_HOSTS = ['*']
+_default_insecure_key = 'django-insecure-dummy-key-for-cyberguardian-do-not-use-in-production'
+SECRET_KEY = os.environ.get('SECRET_KEY', _default_insecure_key)
+DEBUG = os.environ.get('DJANGO_DEBUG', os.environ.get('DEBUG', 'False')).lower() in ('true', '1')
+
+# ALLOWED_HOSTS: includes Railway wildcard, custom domain, and localhost for dev
+_raw_allowed = os.environ.get('ALLOWED_HOSTS', '')
+ALLOWED_HOSTS = (
+    [h.strip() for h in _raw_allowed.split(',') if h.strip()]
+    if _raw_allowed
+    else ['*'] if DEBUG
+    else [
+        '.railway.app',
+        'guardianai.tech',
+        'www.guardianai.tech',
+        'localhost',
+        '127.0.0.1',
+    ]
+)
+
+# Warn if running production with the insecure default key
+if not DEBUG and SECRET_KEY == _default_insecure_key:
+    import warnings
+    warnings.warn(
+        'SECRET_KEY is not set. Set the SECRET_KEY environment variable in production!',
+        RuntimeWarning,
+    )
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -173,7 +196,35 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
 
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS: open in dev, locked to known origins in production
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        h for h in [
+            'https://guardianai.tech',
+            'https://www.guardianai.tech',
+            os.environ.get('RAILWAY_PUBLIC_DOMAIN', ''),
+        ] if h
+    ]
+    # Also accept any *.railway.app subdomain automatically
+    CORS_ALLOWED_ORIGIN_REGEXES = [r'^https://.*\.railway\.app$']
+
+# CSRF trusted origins (required for Django's CSRF protection with custom domains)
+CSRF_TRUSTED_ORIGINS = [
+    'https://guardianai.tech',
+    'https://www.guardianai.tech',
+    'https://*.railway.app',
+]
+
+# Production security settings
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Phase 4 — Secure File Analysis Configuration
 MAX_FILE_ANALYSIS_SIZE = int(os.environ.get('MAX_FILE_ANALYSIS_SIZE', 25 * 1024 * 1024))  # Default: 25 MB
@@ -235,6 +286,9 @@ OLLAMA_BASE_URL = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
 OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'qwen2.5:7b')
 AGENT_TIMEOUT = int(os.environ.get('AGENT_TIMEOUT', 45))
 AGENT_MAX_STEPS = int(os.environ.get('AGENT_MAX_STEPS', 5))
-AGENT_ENABLED = os.environ.get('AGENT_ENABLED', 'True').lower() in ('true', '1', 'yes', 'on')
+# AI Agent disabled by default in production (requires Ollama running locally)
+# Set AGENT_ENABLED=True in env only if you have an Ollama instance accessible via OLLAMA_BASE_URL
+_agent_default = 'True' if DEBUG else 'False'
+AGENT_ENABLED = os.environ.get('AGENT_ENABLED', _agent_default).lower() in ('true', '1', 'yes', 'on')
 MAX_CONCURRENT_AGENT_SESSIONS = int(os.environ.get('MAX_CONCURRENT_AGENT_SESSIONS', 3))
 
