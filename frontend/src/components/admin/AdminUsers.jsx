@@ -3,6 +3,7 @@ import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Users, Search, RotateCw, X, Shield, Eye, Trash2 } from 'lucide-react';
+import API_BASE from '../../config/api';
 
 export default function AdminUsers() {
   const { authTokens } = useContext(AuthContext);

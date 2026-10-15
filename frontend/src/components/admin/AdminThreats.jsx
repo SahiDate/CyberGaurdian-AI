@@ -3,6 +3,7 @@ import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { ShieldAlert, RotateCw, Search, ChevronDown, ChevronUp, AlertCircle, ExternalLink } from 'lucide-react';
+import API_BASE from '../../config/api';
 
 const SEV_CONFIG = {
   CRITICAL: { color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },

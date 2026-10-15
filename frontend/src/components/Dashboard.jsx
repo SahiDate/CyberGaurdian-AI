@@ -15,6 +15,7 @@ import ThemeToggle from './ThemeToggle';
 import GlassPanel from './three/GlassPanel';
 import ThreatChart3D from './three/ThreatChart3D';
 import AnimatedHistoryCard from './shared/AnimatedHistoryCard';
+import API_BASE from '../config/api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 

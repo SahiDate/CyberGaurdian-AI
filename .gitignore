@@ -64,4 +64,33 @@ Thumbs.db
 
 # AI Models & Large Weights (Keep Modelfiles, ignore multi-GB GGUF and LoRA adapter weights)
 ai_model/CustomModel/*.gguf
-ai_model/Adapters/
+ai_model/Adapters/
+.agents/skills/gravitas/PROMPT-TEMPLATE.md
+.agents/skills/gravitas/SESSION_FAILURES.md
+.agents/skills/gravitas/SKILL.md
+.agents/skills/gravitas/agents/coordinator.md
+.agents/skills/gravitas/agents/explore.md
+.agents/skills/gravitas/agents/general.md
+.agents/skills/gravitas/agents/plan.md
+.agents/skills/gravitas/agents/verify.md
+.agents/skills/gravitas/references/delegation.md
+.agents/skills/gravitas/references/model-routing.md
+.agents/skills/gravitas/references/reasoning.md
+.agents/skills/gravitas/references/reconnaissance.md
+.agents/skills/gravitas/references/recovery.md
+.agents/skills/gravitas/references/task-contract.md
+.agents/skills/gravitas/references/verification.md
+.agents/skills/gravitas/resources/adversarial-critique.md
+.agents/skills/gravitas/resources/anti-rationalization.md
+.agents/skills/gravitas/resources/context-management.md
+.agents/skills/gravitas/resources/gemini-native.md
+.agents/skills/gravitas/resources/memory-protocol.md
+.agents/skills/gravitas/resources/persona-protocol.md
+.agents/skills/gravitas/resources/subagent-patterns.md
+.agents/skills/gravitas/resources/tool-orchestration.md
+.agents/skills/gravitas/resources/verification-engine.md
+.agents/skills/gravitas/scripts/detect_project.py
+.agents/skills/gravitas/scripts/doctor.py
+.agents/skills/gravitas/scripts/run-checks.sh
+.agents/skills/gravitas/scripts/verify.py
+.agents/skills/gravitas/scripts/verify.sh

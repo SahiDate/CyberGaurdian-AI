@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import Navbar from '../shared/Navbar';
 import AnalysisResults from '../AnalysisResults';
 import { AuthContext } from '../../context/AuthContext';
+import API_BASE from '../../config/api';
 
 export default function UserScanner() {
   const { authTokens } = useContext(AuthContext);

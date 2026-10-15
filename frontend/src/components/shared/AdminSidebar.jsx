@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { subscribeSecurityEvents } from '../../utils/securityEventBus';
+import API_BASE from '../../config/api';
 import {
   LayoutDashboard, BarChart3, Users, ShieldAlert, FileText, Lock,
   Globe, Link2, Cpu, Flame, Bot, Activity, FileCheck, Server,

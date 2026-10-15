@@ -3,6 +3,7 @@ import AdminSidebar from '../shared/AdminSidebar';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Activity, Cpu, HardDrive, Server, RotateCw } from 'lucide-react';
+import API_BASE from '../../config/api';
 
 export default function AdminSystemHealth() {
   const { authTokens } = useContext(AuthContext);
